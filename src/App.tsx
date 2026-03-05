@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { HashRouter as Router, Routes, Route, useLocation, Navigate, Outlet, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { supabase } from './lib/supabase';
+
 import { FavoritesProvider } from './context/FavoritesContext';
 import Home from './pages/Home';
 import PackageDetails from './pages/PackageDetails';
@@ -126,73 +126,14 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
-// Intercepts Supabase recovery tokens from double-hash URLs (HashRouter conflict)
-// URL format: /#/reset-password#access_token=...&refresh_token=...&type=recovery
-const HashRouterRecoveryHandler: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const navigate = useNavigate();
-  const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    const handleRecoveryToken = async () => {
-      try {
-        const fullHash = window.location.hash; // e.g. #/reset-password#access_token=...
-        
-        // Check for double-hash with recovery/signup tokens
-        const secondHashIndex = fullHash.indexOf('#', 1);
-        if (secondHashIndex === -1) {
-          setReady(true);
-          return;
-        }
-
-        const fragment = fullHash.substring(secondHashIndex + 1);
-        const params = new URLSearchParams(fragment);
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-        const type = params.get('type');
-
-        if (accessToken && (type === 'recovery' || type === 'signup' || type === 'magiclink')) {
-          // Clean the URL hash to remove the token fragment
-          const cleanPath = fullHash.substring(1, secondHashIndex); // e.g. /reset-password
-          window.location.hash = cleanPath;
-
-          // Set the session with the extracted tokens
-          if (refreshToken) {
-            await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
-          }
-
-          // Navigate to the target page
-          navigate(cleanPath, { replace: true });
-        }
-      } catch (err) {
-        console.error('Error handling recovery token:', err);
-      } finally {
-        setReady(true);
-      }
-    };
-
-    handleRecoveryToken();
-  }, [navigate]);
-
-  if (!ready) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
-  return <>{children}</>;
-};
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <FavoritesProvider>
       <Router>
-        <HashRouterRecoveryHandler>
+
         <Routes>
           {/* Public & User Routes with Main Layout */}
           {/* Public & User Routes with Main Layout */}
@@ -311,7 +252,7 @@ const App: React.FC = () => {
             </Route>
           </Route>
         </Routes>
-        </HashRouterRecoveryHandler>
+
       </Router>
       </FavoritesProvider>
     </AuthProvider>
