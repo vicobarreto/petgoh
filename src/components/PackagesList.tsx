@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 interface PackageItem {
@@ -36,7 +36,6 @@ const SERVICE_LABELS: Record<string, string> = {
 const PackagesList: React.FC<PackagesListProps> = ({ limit, showTitle = true }) => {
     const [packages, setPackages] = useState<Package[]>([]);
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
 
     useEffect(() => {
         fetchPackages();
@@ -64,10 +63,6 @@ const PackagesList: React.FC<PackagesListProps> = ({ limit, showTitle = true }) 
         setLoading(false);
     };
 
-    const handleBuy = (packageId: string) => {
-        navigate(`/checkout/${packageId}`);
-    };
-
     if (loading) {
         return (
             <div className="w-full flex justify-center py-12">
@@ -93,8 +88,9 @@ const PackagesList: React.FC<PackagesListProps> = ({ limit, showTitle = true }) 
 
             <div className={`grid grid-cols-1 ${gridCols} gap-6 auto-rows-fr`}>
                 {packages.map((pkg) => (
-                    <div
+                    <Link
                         key={pkg.id}
+                        to={`/package/${pkg.id}`}
                         className="relative overflow-hidden rounded-2xl bg-white shadow-md border border-gray-100 flex flex-col hover:shadow-lg transition-shadow cursor-pointer group"
                     >
                         <div className="h-48 relative bg-gray-200 flex-shrink-0">
@@ -129,15 +125,14 @@ const PackagesList: React.FC<PackagesListProps> = ({ limit, showTitle = true }) 
                                     <span className="text-xs text-gray-400">A partir de</span>
                                     <span className="text-2xl font-bold text-secondary">R$ {pkg.price.toFixed(2)}</span>
                                 </div>
-                                <button
-                                    onClick={() => handleBuy(pkg.id)}
+                                <span
                                     className="bg-primary text-white text-sm font-semibold py-2.5 px-5 rounded-xl shadow-sm hover:bg-orange-600 active:scale-95 transition-all"
                                 >
-                                    Reservar
-                                </button>
+                                    Ver Detalhes
+                                </span>
                             </div>
                         </div>
-                    </div>
+                    </Link>
                 ))}
 
                 {limit && (

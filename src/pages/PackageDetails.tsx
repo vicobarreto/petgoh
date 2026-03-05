@@ -1,14 +1,118 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 import { IMAGES } from '../types';
 
+interface PackageItem {
+    id: string;
+    service_type: string;
+    quantity: number;
+}
+
+interface Package {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    type: string;
+    validity_days: number;
+    is_active: boolean;
+    items?: PackageItem[];
+}
+
+const SERVICE_LABELS: Record<string, string> = {
+    hotel: 'Diárias',
+    daycare: 'Creche',
+    bath: 'Banho',
+    grooming: 'Tosa',
+    vet: 'Veterinário',
+    vaccine: 'Vacina',
+    walk: 'Passeio',
+};
+
 const PackageDetails: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+    const { user } = useAuth();
+
+    const [pkg, setPkg] = useState<Package | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [addingToCart, setAddingToCart] = useState(false);
+    const [addedToCart, setAddedToCart] = useState(false);
     const [mainImage, setMainImage] = useState(IMAGES.DOG_RUNNING);
     const [isFavorite, setIsFavorite] = useState(false);
 
-    const toggleFavorite = () => {
-        setIsFavorite(!isFavorite);
+    useEffect(() => {
+        if (!id) {
+            navigate('/packages');
+            return;
+        }
+        fetchPackage();
+    }, [id]);
+
+    const fetchPackage = async () => {
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('packages')
+                .select('*, items:package_items(*)')
+                .eq('id', id)
+                .single();
+
+            if (error || !data) {
+                navigate('/packages');
+                return;
+            }
+            setPkg(data);
+        } catch {
+            navigate('/packages');
+        } finally {
+            setLoading(false);
+        }
     };
+
+    const handleAddToCart = async () => {
+        if (!user) {
+            navigate('/login', { state: { from: `/package/${id}` } });
+            return;
+        }
+
+        setAddingToCart(true);
+        try {
+            const { error } = await supabase
+                .from('cart_items')
+                .upsert(
+                    { user_id: user.id, package_id: id, quantity: 1 },
+                    { onConflict: 'user_id,package_id' }
+                );
+
+            if (error) throw error;
+
+            setAddedToCart(true);
+            setTimeout(() => setAddedToCart(false), 3000);
+        } catch (err: any) {
+            alert('Erro ao adicionar ao carrinho: ' + err.message);
+        } finally {
+            setAddingToCart(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex-grow w-full flex items-center justify-center py-20">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+                    <p className="text-gray-500 text-sm">Carregando pacote...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!pkg) return null;
+
+    const priceFormatted = pkg.price.toFixed(2).replace('.', ',');
+    const installment = (pkg.price / 3).toFixed(2).replace('.', ',');
 
     return (
         <div className="flex-grow w-full max-w-[1280px] mx-auto px-4 md:px-6 py-8">
@@ -16,19 +120,21 @@ const PackageDetails: React.FC = () => {
             <nav className="flex items-center gap-2 text-sm mb-6 text-gray-500">
                 <Link to="/" className="hover:text-primary transition-colors">Home</Link>
                 <span className="material-symbols-outlined text-xs">chevron_right</span>
-                <Link to="/" className="hover:text-primary transition-colors">Pacotes</Link>
+                <Link to="/packages" className="hover:text-primary transition-colors">Pacotes</Link>
                 <span className="material-symbols-outlined text-xs">chevron_right</span>
-                <span className="font-semibold text-[#181310]">Pacote Férias Premium</span>
+                <span className="font-semibold text-[#181310]">{pkg.name}</span>
             </nav>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                 {/* Left Column: Gallery */}
                 <div className="lg:col-span-7 flex flex-col gap-4">
                     <div className="aspect-video w-full rounded-2xl overflow-hidden bg-gray-100 relative group cursor-pointer shadow-sm">
-                        <img src={mainImage} alt="Main" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold shadow-sm flex items-center">
-                            <span className="text-primary mr-1 text-base">★</span> Destaque
-                        </div>
+                        <img src={mainImage} alt={pkg.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                        {pkg.type === 'especial' && (
+                            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold shadow-sm flex items-center">
+                                <span className="text-primary mr-1 text-base">★</span> Destaque
+                            </div>
+                        )}
                     </div>
                     <div className="grid grid-cols-4 gap-4">
                         {[IMAGES.DOG_BED, IMAGES.DOG_CAR, IMAGES.TWO_DOGS].map((img, idx) => (
@@ -44,149 +150,128 @@ const PackageDetails: React.FC = () => {
                             <span className="text-sm font-medium">+5 fotos</span>
                         </div>
                     </div>
-                    {/* Description (Desktop) */}
+
+                    {/* Description */}
                     <div className="mt-8 hidden lg:block">
                         <h3 className="text-xl font-bold mb-4">Sobre este pacote</h3>
                         <div className="prose max-w-none text-gray-600 leading-relaxed">
-                            <p>Garanta as melhores férias para o seu melhor amigo! O <strong>Pacote Férias Premium</strong> combina hospedagem de luxo com transporte seguro, garantindo tranquilidade total para você e diversão para seu pet.</p>
-                            <ul className="list-disc pl-5 mt-4 space-y-2 marker:text-primary">
-                                <li>Monitoramento 24h com câmeras ao vivo.</li>
-                                <li>Atividades recreativas diárias e socialização.</li>
-                                <li>Transporte climatizado com cinto de segurança pet.</li>
-                                <li>Relatórios diários via WhatsApp com fotos e vídeos.</li>
-                            </ul>
+                            <p>{pkg.description || 'Garanta o melhor cuidado para o seu pet com este pacote completo!'}</p>
+                            {pkg.items && pkg.items.length > 0 && (
+                                <div className="mt-6 grid grid-cols-2 gap-3">
+                                    {pkg.items.map((item, i) => (
+                                        <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                                            <span className="material-symbols-outlined text-primary text-lg">check_circle</span>
+                                            <div>
+                                                <span className="text-sm font-semibold text-gray-800">{item.quantity}x</span>
+                                                <span className="text-sm text-gray-600 ml-1">{SERVICE_LABELS[item.service_type] || 'Serviço'}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
 
-                {/* Right Column: Info & Action */}
+                {/* Right Column: Info & Actions */}
                 <div className="lg:col-span-5 flex flex-col gap-6">
-                    {/* Main Info Card */}
                     <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
                         <div className="flex items-start justify-between gap-4 mb-2">
-                            <h1 className="text-3xl font-bold text-[#181310] leading-tight">Pacote Férias Premium</h1>
-                            <button 
-                                onClick={toggleFavorite}
+                            <h1 className="text-3xl font-bold text-[#181310] leading-tight">{pkg.name}</h1>
+                            <button
+                                onClick={() => setIsFavorite(!isFavorite)}
                                 className={`transition-colors ${isFavorite ? 'text-red-500 scale-110' : 'text-gray-400 hover:text-red-500'}`}
                             >
                                 <span className={`material-symbols-outlined ${isFavorite ? 'material-symbols-filled' : ''}`}>favorite</span>
                             </button>
                         </div>
+
                         <div className="flex items-center gap-2 mb-6">
-                            <div className="flex text-yellow-400 text-lg">
-                                <span className="material-symbols-outlined fill-current">star</span>
-                                <span className="material-symbols-outlined fill-current">star</span>
-                                <span className="material-symbols-outlined fill-current">star</span>
-                                <span className="material-symbols-outlined fill-current">star</span>
-                                <span className="material-symbols-outlined fill-current">star_half</span>
-                            </div>
-                            <span className="text-sm font-semibold text-[#181310]">4.8</span>
-                            <span className="text-sm text-gray-500">• 124 avaliações</span>
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${pkg.type === 'especial' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                                {pkg.type === 'especial' ? '⭐ Plano Especial' : 'Plano Básico'}
+                            </span>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="text-xs text-gray-500">{pkg.validity_days} dias de validade</span>
                         </div>
+
                         <div className="flex items-baseline gap-2 mb-1">
-                            <span className="text-4xl font-black text-primary">R$ 480,00</span>
-                            <span className="text-sm text-gray-500 line-through">R$ 520,00</span>
+                            <span className="text-4xl font-black text-primary">R$ {priceFormatted}</span>
                         </div>
-                        <p className="text-sm text-gray-500 mb-6">Em até 3x de R$ 160,00 sem juros</p>
-                        <Link to="/checkout" className="w-full bg-primary hover:bg-[#e67a35] text-white font-bold text-lg py-4 rounded-xl shadow-lg shadow-primary/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2">
+                        <p className="text-sm text-gray-500 mb-6">Em até 3x de R$ {installment} sem juros</p>
+
+                        {/* Add to Cart */}
+                        <button
+                            onClick={handleAddToCart}
+                            disabled={addingToCart}
+                            className={`w-full font-bold text-lg py-4 rounded-xl shadow-lg transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 mb-3 ${
+                                addedToCart
+                                    ? 'bg-green-500 text-white shadow-green-200'
+                                    : 'bg-secondary hover:bg-blue-900 text-white shadow-secondary/30'
+                            }`}
+                        >
+                            {addingToCart ? (
+                                <>
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Adicionando...
+                                </>
+                            ) : addedToCart ? (
+                                <>
+                                    <span className="material-symbols-outlined">check_circle</span>
+                                    Adicionado ao Carrinho!
+                                </>
+                            ) : (
+                                <>
+                                    <span className="material-symbols-outlined">shopping_cart</span>
+                                    Adicionar ao Carrinho
+                                </>
+                            )}
+                        </button>
+
+                        {addedToCart && (
+                            <Link
+                                to="/cart"
+                                className="w-full mb-3 h-12 bg-gray-100 text-gray-700 font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors text-sm"
+                            >
+                                <span className="material-symbols-outlined text-lg">shopping_bag</span>
+                                Ver Carrinho
+                            </Link>
+                        )}
+
+                        {/* Buy Now */}
+                        <Link
+                            to={`/checkout/${pkg.id}`}
+                            className="w-full bg-primary hover:bg-[#e67a35] text-white font-bold text-lg py-4 rounded-xl shadow-lg shadow-primary/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
+                        >
                             <span>Comprar Agora</span>
                             <span className="material-symbols-outlined">arrow_forward</span>
                         </Link>
+
                         <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-500">
                             <span className="material-symbols-outlined text-sm text-green-500">verified_user</span>
                             Pagamento 100% seguro e dividido automaticamente.
                         </div>
                     </div>
 
-                    {/* Partners Breakdown Section */}
-                    <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
-                        <h3 className="text-lg font-bold text-[#181310] mb-4 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-primary">group_work</span>
-                            Quem vai cuidar do seu pet?
-                        </h3>
-                        <div className="space-y-4">
-                            {/* Partner 1 */}
-                            <div className="flex items-start gap-4 p-4 rounded-xl bg-background-light border border-transparent hover:border-primary/30 transition-colors group">
-                                <div className="bg-white p-3 rounded-lg shadow-sm text-primary group-hover:scale-110 transition-transform">
-                                    <span className="material-symbols-outlined text-2xl">bed</span>
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex justify-between items-start">
-                                        <h4 className="font-bold text-[#181310] text-base">Hotel PetLove</h4>
-                                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-md font-semibold">Parceiro Ouro</span>
+                    {/* Services Included (mobile visible) */}
+                    {pkg.items && pkg.items.length > 0 && (
+                        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 lg:hidden">
+                            <h3 className="text-lg font-bold text-[#181310] mb-4 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary">inventory_2</span>
+                                Serviços Inclusos
+                            </h3>
+                            <div className="grid grid-cols-2 gap-3">
+                                {pkg.items.map((item, i) => (
+                                    <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                                        <span className="material-symbols-outlined text-primary text-lg">check_circle</span>
+                                        <div>
+                                            <span className="text-sm font-semibold text-gray-800">{item.quantity}x</span>
+                                            <span className="text-sm text-gray-600 ml-1">{SERVICE_LABELS[item.service_type] || 'Serviço'}</span>
+                                        </div>
                                     </div>
-                                    <p className="text-sm text-gray-600 mt-1">Hospedagem completa com ar condicionado.</p>
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <span className="text-xs font-semibold bg-gray-200 text-gray-700 px-2 py-0.5 rounded">2 diárias</span>
-                                        <Link to="/partner" className="text-xs text-primary hover:underline ml-auto">Ver perfil</Link>
-                                    </div>
-                                </div>
-                            </div>
-                            {/* Dotted Line */}
-                            <div className="flex justify-center -my-2">
-                                <div className="h-6 border-l-2 border-dashed border-gray-300"></div>
-                            </div>
-                            {/* Partner 2 */}
-                            <div className="flex items-start gap-4 p-4 rounded-xl bg-background-light border border-transparent hover:border-primary/30 transition-colors group">
-                                <div className="bg-white p-3 rounded-lg shadow-sm text-primary group-hover:scale-110 transition-transform">
-                                    <span className="material-symbols-outlined text-2xl">local_taxi</span>
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex justify-between items-start">
-                                        <h4 className="font-bold text-[#181310] text-base">Táxi Dog Express</h4>
-                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-md font-semibold">4.9 ★</span>
-                                    </div>
-                                    <p className="text-sm text-gray-600 mt-1">Transporte especializado com segurança.</p>
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <span className="text-xs font-semibold bg-gray-200 text-gray-700 px-2 py-0.5 rounded">Ida e volta</span>
-                                        <Link to="/partner" className="text-xs text-primary hover:underline ml-auto">Ver perfil</Link>
-                                    </div>
-                                </div>
+                                ))}
                             </div>
                         </div>
-                        <div className="mt-4 p-3 bg-blue-50 rounded-lg flex gap-3 items-start">
-                            <span className="material-symbols-outlined text-blue-500 text-lg mt-0.5">info</span>
-                            <p className="text-xs text-blue-800 leading-relaxed">
-                                Ao comprar este pacote, o pagamento é dividido automaticamente entre o <strong>Hotel PetLove</strong> e o <strong>Táxi Dog Express</strong>. Transparência total para você e nossos parceiros.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-             {/* Reviews Section */}
-             <div className="mt-12 lg:mt-20 border-t border-gray-200 pt-10">
-                <h2 className="text-2xl font-bold mb-8">Avaliações de quem comprou</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Review 1 */}
-                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                        <div className="flex items-center gap-3 mb-3">
-                            <img src={IMAGES.AVATAR_WOMAN} alt="User" className="size-10 rounded-full object-cover" />
-                            <div>
-                                <p className="font-bold text-sm">Mariana Silva</p>
-                                <div className="flex text-yellow-400 text-xs">
-                                     {[1,2,3,4,5].map(i => <span key={i} className="material-symbols-outlined fill-current text-[14px]">star</span>)}
-                                </div>
-                            </div>
-                            <span className="text-xs text-gray-400 ml-auto">Há 2 dias</span>
-                        </div>
-                        <p className="text-sm text-gray-600">"Incrível! O táxi chegou pontualmente e recebi fotos do Rex no hotel o tempo todo. A divisão do pagamento facilitou muito."</p>
-                    </div>
-                    {/* Review 2 */}
-                    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                        <div className="flex items-center gap-3 mb-3">
-                            <img src={IMAGES.AVATAR_MAN} alt="User" className="size-10 rounded-full object-cover" />
-                            <div>
-                                <p className="font-bold text-sm">Carlos Eduardo</p>
-                                <div className="flex text-yellow-400 text-xs">
-                                    {[1,2,3,4].map(i => <span key={i} className="material-symbols-outlined fill-current text-[14px]">star</span>)}
-                                    <span className="material-symbols-outlined text-gray-300 text-[14px]">star</span>
-                                </div>
-                            </div>
-                            <span className="text-xs text-gray-400 ml-auto">Há 1 semana</span>
-                        </div>
-                        <p className="text-sm text-gray-600">"Muito prático contratar tudo junto. O Hotel PetLove é excelente, voltarei a usar com certeza."</p>
-                    </div>
+                    )}
                 </div>
             </div>
         </div>
