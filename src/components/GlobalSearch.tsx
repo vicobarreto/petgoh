@@ -91,28 +91,31 @@ const GlobalSearch: React.FC = () => {
         <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh] px-4">
             {/* Backdrop */}
             <div 
-                className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" 
+                className="absolute inset-0 bg-slate-900/40 backdrop-blur-md transition-opacity" 
                 onClick={() => setIsOpen(false)}
             ></div>
 
             {/* Modal */}
-            <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden ring-1 ring-black/5 animate-scale-in">
+            <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden ring-1 ring-black/5 animate-scale-in flex flex-col">
                 {/* Header Input */}
-                <div className="flex items-center border-b border-gray-100 px-4 py-4">
-                    <span className="material-symbols-outlined text-primary text-2xl mr-3">search</span>
+                <div className="flex items-center border-b border-gray-100 px-5 py-4">
+                    <span className="material-symbols-outlined text-primary text-3xl mr-4 opacity-80">search</span>
                     <input
                         ref={inputRef}
                         type="text"
-                        className="flex-1 bg-transparent border-none text-lg text-gray-900 placeholder-gray-400 focus:ring-0 p-0"
+                        className="flex-1 bg-transparent border-none text-xl text-gray-900 placeholder-gray-400 focus:ring-0 p-0"
                         placeholder="Buscar serviços, parceiros, admin..."
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         onKeyDown={handleInputKeyDown}
                     />
-                    <div className="hidden sm:flex items-center gap-1 text-xs text-gray-400 border border-gray-200 rounded px-1.5 py-0.5">
-                        <span className="text-[10px]">ESC</span>
-                        <span>fechar</span>
-                    </div>
+                    <button 
+                        onClick={() => setIsOpen(false)}
+                        className="hidden sm:flex items-center gap-1.5 text-xs text-gray-500 bg-gray-100 hover:bg-gray-200 hover:text-gray-800 transition-colors rounded-lg px-2.5 py-1.5 focus:outline-none"
+                    >
+                        <span className="font-bold text-[10px] bg-white px-1.5 py-0.5 rounded shadow-sm text-gray-400 border border-gray-200">ESC</span>
+                        <span className="font-medium mr-0.5">fechar</span>
+                    </button>
                 </div>
 
                 {/* Results List */}
@@ -149,15 +152,25 @@ const GlobalSearch: React.FC = () => {
                     )}
                     
                     {!query && (
-                        <div className="p-4">
-                            <p className="text-xs font-semibold text-gray-400 px-2 uppercase tracking-wider mb-2">Acesso Rápido</p>
-                            <div className="grid grid-cols-2 gap-2">
-                                <button onClick={() => navigate('/agendar')} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 text-sm text-gray-600 transition-colors">
-                                    <span className="material-symbols-outlined text-secondary text-lg">calendar_month</span>
+                        <div className="p-5 bg-gray-50/50">
+                            <p className="text-[11px] font-bold text-gray-400 px-2 uppercase tracking-wide mb-3">Acesso Rápido</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 px-1">
+                                <button 
+                                    onClick={() => { setIsOpen(false); navigate('/agendar'); }} 
+                                    className="flex items-center gap-3 px-4 py-3 bg-white border border-gray-100 rounded-xl hover:border-secondary/30 hover:shadow-sm text-sm font-medium text-gray-700 transition-all group"
+                                >
+                                    <div className="size-8 rounded-lg bg-secondary/10 flex items-center justify-center group-hover:bg-secondary/20 transition-colors text-secondary">
+                                        <span className="material-symbols-outlined text-[20px]">calendar_month</span>
+                                    </div>
                                     Agendar Consulta
                                 </button>
-                                <button onClick={() => navigate('/carteira')} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 text-sm text-gray-600 transition-colors">
-                                    <span className="material-symbols-outlined text-orange-500 text-lg">wallet</span>
+                                <button 
+                                    onClick={() => { setIsOpen(false); navigate('/carteira'); }} 
+                                    className="flex items-center gap-3 px-4 py-3 bg-white border border-gray-100 rounded-xl hover:border-orange-500/30 hover:shadow-sm text-sm font-medium text-gray-700 transition-all group"
+                                >
+                                    <div className="size-8 rounded-lg bg-orange-100 flex items-center justify-center group-hover:bg-orange-200 transition-colors text-orange-600">
+                                        <span className="material-symbols-outlined text-[20px]">wallet</span>
+                                    </div>
                                     Carteira Digital
                                 </button>
                             </div>
