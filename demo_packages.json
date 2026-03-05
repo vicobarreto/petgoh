@@ -1,0 +1,101 @@
+{
+  "packages": [
+    {
+      "name": "Pacote Verão 2026",
+      "description": "10 diárias de hotel com 2 banhos inclusos",
+      "price": 850.00,
+      "image_url": "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&q=80&w=800",
+      "items": [
+        { "service_type": "hotel", "quantity": 10 },
+        { "service_type": "banho", "quantity": 2 }
+      ]
+    },
+    {
+       "name": "Daycare Mensal",
+       "description": "20 diárias de creche para socialização e diversão",
+       "price": 1200.00,
+       "image_url": "https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&q=80&w=800",
+       "items": [
+         { "service_type": "creche", "quantity": 20 }
+       ]
+    },
+    {
+      "name": "Spa Day Completo",
+      "description": "Banho relaxante, tosa higiênica e hidratação",
+      "price": 180.00,
+      "image_url": "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&q=80&w=800",
+      "items": [
+        { "service_type": "banho", "quantity": 1 },
+        { "service_type": "tosa", "quantity": 1 }
+      ]
+    },
+    {
+      "name": "Semana Produtiva",
+      "description": "5 dias de creche (ideal para semana de trabalho)",
+      "price": 400.00,
+      "image_url": "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&q=80&w=800",
+      "items": [
+        { "service_type": "creche", "quantity": 5 }
+      ]
+    },
+    {
+      "name": "Fim de Semana Zen",
+      "description": "2 diárias de hotel com 1 banho para voltar cheiroso",
+      "price": 250.00,
+      "image_url": "https://images.unsplash.com/photo-1596495578065-6e0763fa1178?auto=format&fit=crop&q=80&w=800",
+      "items": [
+        { "service_type": "hotel", "quantity": 2 },
+        { "service_type": "banho", "quantity": 1 }
+      ]
+    },
+    {
+      "name": "Higiene Plus Mensal",
+      "description": "4 banhos mensais para manter seu pet sempre limpo",
+      "price": 220.00,
+      "image_url": "https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?auto=format&fit=crop&q=80&w=800",
+      "items": [
+        { "service_type": "banho", "quantity": 4 }
+      ]
+    },
+    {
+      "name": "Saúde Preventiva",
+      "description": "3 consultas veterinárias para check-up ao longo do ano",
+      "price": 450.00,
+      "image_url": "https://images.unsplash.com/photo-1628009368231-fb77a0673323?auto=format&fit=crop&q=80&w=800",
+      "items": [
+        { "service_type": "consulta", "quantity": 3 }
+      ]
+    },
+    {
+      "name": "Super Férias",
+      "description": "15 diárias de hotel com 3 banhos e 1 tosa",
+      "price": 1400.00,
+      "image_url": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&q=80&w=800",
+      "items": [
+        { "service_type": "hotel", "quantity": 15 },
+        { "service_type": "banho", "quantity": 3 },
+        { "service_type": "tosa", "quantity": 1 }
+      ]
+    },
+    {
+      "name": "Socialização Intensiva",
+      "description": "10 dias de creche + 2 banhos",
+      "price": 950.00,
+      "image_url": "https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&q=80&w=800",
+      "items": [
+        { "service_type": "creche", "quantity": 10 },
+        { "service_type": "banho", "quantity": 2 }
+      ]
+    },
+    {
+      "name": "Beleza Completa",
+      "description": "Pacote com 4 banhos e 2 tosas",
+      "price": 400.00,
+      "image_url": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=800",
+      "items": [
+        { "service_type": "banho", "quantity": 4 },
+        { "service_type": "tosa", "quantity": 2 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+name: Deploy to cPanel (TurboCloud)
+
+on:
+  push:
+    branches:
+      - main # O deploy será acionado sempre que você fizer um commit na branch 'main'
+
+jobs:
+  build-and-deploy:
+    name: 🚀 Build and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Baixa o código do seu repositório para o servidor do GitHub
+      - name: 📦 Checkout do código
+        uses: actions/checkout@v4
+
+      # 2. Prepara o ambiente instalando o Node.js (necessário para rodar o React/Vite)
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 3. Instala as dependências do seu projeto (npm install)
+      - name: 📥 Instalar dependências
+        run: npm install
+
+      # 4. Faz o build do projeto (gera a pasta 'dist')
+      - name: 🏗️ Build do projeto
+        run: npm run build
+
+      # 5. Envia a pasta 'dist' gerada para a TurboCloud via FTP/FTPS
+      - name: 📤 FTP Deploy
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./dist/      # Pasta onde o Vite e React geram o site pronto
+          server-dir: /public_html/ # A pasta destino na sua hospedagem

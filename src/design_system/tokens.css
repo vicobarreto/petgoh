@@ -1,0 +1,22 @@
+:root {
+  /* Brand Colors */
+  --color-primary: #FF8C42;
+  --color-primary-dark: #e67a35;
+  --color-secondary: #1E3A8A;
+
+  /* Background Colors */
+  --color-background-light: #f8f7f5;
+  --color-background-dark: #23170f;
+
+  /* Surface Colors */
+  --color-surface-light: #ffffff;
+  --color-surface-dark: #2d241e;
+
+  /* Typography */
+  --font-family-sans: 'Inter', sans-serif;
+  --font-family-display: 'Inter', sans-serif;
+}
+
+.dark {
+  /* Dark Mode Overrides (if needed in future) */
+}
