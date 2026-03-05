@@ -89,6 +89,8 @@ const PackageDetails: React.FC = () => {
 
             if (error) throw error;
 
+            window.dispatchEvent(new CustomEvent('cartUpdated'));
+
             setAddedToCart(true);
             setTimeout(() => setAddedToCart(false), 3000);
         } catch (err: any) {

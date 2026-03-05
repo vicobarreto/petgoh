@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import { IMAGES } from '../types';
 import logoPetgoh from '../imagens/logo-petgoh.png';
 
@@ -9,6 +11,37 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ simple }) => {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const [cartCount, setCartCount] = useState(0);
+
+    const fetchCartCount = async () => {
+        if (!user) {
+            setCartCount(0);
+            return;
+        }
+        
+        try {
+            const { count, error } = await supabase
+                .from('cart_items')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.id);
+                
+            if (!error && count !== null) {
+                setCartCount(count);
+            }
+        } catch (err) {
+            console.error('Error fetching cart count:', err);
+        }
+    };
+
+    useEffect(() => {
+        fetchCartCount();
+        
+        const handleCartUpdate = () => fetchCartCount();
+        window.addEventListener('cartUpdated', handleCartUpdate);
+        
+        return () => window.removeEventListener('cartUpdated', handleCartUpdate);
+    }, [user]);
 
     const triggerSearch = () => {
         window.dispatchEvent(new CustomEvent('open-search'));
@@ -86,7 +119,11 @@ const Header: React.FC<HeaderProps> = ({ simple }) => {
                         
                         <Link to="/cart" className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
                             <span className="material-symbols-outlined text-2xl text-gray-600">shopping_cart</span>
-                            <span className="absolute -top-1 -right-1 bg-secondary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white">2</span>
+                            {cartCount > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-secondary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white">
+                                    {cartCount}
+                                </span>
+                            )}
                         </Link>
                         
                         <Link to="/profile" className="flex items-center gap-3 pl-2 cursor-pointer">

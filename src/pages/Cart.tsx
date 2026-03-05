@@ -123,6 +123,7 @@ const Cart: React.FC = () => {
 
             setItems(prev => prev.filter(i => i.id !== itemId));
             fetchHistory();
+            window.dispatchEvent(new CustomEvent('cartUpdated'));
         } catch (err: any) {
             alert('Erro ao remover: ' + err.message);
         } finally {
@@ -149,6 +150,7 @@ const Cart: React.FC = () => {
 
             fetchCart();
             fetchHistory();
+            window.dispatchEvent(new CustomEvent('cartUpdated'));
         } catch (err: any) {
             alert('Erro: ' + err.message);
         }
