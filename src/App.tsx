@@ -28,6 +28,7 @@ import Favorites from './pages/Favorites';
 // New Auth Pages
 import Login from './pages/Login';
 import Register from './pages/Register';
+import RegisterPartner from './pages/RegisterPartner';
 import Packages from './pages/Packages';
 import UserPackages from './pages/UserPackages';
 import ForgotPassword from './pages/ForgotPassword';
@@ -94,7 +95,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const isCheckout = location.pathname.startsWith('/checkout');
   const isPartnerDashboard = location.pathname.startsWith('/partner');
-  const isAuthPage = ['/login', '/register', '/register-pet', '/forgot-password', '/reset-password'].includes(location.pathname);
+  const isAuthPage = ['/login', '/register', '/register-pet', '/register-partner', '/forgot-password', '/reset-password'].includes(location.pathname);
   const isAdminSection = location.pathname.startsWith('/admin');
   
   const isFullScreenPage = [
@@ -213,6 +214,7 @@ const App: React.FC = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/register-partner" element={<RegisterPartner />} />
           <Route path="/register-pet" element={<PetRegistration />} />
           <Route path="/register-pet" element={<PetRegistration />} />
           <Route path="/reset-password" element={<ResetPassword />} />
