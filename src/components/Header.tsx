@@ -62,7 +62,6 @@ const Header: React.FC<HeaderProps> = ({ simple }) => {
                 <div className="flex items-center gap-3 md:gap-6">
                     <nav className="hidden lg:flex items-center gap-6">
                         <Link to="/" className="text-sm font-medium hover:text-primary transition-colors">Serviços</Link>
-                        <Link to="/profile?tab=favorites" className="text-sm font-medium hover:text-primary transition-colors">Favoritos</Link>
                         <Link to="/partner" className="text-sm font-medium hover:text-primary transition-colors">Parceiros</Link>
                     </nav>
                     
@@ -79,6 +78,10 @@ const Header: React.FC<HeaderProps> = ({ simple }) => {
                         <Link to="/notifications" className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
                             <span className="material-symbols-outlined text-2xl text-gray-600">notifications</span>
                             <span className="absolute top-2 right-2 size-2 bg-red-500 rounded-full border border-white"></span>
+                        </Link>
+                        
+                        <Link to="/profile?tab=favorites" className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
+                            <span className="material-symbols-outlined text-2xl text-gray-600">favorite</span>
                         </Link>
                         
                         <Link to="/cart" className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
