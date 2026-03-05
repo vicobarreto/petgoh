@@ -15,11 +15,12 @@ const PartnerRoute: React.FC = () => {
     }
 
     if (!user) {
-        return <Navigate to="/login" state={{ from: location }} replace />;
+        return <Navigate to="/partner" state={{ from: location }} replace />;
     }
 
     if (user.role !== 'partner' && user.role !== 'admin') {
-        return <Navigate to="/unauthorized" replace />;
+        // Just redirect them to /partner so the portal can show them the exact "You are a Tutor" error
+        return <Navigate to="/partner" replace />;
     }
 
     return <Outlet />;

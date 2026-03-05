@@ -40,7 +40,9 @@ const AdminSidebar: React.FC = () => {
     return (
         <aside className="w-72 bg-white dark:bg-zinc-900 border-r border-slate-200 dark:border-zinc-800 flex flex-col fixed h-full z-20">
             <div className="p-6 flex items-center gap-3 justify-center border-b border-slate-100 dark:border-zinc-800">
-                <img src={logoPetgoh} alt="PetGoH Logo" className="h-12 w-auto" />
+                <Link to="/" className="hover:opacity-90 transition-opacity">
+                    <img src={logoPetgoh} alt="PetGoH Logo" className="h-12 w-auto" />
+                </Link>
             </div>
             <nav className="flex-1 mt-4 px-3 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-zinc-700">
                 {navItems.map(item => (

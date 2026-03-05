@@ -8,6 +8,7 @@ import PackageDetails from './pages/PackageDetails';
 import Checkout from './pages/Checkout';
 import MyOrders from './pages/MyOrders';
 import PartnerDashboard from './pages/PartnerDashboard';
+import PartnerPortal from './pages/PartnerPortal';
 import Hospedagem from './pages/Hospedagem';
 import Saude from './pages/Saude';
 import Estetica from './pages/Estetica';
@@ -94,8 +95,8 @@ import GlobalSearch from './components/GlobalSearch';
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const isCheckout = location.pathname.startsWith('/checkout');
-  const isPartnerDashboard = location.pathname.startsWith('/partner');
-  const isAuthPage = ['/login', '/register', '/register-pet', '/register-partner', '/forgot-password', '/reset-password'].includes(location.pathname);
+  const isPartnerDashboard = location.pathname.startsWith('/partner/dashboard');
+  const isAuthPage = ['/login', '/register', '/register-pet', '/register-partner', '/forgot-password', '/reset-password', '/partner'].includes(location.pathname);
   const isAdminSection = location.pathname.startsWith('/admin');
   
   const isFullScreenPage = [
@@ -147,9 +148,10 @@ const App: React.FC = () => {
             <Route path="/orders" element={<MyOrders />} />
           </Route>
 
-          {/* Partner Routes — Protected by PartnerRoute */}
+          {/* Partner Routes */}
+          <Route path="/partner" element={<PartnerPortal />} />
           <Route element={<PartnerRoute />}>
-            <Route path="/partner" element={<PartnerDashboard />} />
+            <Route path="/partner/dashboard" element={<PartnerDashboard />} />
           </Route>
 
           <Route element={<Layout><Outlet /></Layout>}>
