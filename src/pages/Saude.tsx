@@ -58,23 +58,28 @@ const Saude: React.FC = () => {
 
     const fetchData = async () => {
         setLoading(true);
-        const [servicesRes, vetsRes] = await Promise.all([
-            supabase
-                .from('health_services')
-                .select('*')
-                .eq('is_active', true)
-                .order('category'),
-            supabase
-                .from('partners')
-                .select('*')
-                .eq('category', 'Veterinário')
-                .eq('status', 'active')
-                .order('rating', { ascending: false }),
-        ]);
+        try {
+            const [servicesRes, vetsRes] = await Promise.all([
+                supabase
+                    .from('health_services')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('category'),
+                supabase
+                    .from('partners')
+                    .select('*')
+                    .eq('category', 'Veterinário')
+                    .eq('status', 'active')
+                    .order('rating', { ascending: false }),
+            ]);
 
-        if (servicesRes.data) setServices(servicesRes.data);
-        if (vetsRes.data) setVets(vetsRes.data);
-        setLoading(false);
+            if (servicesRes.data) setServices(servicesRes.data);
+            if (vetsRes.data) setVets(vetsRes.data);
+        } catch (err) {
+            console.error('Erro ao carregar dados de saúde:', err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleSelectService = (service: HealthService) => {

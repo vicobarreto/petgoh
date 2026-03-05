@@ -53,23 +53,28 @@ const Estetica: React.FC = () => {
 
     const fetchData = async () => {
         setLoading(true);
-        const [servicesRes, partnersRes] = await Promise.all([
-            supabase
-                .from('beauty_services')
-                .select('*')
-                .eq('is_active', true)
-                .order('price'),
-            supabase
-                .from('partners')
-                .select('*')
-                .eq('category', 'Banho e Tosa')
-                .eq('status', 'active')
-                .order('rating', { ascending: false }),
-        ]);
+        try {
+            const [servicesRes, partnersRes] = await Promise.all([
+                supabase
+                    .from('beauty_services')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('price'),
+                supabase
+                    .from('partners')
+                    .select('*')
+                    .eq('category', 'Banho e Tosa')
+                    .eq('status', 'active')
+                    .order('rating', { ascending: false }),
+            ]);
 
-        if (servicesRes.data) setServices(servicesRes.data);
-        if (partnersRes.data) setPartners(partnersRes.data);
-        setLoading(false);
+            if (servicesRes.data) setServices(servicesRes.data);
+            if (partnersRes.data) setPartners(partnersRes.data);
+        } catch (err) {
+            console.error('Erro ao carregar dados de estética:', err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const getServiceImage = (name: string) => {
