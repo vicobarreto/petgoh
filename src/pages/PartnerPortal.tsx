@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import logoPetgoh from '../imagens/logo-petgoh.png';
 
@@ -15,8 +15,7 @@ const PartnerPortal: React.FC = () => {
     // If user is already logged in, check their role
     if (user) {
         if (user.role === 'partner' || user.role === 'admin') {
-            navigate('/partner/dashboard', { replace: true });
-            return null;
+            return <Navigate to="/partner/dashboard" replace />;
         } else {
             // Tutor logged in trying to access partner portal
             return (
