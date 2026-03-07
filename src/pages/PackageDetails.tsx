@@ -115,6 +115,7 @@ const PackageDetails: React.FC = () => {
 
     const priceFormatted = pkg.price.toFixed(2).replace('.', ',');
     const installment = (pkg.price / 3).toFixed(2).replace('.', ',');
+    const hasHotelItems = pkg.items?.some(i => i.service_type === 'hotel') || false;
 
     return (
         <div className="flex-grow w-full max-w-[1280px] mx-auto px-4 md:px-6 py-8">
@@ -239,12 +240,12 @@ const PackageDetails: React.FC = () => {
                             </Link>
                         )}
 
-                        {/* Buy Now */}
+                        {/* Buy Now / Booking Flow */}
                         <Link
-                            to={`/checkout/${pkg.id}`}
+                            to={hasHotelItems ? `/package/${pkg.id}/booking` : `/checkout/${pkg.id}`}
                             className="w-full bg-primary hover:bg-[#e67a35] text-white font-bold text-lg py-4 rounded-xl shadow-lg shadow-primary/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
                         >
-                            <span>Comprar Agora</span>
+                            <span>{hasHotelItems ? 'Escolher Hotéis e Datas' : 'Comprar Agora'}</span>
                             <span className="material-symbols-outlined">arrow_forward</span>
                         </Link>
 

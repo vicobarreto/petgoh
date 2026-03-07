@@ -11,11 +11,23 @@ const CreatePackage: React.FC = () => {
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('');
     const [imageUrl, setImageUrl] = useState('');
+    const [packageType, setPackageType] = useState('basico');
+    const [validityDays, setValidityDays] = useState('30');
     
     // Items State
     const [items, setItems] = useState<{service_type: string, quantity: number}[]>([
         { service_type: 'hotel', quantity: 1 }
     ]);
+
+    // Hotel linking state
+    interface HotelPartner {
+        id: string;
+        company_name: string;
+        logo_url: string | null;
+        rating: number;
+    }
+    const [hotelPartners, setHotelPartners] = useState<HotelPartner[]>([]);
+    const [selectedHotels, setSelectedHotels] = useState<Record<string, { selected: boolean; avulsoPrice: string }>>({});
 
     const serviceTypes = [
         { id: 'hotel', label: 'Hospedagem (Diárias)' },
@@ -24,6 +36,27 @@ const CreatePackage: React.FC = () => {
         { id: 'tosa', label: 'Tosa' },
         { id: 'consulta', label: 'Consulta Veterinária' }
     ];
+
+    // Fetch hotel partners on mount
+    React.useEffect(() => {
+        const fetchHotels = async () => {
+            const { data } = await supabase
+                .from('partners')
+                .select('id, company_name, logo_url, rating')
+                .eq('category', 'Hotel')
+                .eq('status', 'active')
+                .order('company_name');
+            if (data) {
+                setHotelPartners(data);
+                const init: Record<string, { selected: boolean; avulsoPrice: string }> = {};
+                data.forEach((h: HotelPartner) => {
+                    init[h.id] = { selected: false, avulsoPrice: '' };
+                });
+                setSelectedHotels(init);
+            }
+        };
+        fetchHotels();
+    }, []);
 
     const handleAddItem = () => {
         setItems([...items, { service_type: 'hotel', quantity: 1 }]);
@@ -76,6 +109,25 @@ const CreatePackage: React.FC = () => {
                 .insert(itemsToInsert);
 
             if (itemsError) throw itemsError;
+
+            // 3. Link Hotels
+            const hotelLinks = Object.entries(selectedHotels)
+                .filter(([, val]) => (val as { selected: boolean; avulsoPrice: string }).selected && (val as { selected: boolean; avulsoPrice: string }).avulsoPrice)
+                .map(([partnerId, rawVal]) => {
+                    const val = rawVal as { selected: boolean; avulsoPrice: string };
+                    return {
+                        package_id: pkgData.id,
+                        partner_id: partnerId,
+                        avulso_price_per_night: parseFloat(val.avulsoPrice),
+                    };
+                });
+
+            if (hotelLinks.length > 0) {
+                const { error: hotelError } = await supabase
+                    .from('package_hotels')
+                    .insert(hotelLinks);
+                if (hotelError) throw hotelError;
+            }
 
             alert('Pacote criado com sucesso!');
             navigate('/admin/packages');
@@ -201,6 +253,67 @@ const CreatePackage: React.FC = () => {
                         ))}
                     </div>
                 </div>
+
+                {/* Hotel Linking */}
+                {items.some(i => i.service_type === 'hotel') && (
+                    <div className="mb-8">
+                        <h2 className="text-xl font-bold text-gray-700 mb-4 pb-2 border-b border-gray-100">3. Hotéis do Pacote</h2>
+                        <p className="text-sm text-gray-500 mb-4">Selecione os hotéis que fazem parte deste pacote e defina o preço avulso por diária.</p>
+                        
+                        {hotelPartners.length === 0 ? (
+                            <div className="text-center py-8 bg-gray-50 rounded-xl border border-gray-200">
+                                <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">hotel</span>
+                                <p className="text-gray-400 text-sm">Nenhum hotel parceiro cadastrado.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {hotelPartners.map((hotel) => {
+                                    const state = selectedHotels[hotel.id];
+                                    if (!state) return null;
+                                    return (
+                                        <div key={hotel.id} className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                                            state.selected ? 'border-primary bg-primary/5' : 'border-gray-200 bg-white hover:border-gray-300'
+                                        }`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={state.selected}
+                                                onChange={(e) => setSelectedHotels(prev => ({
+                                                    ...prev,
+                                                    [hotel.id]: { ...prev[hotel.id], selected: e.target.checked }
+                                                }))}
+                                                className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-bold text-gray-800 text-sm truncate">{hotel.company_name}</h4>
+                                                <div className="flex items-center gap-1 text-xs text-gray-400">
+                                                    <span className="material-symbols-outlined text-[14px] text-yellow-500">star</span>
+                                                    {hotel.rating || '—'}
+                                                </div>
+                                            </div>
+                                            {state.selected && (
+                                                <div className="w-40">
+                                                    <label className="text-xs font-bold text-gray-500 mb-1 block">Preço Avulso/Noite</label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        placeholder="0.00"
+                                                        value={state.avulsoPrice}
+                                                        onChange={(e) => setSelectedHotels(prev => ({
+                                                            ...prev,
+                                                            [hotel.id]: { ...prev[hotel.id], avulsoPrice: e.target.value }
+                                                        }))}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-primary"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Submit */}
                 <div className="flex justify-end gap-4 pt-4 border-t border-gray-100">

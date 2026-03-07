@@ -1,7 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Instagram, Facebook, Linkedin } from 'lucide-react';
 
 const Footer: React.FC = () => {
+    const socialLinks = [
+        { name: 'Instagram', icon: <Instagram size={18} />, href: 'https://instagram.com/petgoh', hoverColor: 'hover:bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]' },
+        { name: 'Facebook', icon: <Facebook size={18} />, href: 'https://facebook.com/petgoh', hoverColor: 'hover:bg-[#1877F2]' },
+        { name: 'LinkedIn', icon: <Linkedin size={18} />, href: 'https://linkedin.com/company/petgoh', hoverColor: 'hover:bg-[#0A66C2]' },
+    ];
+
     return (
         <footer className="bg-[#0F172A] text-white pt-16 pb-8 mt-auto border-t border-[#1E293B]">
             <div className="w-full max-w-[1200px] mx-auto px-6">
@@ -18,9 +25,16 @@ const Footer: React.FC = () => {
                             Conectando tutores aos melhores serviços pet com facilidade e segurança.
                         </p>
                         <div className="flex gap-3">
-                            {['IG', 'FB', 'LI'].map((social) => (
-                                <a key={social} href="#" className="size-9 rounded-full bg-white/5 flex items-center justify-center text-xs font-bold hover:bg-primary hover:text-white transition-all border border-white/10">
-                                    {social}
+                            {socialLinks.map((social) => (
+                                <a 
+                                    key={social.name} 
+                                    href={social.href} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className={`size-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-all border border-white/10 ${social.hoverColor}`}
+                                    title={social.name}
+                                >
+                                    {social.icon}
                                 </a>
                             ))}
                         </div>

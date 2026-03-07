@@ -79,7 +79,7 @@ const PackagesList: React.FC<PackagesListProps> = ({ limit, showTitle = true }) 
         );
     }
 
-    const totalCards = packages.length + (limit ? 1 : 0);
+    const totalCards = packages.length;
     const gridCols = totalCards <= 2 ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3';
 
     return (
@@ -134,25 +134,19 @@ const PackagesList: React.FC<PackagesListProps> = ({ limit, showTitle = true }) 
                         </div>
                     </Link>
                 ))}
-
-                {limit && (
-                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-secondary to-blue-900 shadow-md flex flex-col justify-between p-6 text-white hover:shadow-lg transition-shadow cursor-pointer">
-                        <div>
-                            <div className="flex justify-between items-start">
-                                <h3 className="text-xl font-bold mb-2">Ver Todos os Pacotes</h3>
-                                <span className="material-symbols-outlined text-white/50 text-4xl">inventory_2</span>
-                            </div>
-                            <p className="text-blue-100 text-sm mb-4">Explore todas as opções de pacotes disponíveis para o seu pet.</p>
-                        </div>
-                        <Link
-                            to="/packages"
-                            className="self-start bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white border border-white/20 text-sm font-semibold py-2.5 px-5 rounded-xl transition-colors"
-                        >
-                            Ver Todos
-                        </Link>
-                    </div>
-                )}
             </div>
+
+            {limit && (
+                <div className="w-full flex justify-center mt-10">
+                    <Link
+                        to="/packages"
+                        className="group flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all shadow-sm"
+                    >
+                        Visualizar todos os pacotes
+                        <span className="material-symbols-outlined text-sm transition-transform group-hover:translate-x-1">arrow_forward</span>
+                    </Link>
+                </div>
+            )}
         </section>
     );
 };

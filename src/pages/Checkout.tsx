@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -34,6 +34,12 @@ const Checkout: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
     const { user } = useAuth();
+    const location = useLocation();
+
+    // Booking stays from PackageBooking flow
+    const bookingStays = (location.state as any)?.bookingStays || null;
+    const bookingTotalDiarias = (location.state as any)?.totalDiarias || 0;
+    const bookingPricePerNight = (location.state as any)?.pricePerNightPackage || 0;
 
     const [pkg, setPkg] = useState<Package | null>(null);
     const [loading, setLoading] = useState(true);
@@ -255,6 +261,46 @@ const Checkout: React.FC = () => {
                                     )}
                                 </div>
                             </div>
+
+                            {/* Booking Stays Breakdown (from booking flow) */}
+                            {bookingStays && bookingStays.length > 0 && (
+                                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                    <div className="p-6 border-b border-gray-100 flex items-center gap-3">
+                                        <span className="material-symbols-outlined text-primary">hotel</span>
+                                        <h3 className="text-lg font-bold text-gray-900">Reservas de Hotel</h3>
+                                    </div>
+                                    <div className="p-6 space-y-4">
+                                        {bookingStays.map((stay: any, idx: number) => (
+                                            <div key={idx} className="bg-gray-50 rounded-xl p-4">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <h4 className="font-bold text-gray-900">{stay.partnerName}</h4>
+                                                    <span className="text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
+                                                        {stay.nights} diária{stay.nights > 1 ? 's' : ''}
+                                                    </span>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-3 mb-3">
+                                                    <div>
+                                                        <span className="text-xs text-gray-400">Check-in</span>
+                                                        <p className="text-sm font-semibold text-gray-800">
+                                                            {new Date(stay.checkIn + 'T12:00:00').toLocaleDateString('pt-BR')}
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-xs text-gray-400">Check-out</span>
+                                                        <p className="text-sm font-semibold text-gray-800">
+                                                            {new Date(stay.checkOut + 'T12:00:00').toLocaleDateString('pt-BR')}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
+                                                    <span className="text-gray-500">Avulso: <span className="line-through">R$ {(stay.avulsoPrice * stay.nights).toFixed(2).replace('.', ',')}</span></span>
+                                                    <span className="text-green-600 font-bold">Pacote: R$ {(bookingPricePerNight * stay.nights).toFixed(2).replace('.', ',')}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Continue button */}
                             <button

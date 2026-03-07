@@ -95,8 +95,8 @@ const Home: React.FC = () => {
 
                     </div>
 
-                    {/* Dynamic Packages List (Limit 2 for Home Layout) */}
-                    <PackagesList limit={2} showTitle={false} />
+                    {/* Dynamic Packages List (Limit 3 for Home Layout) */}
+                    <PackagesList limit={3} showTitle={false} />
                 </section>
 
                 {/* Banner Payment */}

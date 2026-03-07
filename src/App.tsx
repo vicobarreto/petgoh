@@ -8,6 +8,7 @@ import PackageDetails from './pages/PackageDetails';
 import Checkout from './pages/Checkout';
 import MyOrders from './pages/MyOrders';
 import PartnerDashboard from './pages/PartnerDashboard';
+import PackageBooking from './pages/PackageBooking';
 import PartnerPortal from './pages/PartnerPortal';
 import Hospedagem from './pages/Hospedagem';
 import Saude from './pages/Saude';
@@ -144,6 +145,7 @@ const App: React.FC = () => {
             <Route path="/packages" element={<Packages />} />
             <Route path="/meus-pacotes" element={<UserPackages />} />
             <Route path="/package/:id" element={<PackageDetails />} />
+            <Route path="/package/:id/booking" element={<PackageBooking />} />
             <Route path="/checkout/:id" element={<Checkout />} />
             <Route path="/orders" element={<MyOrders />} />
           </Route>
