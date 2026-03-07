@@ -335,23 +335,8 @@ const PackageBooking: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <div className="p-4">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <span className="text-xs text-gray-400 font-medium">Diária Avulsa</span>
-                                                <p className="text-lg font-bold text-gray-900">{formatCurrency(hotel.avulso_price_per_night)}<span className="text-xs font-normal text-gray-400">/noite</span></p>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className="text-xs text-green-600 font-medium">No Pacote</span>
-                                                <p className="text-lg font-bold text-green-600">{formatCurrency(pricePerNightPackage)}<span className="text-xs font-normal">/noite</span></p>
-                                            </div>
-                                        </div>
-                                        {hotel.avulso_price_per_night > pricePerNightPackage && (
-                                            <div className="mt-2 bg-green-50 text-green-700 rounded-lg px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
-                                                <span className="material-symbols-outlined text-sm">savings</span>
-                                                Economia de {formatCurrency(hotel.avulso_price_per_night - pricePerNightPackage)} por noite
-                                            </div>
-                                        )}
+                                    <div className="p-4 border-t border-gray-50 bg-gray-50/30 flex justify-center italic text-xs text-gray-400">
+                                        Hotel parceiro verificado
                                     </div>
                                 </div>
                             ))}
