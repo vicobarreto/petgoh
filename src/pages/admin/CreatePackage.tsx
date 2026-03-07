@@ -13,6 +13,9 @@ const CreatePackage: React.FC = () => {
     const [imageUrl, setImageUrl] = useState('');
     const [packageType, setPackageType] = useState('basico');
     const [validityDays, setValidityDays] = useState('30');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [externalLink, setExternalLink] = useState('');
     
     // Items State
     const [items, setItems] = useState<{service_type: string, quantity: number}[]>([
@@ -91,6 +94,9 @@ const CreatePackage: React.FC = () => {
                         image_url: imageUrl,
                         type: packageType,
                         validity_days: parseInt(validityDays),
+                        start_date: startDate || null,
+                        end_date: endDate || null,
+                        external_link: externalLink || null,
                         active: true
                     }
                 ])
@@ -150,109 +156,162 @@ const CreatePackage: React.FC = () => {
                 
                 {/* Basic Info */}
                 <div className="mb-8">
-                    <h2 className="text-xl font-bold text-gray-700 mb-4 pb-2 border-b border-gray-100">1. Informações Básicas</h2>
+                    <h2 className="text-xl font-bold text-gray-700 mb-6 pb-2 border-b border-gray-100 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary">info</span>
+                        1. Informações Básicas
+                    </h2>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="col-span-2">
+                        <div className="col-span-1 md:col-span-2">
                             <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Pacote</label>
                             <input 
                                 type="text" 
                                 required
                                 value={name}
                                 onChange={e => setName(e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                placeholder="Ex: Pacote Verão 2026"
+                                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner"
+                                placeholder="Ex: Pacote Férias Divertidas"
                             />
                         </div>
 
-                        <div className="col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Descrição</label>
+                        <div className="col-span-1 md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Descrição Completa</label>
                             <textarea 
                                 required
                                 value={description}
                                 onChange={e => setDescription(e.target.value)}
-                                rows={3}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                placeholder="Descreva os benefícios do pacote..."
+                                rows={4}
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner resize-y"
+                                placeholder="Descreva todos os benefícios, diferenciais e regras principais deste pacote..."
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Preço (R$)</label>
-                            <input 
-                                type="number" 
-                                required
-                                min="0"
-                                step="0.01"
-                                value={price}
-                                onChange={e => setPrice(e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                placeholder="0.00"
-                            />
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Preço Fixo (R$)</label>
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">R$</span>
+                                <input 
+                                    type="number" 
+                                    required
+                                    min="0"
+                                    step="0.01"
+                                    value={price}
+                                    onChange={e => setPrice(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner"
+                                    placeholder="0.00"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">URL da Capa (Imagem)</label>
+                            <div className="flex gap-4">
+                                <input 
+                                    type="url" 
+                                    value={imageUrl}
+                                    onChange={e => setImageUrl(e.target.value)}
+                                    className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner"
+                                    placeholder="https://sua-imagem.com/foto.jpg"
+                                />
+                                {imageUrl && (
+                                    <div className="size-10 shrink-0 rounded-lg bg-gray-100 overflow-hidden border border-gray-200 shadow-sm flex items-center justify-center">
+                                        <img src={imageUrl} alt="Capa preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">URL da Imagem</label>
-                            <input 
-                                type="url" 
-                                value={imageUrl}
-                                onChange={e => setImageUrl(e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                placeholder="https://..."
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Tipo do Pacote</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Tipo / Estrutura do Pacote</label>
                             <select 
                                 value={packageType}
                                 onChange={e => setPackageType(e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner"
                             >
-                                <option value="basico">Plano Básico (sem dias de fim de semana)</option>
-                                <option value="especial">Plano Especial (inclui finais de semana)</option>
-                                <option value="promo">Promoção Fim de Semana / Direto</option>
+                                <option value="basico">Plano Básico (Sem finais de semana)</option>
+                                <option value="especial">Plano Especial (Inclui finais de semana)</option>
+                                <option value="promo">Promo Especial / Final de Semana (Fixo)</option>
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Dias de Validade</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Validade após a compra (Dias)</label>
                             <input 
                                 type="number" 
                                 min="1"
                                 required
                                 value={validityDays}
                                 onChange={e => setValidityDays(e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner"
                                 placeholder="30"
                             />
+                        </div>
+
+                        <div className="col-span-1 md:col-span-2 border-t border-gray-100 pt-6 mt-2">
+                            <h3 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-orange-500 text-[20px]">event_available</span>
+                                Período Promocional e Divulgação (Opcional)
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Início da Promoção</label>
+                                    <input 
+                                        type="date" 
+                                        value={startDate}
+                                        onChange={e => setStartDate(e.target.value)}
+                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Término da Promoção</label>
+                                    <input 
+                                        type="date" 
+                                        value={endDate}
+                                        onChange={e => setEndDate(e.target.value)}
+                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner"
+                                    />
+                                </div>
+                                <div className="col-span-1 md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Link Externo / Divulgação</label>
+                                    <input 
+                                        type="url" 
+                                        value={externalLink}
+                                        onChange={e => setExternalLink(e.target.value)}
+                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner"
+                                        placeholder="Ex: https://instagram.com/p/..."
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Items */}
                 <div className="mb-8">
-                    <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
-                        <h2 className="text-xl font-bold text-gray-700">2. Itens do Pacote</h2>
+                    <div className="flex justify-between items-center mb-6 pb-2 border-b border-gray-100">
+                        <h2 className="text-xl font-bold text-gray-700 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-primary">featured_play_list</span>
+                            2. Serviços Inclusos
+                        </h2>
                         <button 
                             type="button" 
                             onClick={handleAddItem}
-                            className="text-sm font-bold text-primary hover:text-orange-700 flex items-center gap-1"
+                            className="px-4 py-2 text-sm font-bold text-primary bg-primary/10 rounded-lg hover:bg-primary/20 flex items-center gap-2 transition-colors"
                         >
                             <span className="material-symbols-outlined text-lg">add_circle</span>
-                            Adicionar Item
+                            Novo Item
                         </button>
                     </div>
 
                     <div className="space-y-4">
                         {items.map((item, index) => (
-                            <div key={index} className="flex gap-4 items-end bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <div key={index} className="flex gap-4 items-end bg-gray-50/50 hover:bg-gray-50 p-4 rounded-xl border border-gray-200 transition-colors shadow-sm">
                                 <div className="flex-1">
-                                    <label className="block text-xs font-bold text-gray-500 mb-1">Tipo de Serviço</label>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Serviço Inclusoo</label>
                                     <select 
                                         value={item.service_type}
                                         onChange={e => handleItemChange(index, 'service_type', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary"
+                                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent shadow-inner"
                                     >
                                         {serviceTypes.map(type => (
                                             <option key={type.id} value={type.id}>{type.label}</option>
@@ -260,20 +319,20 @@ const CreatePackage: React.FC = () => {
                                     </select>
                                 </div>
                                 <div className="w-24">
-                                    <label className="block text-xs font-bold text-gray-500 mb-1">Qtd.</label>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Quant.</label>
                                     <input 
                                         type="number" 
                                         min="1"
                                         value={item.quantity}
                                         onChange={e => handleItemChange(index, 'quantity', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary"
+                                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent shadow-inner text-center"
                                     />
                                 </div>
                                 <button 
                                     type="button" 
                                     onClick={() => handleRemoveItem(index)}
-                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                    title="Remover item"
+                                    className="p-2.5 text-red-500 hover:bg-red-50 hover:text-red-700 border border-transparent hover:border-red-100 rounded-lg transition-all"
+                                    title="Remover este serviço"
                                 >
                                     <span className="material-symbols-outlined">delete</span>
                                 </button>
@@ -285,22 +344,30 @@ const CreatePackage: React.FC = () => {
                 {/* Hotel Linking */}
                 {items.some(i => i.service_type === 'hotel') && (
                     <div className="mb-8">
-                        <h2 className="text-xl font-bold text-gray-700 mb-4 pb-2 border-b border-gray-100">3. Hotéis do Pacote</h2>
-                        <p className="text-sm text-gray-500 mb-4">Selecione os hotéis que fazem parte deste pacote e defina o preço avulso por diária.</p>
+                        <div className="mb-6 pb-2 border-b border-gray-100">
+                            <h2 className="text-xl font-bold text-gray-700 flex items-center gap-2 mb-2">
+                                <span className="material-symbols-outlined text-primary">hotel</span>
+                                3. Hotéis Vinculados (Obrigatório)
+                            </h2>
+                            <p className="text-sm text-gray-500">Selecione quais hotéis parceiros aceitam hospedar pets com este pacote. Defina o **preço avulso** de cada um para gerar a exibição de desconto progressivo na reserva.</p>
+                        </div>
                         
                         {hotelPartners.length === 0 ? (
-                            <div className="text-center py-8 bg-gray-50 rounded-xl border border-gray-200">
-                                <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">hotel</span>
-                                <p className="text-gray-400 text-sm">Nenhum hotel parceiro cadastrado.</p>
+                            <div className="flex flex-col items-center justify-center p-10 bg-gray-50 rounded-2xl border border-gray-200 border-dashed">
+                                <div className="size-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-3 shadow-inner">
+                                    <span className="material-symbols-outlined text-3xl">domain_disabled</span>
+                                </div>
+                                <p className="font-semibold text-gray-600">Nenhum hotel parceiro ativo.</p>
+                                <p className="text-xs text-gray-500 mt-1 max-w-sm text-center">Cadastre provedores com a categoria "Hotel" primeiro antes de criar pacotes de hospedagem.</p>
                             </div>
                         ) : (
-                            <div className="space-y-3">
+                            <div className="grid grid-cols-1 gap-3">
                                 {hotelPartners.map((hotel) => {
                                     const state = selectedHotels[hotel.id];
                                     if (!state) return null;
                                     return (
-                                        <div key={hotel.id} className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
-                                            state.selected ? 'border-primary bg-primary/5' : 'border-gray-200 bg-white hover:border-gray-300'
+                                        <div key={hotel.id} className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all shadow-sm ${
+                                            state.selected ? 'border-primary bg-primary/5 shadow-primary/10' : 'border-gray-200 bg-white hover:border-primary/30'
                                         }`}>
                                             <input
                                                 type="checkbox"
