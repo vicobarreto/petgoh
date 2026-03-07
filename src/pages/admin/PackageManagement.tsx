@@ -7,6 +7,12 @@ interface PackageItem {
     quantity: number;
 }
 
+interface HotelPartner {
+    id: string;
+    company_name: string;
+    rating: number | null;
+}
+
 interface Package {
     id: string;
     name: string;
@@ -43,7 +49,28 @@ const PackageManagement: React.FC = () => {
     const [packageItems, setPackageItems] = useState<PackageItem[]>([]);
     const [saving, setSaving] = useState(false);
 
-    useEffect(() => { fetchPackages(); }, []);
+    // Hotel partners
+    const [hotelPartners, setHotelPartners] = useState<HotelPartner[]>([]);
+    const [selectedHotels, setSelectedHotels] = useState<Record<string, { selected: boolean; avulsoPrice: string }>>({});
+
+    useEffect(() => {
+        fetchPackages();
+        fetchHotelPartners();
+    }, []);
+
+    const fetchHotelPartners = async () => {
+        const { data } = await supabase
+            .from('partners')
+            .select('id, company_name, rating')
+            .eq('category', 'Hotel')
+            .eq('status', 'active');
+        if (data) {
+            setHotelPartners(data);
+            const initial: Record<string, { selected: boolean; avulsoPrice: string }> = {};
+            data.forEach((h: HotelPartner) => { initial[h.id] = { selected: false, avulsoPrice: '' }; });
+            setSelectedHotels(initial);
+        }
+    };
 
     const fetchPackages = async () => {
         setLoading(true);
@@ -60,13 +87,40 @@ const PackageManagement: React.FC = () => {
         setPackageItems(data || []);
     };
 
+    const fetchHotelsForPackage = async (packageId: string) => {
+        const { data } = await supabase
+            .from('package_hotels')
+            .select('partner_id, avulso_price')
+            .eq('package_id', packageId);
+        if (data) {
+            setSelectedHotels(prev => {
+                const updated = { ...prev };
+                // reset all first
+                Object.keys(updated).forEach(id => { updated[id] = { selected: false, avulsoPrice: '' }; });
+                data.forEach((row: any) => {
+                    if (updated[row.partner_id]) {
+                        updated[row.partner_id] = { selected: true, avulsoPrice: String(row.avulso_price || '') };
+                    }
+                });
+                return updated;
+            });
+        }
+    };
+
     const handleOpenModal = (pkg?: Package) => {
         if (pkg) {
             setCurrentPackage(pkg);
             fetchItemsForPackage(pkg.id);
+            fetchHotelsForPackage(pkg.id);
         } else {
             setCurrentPackage({ is_active: true, type: 'basico', validity_days: 30 });
             setPackageItems([]);
+            // reset hotel selections
+            setSelectedHotels(prev => {
+                const reset: typeof prev = {};
+                Object.keys(prev).forEach(id => { reset[id] = { selected: false, avulsoPrice: '' }; });
+                return reset;
+            });
         }
         setIsModalOpen(true);
     };
@@ -119,6 +173,19 @@ const PackageManagement: React.FC = () => {
                 }));
                 const { error: itemsError } = await supabase.from('package_items').insert(itemsToInsert);
                 if (itemsError) throw itemsError;
+            }
+
+            // Handle hotel links
+            await supabase.from('package_hotels').delete().eq('package_id', packageId);
+            const hotelsToLink = (Object.entries(selectedHotels) as [string, { selected: boolean; avulsoPrice: string }][])
+                .filter(([, v]) => v.selected)
+                .map(([partnerId, v]) => ({
+                    package_id: packageId,
+                    partner_id: partnerId,
+                    avulso_price: parseFloat(v.avulsoPrice) || 0,
+                }));
+            if (hotelsToLink.length > 0) {
+                await supabase.from('package_hotels').insert(hotelsToLink);
             }
 
             setIsModalOpen(false);
@@ -322,6 +389,53 @@ const PackageManagement: React.FC = () => {
                                         </div>
                                     ))}
                                 </div>
+                            </div>
+
+                            {/* Hotel Partners */}
+                            <div className="border-t border-gray-100 pt-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-primary text-[20px]">hotel</span>
+                                        Parceiros Vinculados
+                                    </h3>
+                                </div>
+                                {hotelPartners.length === 0 ? (
+                                    <p className="text-sm text-gray-400 bg-gray-50 p-4 rounded-xl text-center">Nenhum parceiro do tipo Hotel cadastrado.</p>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {hotelPartners.map(hotel => {
+                                            const state = selectedHotels[hotel.id];
+                                            if (!state) return null;
+                                            return (
+                                                <div key={hotel.id} className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
+                                                    state.selected ? 'border-primary bg-primary/5' : 'border-gray-100 bg-white hover:border-gray-200'
+                                                }`}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={state.selected}
+                                                        onChange={e => setSelectedHotels(prev => ({ ...prev, [hotel.id]: { ...prev[hotel.id], selected: e.target.checked } }))}
+                                                        className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                                                    />
+                                                    <span className="flex-1 text-sm font-medium text-gray-800">{hotel.company_name}</span>
+                                                    {state.selected && (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="text-xs text-gray-400">R$</span>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.01"
+                                                                placeholder="Preço avulso"
+                                                                value={state.avulsoPrice}
+                                                                onChange={e => setSelectedHotels(prev => ({ ...prev, [hotel.id]: { ...prev[hotel.id], avulsoPrice: e.target.value } }))}
+                                                                className="w-28 border border-gray-200 rounded-lg p-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
