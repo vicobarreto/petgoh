@@ -135,18 +135,6 @@ const PackagesList: React.FC<PackagesListProps> = ({ limit, showTitle = true }) 
                     </Link>
                 ))}
             </div>
-
-            {limit && (
-                <div className="w-full flex justify-center mt-10">
-                    <Link
-                        to="/packages"
-                        className="group flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all shadow-sm"
-                    >
-                        Visualizar todos os pacotes
-                        <span className="material-symbols-outlined text-sm transition-transform group-hover:translate-x-1">arrow_forward</span>
-                    </Link>
-                </div>
-            )}
         </section>
     );
 };

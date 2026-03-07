@@ -92,7 +92,13 @@ const Home: React.FC = () => {
                             <h2 className="text-3xl font-bold text-gray-900">Promoções da Semana</h2>
                             <p className="text-gray-500 mt-2">Pacotes exclusivos com descontos especiais para você.</p>
                         </div>
-
+                        <Link
+                            to="/packages"
+                            className="group flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all shadow-sm"
+                        >
+                            Visualizar todos os pacotes
+                            <span className="material-symbols-outlined text-sm transition-transform group-hover:translate-x-1">arrow_forward</span>
+                        </Link>
                     </div>
 
                     {/* Dynamic Packages List (Limit 3 for Home Layout) */}
