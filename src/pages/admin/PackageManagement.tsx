@@ -90,7 +90,7 @@ const PackageManagement: React.FC = () => {
     const fetchHotelsForPackage = async (packageId: string) => {
         const { data } = await supabase
             .from('package_hotels')
-            .select('partner_id, avulso_price')
+            .select('partner_id, avulso_price_per_night')
             .eq('package_id', packageId);
         if (data) {
             setSelectedHotels(prev => {
@@ -99,7 +99,7 @@ const PackageManagement: React.FC = () => {
                 Object.keys(updated).forEach(id => { updated[id] = { selected: false, avulsoPrice: '' }; });
                 data.forEach((row: any) => {
                     if (updated[row.partner_id]) {
-                        updated[row.partner_id] = { selected: true, avulsoPrice: String(row.avulso_price || '') };
+                        updated[row.partner_id] = { selected: true, avulsoPrice: String(row.avulso_price_per_night || '') };
                     }
                 });
                 return updated;
@@ -182,7 +182,7 @@ const PackageManagement: React.FC = () => {
                 .map(([partnerId, v]) => ({
                     package_id: packageId,
                     partner_id: partnerId,
-                    avulso_price: parseFloat(v.avulsoPrice) || 0,
+                    avulso_price_per_night: parseFloat(v.avulsoPrice) || 0,
                 }));
             if (hotelsToLink.length > 0) {
                 await supabase.from('package_hotels').insert(hotelsToLink);
