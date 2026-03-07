@@ -149,286 +149,300 @@ const CreatePackage: React.FC = () => {
     };
 
     return (
-        <div className="container mx-auto px-6 py-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-6">Criar Novo Pacote</h1>
+        <div className="container mx-auto px-4 py-8 flex justify-center items-start min-h-screen">
+            <form onSubmit={handleSubmit} className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl relative">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-20">
+                    <h2 className="text-xl font-bold text-gray-900">Novo Pacote</h2>
+                    <button type="button" onClick={() => navigate('/admin/packages')} className="text-gray-400 hover:text-gray-600 p-1">
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
 
-            <form onSubmit={handleSubmit} className="max-w-3xl bg-white p-8 rounded-xl shadow-md border border-gray-100">
-                
-                {/* Basic Info */}
-                <div className="mb-8">
-                    <h2 className="text-xl font-bold text-gray-700 mb-6 pb-2 border-b border-gray-100 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary">info</span>
-                        1. Informações Básicas
-                    </h2>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="col-span-1 md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Pacote</label>
+                <div className="p-6 space-y-6">
+                    {/* Tipo de Pacote */}
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-3">Tipo de Pacote</label>
+                        <div className="grid grid-cols-3 gap-3">
+                            <button 
+                                type="button" 
+                                onClick={() => setPackageType('basico')}
+                                className={`p-4 rounded-xl border-2 text-center transition-all ${packageType === 'basico' ? 'border-primary bg-primary/5 shadow-sm' : 'border-gray-100 hover:border-gray-200'}`}
+                            >
+                                <span className={`material-symbols-outlined text-2xl mb-1 ${packageType === 'basico' ? 'text-primary' : 'text-gray-400'}`}>verified</span>
+                                <p className={`text-sm font-bold ${packageType === 'basico' ? 'text-primary' : 'text-gray-600'}`}>Plano Básico</p>
+                            </button>
+                            <button 
+                                type="button" 
+                                onClick={() => setPackageType('especial')}
+                                className={`p-4 rounded-xl border-2 text-center transition-all ${packageType === 'especial' ? 'border-primary bg-primary/5 shadow-sm' : 'border-gray-100 hover:border-gray-200'}`}
+                            >
+                                <span className={`material-symbols-outlined text-2xl mb-1 ${packageType === 'especial' ? 'text-primary' : 'text-gray-400'}`}>star</span>
+                                <p className={`text-sm font-bold ${packageType === 'especial' ? 'text-primary' : 'text-gray-600'}`}>Plano Especial</p>
+                            </button>
+                            <button 
+                                type="button" 
+                                onClick={() => setPackageType('promo')}
+                                className={`p-4 rounded-xl border-2 text-center transition-all ${packageType === 'promo' ? 'border-primary bg-primary/5 shadow-sm' : 'border-gray-100 hover:border-gray-200'}`}
+                            >
+                                <span className={`material-symbols-outlined text-2xl mb-1 ${packageType === 'promo' ? 'text-primary' : 'text-gray-400'}`}>local_fire_department</span>
+                                <p className={`text-sm font-bold ${packageType === 'promo' ? 'text-primary' : 'text-gray-600'}`}>Promo Especial</p>
+                            </button>
+                        </div>
+                        {packageType === 'basico' && (
+                            <p className="text-xs text-gray-500 mt-2 p-3 bg-gray-50 rounded-lg flex items-start gap-2">
+                                <span className="material-symbols-outlined text-sm text-gray-400 mt-0.5">info</span>
+                                Plano com restrições em feriados e finais de semana. Ideal para tutores com rotina regular.
+                            </p>
+                        )}
+                        {packageType === 'especial' && (
+                            <p className="text-xs text-gray-500 mt-2 p-3 bg-gray-50 rounded-lg flex items-start gap-2">
+                                <span className="material-symbols-outlined text-sm text-gray-400 mt-0.5">info</span>
+                                Plano premium sem restrições. Inclui finais de semana.
+                            </p>
+                        )}
+                        {packageType === 'promo' && (
+                            <p className="text-xs text-gray-500 mt-2 p-3 bg-gray-50 rounded-lg flex items-start gap-2">
+                                <span className="material-symbols-outlined text-sm text-gray-400 mt-0.5">info</span>
+                                Pacote promocional para ser comprado diretamente, sem necessidade de selecionar as datas agora.
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Nome e Descrição */}
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Pacote *</label>
                             <input 
                                 type="text" 
                                 required
                                 value={name}
                                 onChange={e => setName(e.target.value)}
-                                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner"
-                                placeholder="Ex: Pacote Férias Divertidas"
+                                className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" 
+                                placeholder="Ex: Pacote Premium Hospedagem" 
                             />
                         </div>
-
-                        <div className="col-span-1 md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Descrição Completa</label>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
                             <textarea 
                                 required
                                 value={description}
                                 onChange={e => setDescription(e.target.value)}
-                                rows={4}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner resize-y"
-                                placeholder="Descreva todos os benefícios, diferenciais e regras principais deste pacote..."
+                                className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none resize-none" 
+                                rows={2} 
+                                placeholder="Descreva o que está incluso no pacote..."
                             />
                         </div>
+                    </div>
 
+                    {/* Preço e Validade */}
+                    <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Preço Fixo (R$)</label>
-                            <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">R$</span>
-                                <input 
-                                    type="number" 
-                                    required
-                                    min="0"
-                                    step="0.01"
-                                    value={price}
-                                    onChange={e => setPrice(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner"
-                                    placeholder="0.00"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">URL da Capa (Imagem)</label>
-                            <div className="flex gap-4">
-                                <input 
-                                    type="url" 
-                                    value={imageUrl}
-                                    onChange={e => setImageUrl(e.target.value)}
-                                    className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner"
-                                    placeholder="https://sua-imagem.com/foto.jpg"
-                                />
-                                {imageUrl && (
-                                    <div className="size-10 shrink-0 rounded-lg bg-gray-100 overflow-hidden border border-gray-200 shadow-sm flex items-center justify-center">
-                                        <img src={imageUrl} alt="Capa preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Tipo / Estrutura do Pacote</label>
-                            <select 
-                                value={packageType}
-                                onChange={e => setPackageType(e.target.value)}
-                                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner"
-                            >
-                                <option value="basico">Plano Básico (Sem finais de semana)</option>
-                                <option value="especial">Plano Especial (Inclui finais de semana)</option>
-                                <option value="promo">Promo Especial / Final de Semana (Fixo)</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Validade após a compra (Dias)</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Preço (R$) *</label>
                             <input 
                                 type="number" 
-                                min="1"
                                 required
-                                value={validityDays}
-                                onChange={e => setValidityDays(e.target.value)}
-                                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner"
-                                placeholder="30"
+                                min="0"
+                                step="0.01"
+                                value={price}
+                                onChange={e => setPrice(e.target.value)}
+                                className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" 
                             />
                         </div>
-
-                        <div className="col-span-1 md:col-span-2 border-t border-gray-100 pt-6 mt-2">
-                            <h3 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
-                                <span className="material-symbols-outlined text-orange-500 text-[20px]">event_available</span>
-                                Período Promocional e Divulgação (Opcional)
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Início da Promoção</label>
-                                    <input 
-                                        type="date" 
-                                        value={startDate}
-                                        onChange={e => setStartDate(e.target.value)}
-                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Término da Promoção</label>
-                                    <input 
-                                        type="date" 
-                                        value={endDate}
-                                        onChange={e => setEndDate(e.target.value)}
-                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner"
-                                    />
-                                </div>
-                                <div className="col-span-1 md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Link Externo / Divulgação</label>
-                                    <input 
-                                        type="url" 
-                                        value={externalLink}
-                                        onChange={e => setExternalLink(e.target.value)}
-                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner"
-                                        placeholder="Ex: https://instagram.com/p/..."
-                                    />
-                                </div>
-                            </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Validade (Dias)</label>
+                            <input 
+                                type="number" 
+                                required
+                                min="1"
+                                value={validityDays}
+                                onChange={e => setValidityDays(e.target.value)}
+                                className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" 
+                            />
                         </div>
                     </div>
-                </div>
 
-                {/* Items */}
-                <div className="mb-8">
-                    <div className="flex justify-between items-center mb-6 pb-2 border-b border-gray-100">
-                        <h2 className="text-xl font-bold text-gray-700 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-primary">featured_play_list</span>
-                            2. Serviços Inclusos
-                        </h2>
-                        <button 
-                            type="button" 
-                            onClick={handleAddItem}
-                            className="px-4 py-2 text-sm font-bold text-primary bg-primary/10 rounded-lg hover:bg-primary/20 flex items-center gap-2 transition-colors"
-                        >
-                            <span className="material-symbols-outlined text-lg">add_circle</span>
-                            Novo Item
-                        </button>
-                    </div>
-
+                    {/* URL Imagem */}
                     <div className="space-y-4">
-                        {items.map((item, index) => (
-                            <div key={index} className="flex gap-4 items-end bg-gray-50/50 hover:bg-gray-50 p-4 rounded-xl border border-gray-200 transition-colors shadow-sm">
-                                <div className="flex-1">
-                                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Serviço Inclusoo</label>
-                                    <select 
-                                        value={item.service_type}
-                                        onChange={e => handleItemChange(index, 'service_type', e.target.value)}
-                                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent shadow-inner"
-                                    >
-                                        {serviceTypes.map(type => (
-                                            <option key={type.id} value={type.id}>{type.label}</option>
-                                        ))}
-                                    </select>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">URL da Imagem / Capa</label>
+                        <div className="flex gap-4">
+                            <input 
+                                type="url" 
+                                value={imageUrl}
+                                onChange={e => setImageUrl(e.target.value)}
+                                className="flex-1 border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" 
+                                placeholder="https://sua-imagem.com/foto.jpg"
+                            />
+                            {imageUrl && (
+                                <div className="size-[50px] shrink-0 rounded-lg bg-gray-100 overflow-hidden border border-gray-200 shadow-sm flex items-center justify-center">
+                                    <img src={imageUrl} alt="Capa preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
                                 </div>
-                                <div className="w-24">
-                                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Quant.</label>
-                                    <input 
-                                        type="number" 
-                                        min="1"
-                                        value={item.quantity}
-                                        onChange={e => handleItemChange(index, 'quantity', e.target.value)}
-                                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent shadow-inner text-center"
-                                    />
-                                </div>
-                                <button 
-                                    type="button" 
-                                    onClick={() => handleRemoveItem(index)}
-                                    className="p-2.5 text-red-500 hover:bg-red-50 hover:text-red-700 border border-transparent hover:border-red-100 rounded-lg transition-all"
-                                    title="Remover este serviço"
-                                >
-                                    <span className="material-symbols-outlined">delete</span>
-                                </button>
-                            </div>
-                        ))}
+                            )}
+                        </div>
                     </div>
-                </div>
 
-                {/* Hotel Linking */}
-                {items.some(i => i.service_type === 'hotel') && (
-                    <div className="mb-8">
-                        <div className="mb-6 pb-2 border-b border-gray-100">
-                            <h2 className="text-xl font-bold text-gray-700 flex items-center gap-2 mb-2">
-                                <span className="material-symbols-outlined text-primary">hotel</span>
-                                3. Hotéis Vinculados (Obrigatório)
-                            </h2>
-                            <p className="text-sm text-gray-500">Selecione quais hotéis parceiros aceitam hospedar pets com este pacote. Defina o **preço avulso** de cada um para gerar a exibição de desconto progressivo na reserva.</p>
+                    {/* Datas Promocionais */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Início da Promo. (Opcional)</label>
+                            <input 
+                                type="date" 
+                                value={startDate}
+                                onChange={e => setStartDate(e.target.value)}
+                                className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm text-gray-600" 
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Término da Promo. (Opcional)</label>
+                            <input 
+                                type="date" 
+                                value={endDate}
+                                onChange={e => setEndDate(e.target.value)}
+                                className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm text-gray-600" 
+                            />
+                        </div>
+                    </div>
+
+                    {/* Link Externo */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Link Externo / Divulgação (Opcional)</label>
+                        <input 
+                            type="url" 
+                            value={externalLink}
+                            onChange={e => setExternalLink(e.target.value)}
+                            className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" 
+                            placeholder="Ex: https://instagram.com/p/..." 
+                        />
+                    </div>
+
+                    {/* Serviços Inclusos */}
+                    <div className="border-t border-gray-100 pt-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-gray-800">Serviços Inclusos</h3>
+                            <button type="button" onClick={handleAddItem} className="text-sm text-primary font-bold hover:underline flex items-center gap-1">
+                                <span className="material-symbols-outlined text-sm">add</span> Adicionar
+                            </button>
                         </div>
                         
-                        {hotelPartners.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center p-10 bg-gray-50 rounded-2xl border border-gray-200 border-dashed">
-                                <div className="size-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-3 shadow-inner">
-                                    <span className="material-symbols-outlined text-3xl">domain_disabled</span>
-                                </div>
-                                <p className="font-semibold text-gray-600">Nenhum hotel parceiro ativo.</p>
-                                <p className="text-xs text-gray-500 mt-1 max-w-sm text-center">Cadastre provedores com a categoria "Hotel" primeiro antes de criar pacotes de hospedagem.</p>
+                        {items.length === 0 ? (
+                            <div className="space-y-3 bg-gray-50 p-4 rounded-xl min-h-[60px]">
+                                <p className="text-sm text-gray-400 text-center py-2">Nenhum serviço adicionado.</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 gap-3">
-                                {hotelPartners.map((hotel) => {
-                                    const state = selectedHotels[hotel.id];
-                                    if (!state) return null;
-                                    return (
-                                        <div key={hotel.id} className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all shadow-sm ${
-                                            state.selected ? 'border-primary bg-primary/5 shadow-primary/10' : 'border-gray-200 bg-white hover:border-primary/30'
-                                        }`}>
-                                            <input
-                                                type="checkbox"
-                                                checked={state.selected}
-                                                onChange={(e) => setSelectedHotels(prev => ({
-                                                    ...prev,
-                                                    [hotel.id]: { ...prev[hotel.id], selected: e.target.checked }
-                                                }))}
-                                                className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
-                                            />
-                                            <div className="flex-1 min-w-0">
-                                                <h4 className="font-bold text-gray-800 text-sm truncate">{hotel.company_name}</h4>
-                                                <div className="flex items-center gap-1 text-xs text-gray-400">
-                                                    <span className="material-symbols-outlined text-[14px] text-yellow-500">star</span>
-                                                    {hotel.rating || '—'}
-                                                </div>
-                                            </div>
-                                            {state.selected && (
-                                                <div className="w-40">
-                                                    <label className="text-xs font-bold text-gray-500 mb-1 block">Preço Avulso/Noite</label>
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        step="0.01"
-                                                        placeholder="0.00"
-                                                        value={state.avulsoPrice}
-                                                        onChange={(e) => setSelectedHotels(prev => ({
-                                                            ...prev,
-                                                            [hotel.id]: { ...prev[hotel.id], avulsoPrice: e.target.value }
-                                                        }))}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-primary"
-                                                    />
-                                                </div>
-                                            )}
+                            <div className="space-y-3">
+                                {items.map((item, index) => (
+                                    <div key={index} className="flex gap-3 items-end bg-gray-50/50 p-4 rounded-xl border border-gray-200">
+                                        <div className="flex-1">
+                                            <label className="block text-xs font-bold text-gray-500 mb-1">Serviço</label>
+                                            <select 
+                                                value={item.service_type}
+                                                onChange={e => handleItemChange(index, 'service_type', e.target.value)}
+                                                className="w-full bg-white border border-gray-200 rounded-lg p-2.5 focus:ring-2 focus:ring-primary/20 outline-none text-sm"
+                                            >
+                                                {serviceTypes.map(type => (
+                                                    <option key={type.id} value={type.id}>{type.label}</option>
+                                                ))}
+                                            </select>
                                         </div>
-                                    );
-                                })}
+                                        <div className="w-20">
+                                            <label className="block text-xs font-bold text-gray-500 mb-1">Qtd.</label>
+                                            <input 
+                                                type="number" 
+                                                min="1"
+                                                value={item.quantity}
+                                                onChange={e => handleItemChange(index, 'quantity', e.target.value)}
+                                                className="w-full bg-white border border-gray-200 rounded-lg p-2.5 focus:ring-2 focus:ring-primary/20 outline-none text-sm text-center"
+                                            />
+                                        </div>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => handleRemoveItem(index)}
+                                            className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                        >
+                                            <span className="material-symbols-outlined text-xl">delete</span>
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>
-                )}
 
-                {/* Submit */}
-                <div className="flex justify-end gap-4 pt-4 border-t border-gray-100">
-                    <button 
-                        type="button" 
-                        onClick={() => navigate('/admin/packages')}
-                        className="px-6 py-2 border border-gray-300 rounded-xl text-gray-700 font-bold hover:bg-gray-50 transition-colors"
-                    >
-                        Cancelar
-                    </button>
-                    <button 
-                        type="submit" 
-                        disabled={loading}
-                        className="px-8 py-2 bg-primary text-white font-bold rounded-xl hover:bg-orange-600 transition-colors flex items-center gap-2"
-                    >
-                        {loading ? 'Salvando...' : 'Criar Pacote'}
-                        {!loading && <span className="material-symbols-outlined">check</span>}
-                    </button>
+                    {/* Hotéis Vinculados */}
+                    {items.some(i => i.service_type === 'hotel') && (
+                        <div className="border-t border-gray-100 pt-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary text-[20px]">hotel</span> Hotéis Vinculados
+                                </h3>
+                            </div>
+                            
+                            {hotelPartners.length === 0 ? (
+                                <div className="space-y-3 bg-gray-50 p-4 rounded-xl min-h-[60px]">
+                                    <p className="text-sm text-gray-400 text-center py-2">Nenhum hotel parceiro ativo.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 gap-3">
+                                    {hotelPartners.map((hotel) => {
+                                        const state = selectedHotels[hotel.id];
+                                        if (!state) return null;
+                                        return (
+                                            <div key={hotel.id} className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                                                state.selected ? 'border-primary bg-primary/5' : 'border-gray-100 bg-white hover:border-gray-200'
+                                            }`}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={state.selected}
+                                                    onChange={(e) => setSelectedHotels(prev => ({
+                                                        ...prev,
+                                                        [hotel.id]: { ...prev[hotel.id], selected: e.target.checked }
+                                                    }))}
+                                                    className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                                                />
+                                                <div className="flex-1 min-w-0 pr-2">
+                                                    <h4 className="font-bold text-gray-800 text-sm truncate">{hotel.company_name}</h4>
+                                                </div>
+                                                {state.selected && (
+                                                    <div className="w-36">
+                                                        <label className="text-[10px] font-bold text-gray-500 block">Preço Avulso</label>
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-gray-400 text-sm">R$</span>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.01"
+                                                                placeholder="0.00"
+                                                                value={state.avulsoPrice}
+                                                                onChange={(e) => setSelectedHotels(prev => ({
+                                                                    ...prev,
+                                                                    [hotel.id]: { ...prev[hotel.id], avulsoPrice: e.target.value }
+                                                                }))}
+                                                                className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    
+                    <label className="flex items-center gap-2 cursor-pointer pt-4 border-t border-gray-100">
+                        <input className="w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded" type="checkbox" defaultChecked />
+                        <span className="text-sm font-medium text-gray-700">Pacote ativo (visível no site)</span>
+                    </label>
+
                 </div>
 
+                <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 rounded-b-2xl sticky bottom-0 z-20">
+                    <button type="button" onClick={() => navigate('/admin/packages')} className="px-5 py-2.5 text-gray-600 font-medium hover:bg-gray-200 rounded-xl transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" disabled={loading} className="px-6 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50 shadow-lg shadow-primary/20 flex items-center gap-2">
+                        {loading ? 'Salvando...' : 'Salvar Pacote'}
+                    </button>
+                </div>
             </form>
         </div>
     );
