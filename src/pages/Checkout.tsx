@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { IMAGES } from '../types';
 
 interface PackageItem {
     id: string;
@@ -104,16 +105,51 @@ const Checkout: React.FC = () => {
         setIsProcessing(true);
 
         try {
-            const { error } = await supabase
+            const { data: upData, error } = await supabase
                 .from('user_packages')
                 .insert([{
                     user_id: user.id,
                     package_id: pkg!.id,
                     status: 'active',
                     purchase_date: new Date().toISOString(),
-                }]);
+                }])
+                .select();
 
             if (error) throw error;
+
+            // Process stays if there are any pending in cart
+            const { data: cartData } = await supabase
+                .from('cart_items')
+                .select('metadata')
+                .eq('user_id', user.id)
+                .eq('package_id', pkg!.id)
+                .single();
+
+            if (cartData?.metadata?.stays) {
+                const staysToInsert: any[] = [];
+                cartData.metadata.stays.forEach((stay: any) => {
+                    if (stay.dates && Array.isArray(stay.dates)) {
+                        stay.dates.forEach((date: string) => {
+                            if (date) {
+                                const checkOutDate = new Date(new Date(date).getTime() + 86400000).toISOString().split('T')[0];
+                                staysToInsert.push({
+                                    user_package_id: upData[0].id,
+                                    partner_id: stay.partnerId,
+                                    nights: 1,
+                                    check_in: date,
+                                    check_out: checkOutDate
+                                });
+                            }
+                        });
+                    }
+                });
+                if (staysToInsert.length > 0) {
+                    await supabase.from('package_booking_stays').insert(staysToInsert);
+                }
+            }
+
+            // Clean up cart item
+            await supabase.from('cart_items').delete().eq('user_id', user.id).eq('package_id', pkg!.id);
 
             await new Promise(resolve => setTimeout(resolve, 2000));
 
@@ -223,8 +259,10 @@ const Checkout: React.FC = () => {
                                 </div>
                                 <div className="p-6">
                                     <div className="flex gap-4 items-start">
-                                        <div className="w-20 h-20 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                            <span className="material-symbols-outlined text-3xl text-gray-400">package_2</span>
+                                        <div className="w-20 h-20 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0 bg-cover bg-center border border-gray-200"
+                                            style={{ backgroundImage: `url('${IMAGES.PACKAGE_HERO}')` }}
+                                        >
+                                            <span className="sr-only">Avatar do Pacote</span>
                                         </div>
                                         <div className="flex-1">
                                             <h4 className="text-xl font-bold text-gray-900">{pkg.name}</h4>

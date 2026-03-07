@@ -40,8 +40,7 @@ interface HotelStay {
     partnerId: string;
     partnerName: string;
     nights: number;
-    checkIn: string;
-    checkOut: string;
+    dates: string[];
     avulsoPrice: number;
 }
 
@@ -67,8 +66,8 @@ const PackageBooking: React.FC = () => {
     // Distribution state: partnerId -> nights
     const [distribution, setDistribution] = useState<Record<string, number>>({});
 
-    // Date state: partnerId -> checkIn date string (YYYY-MM-DD)
-    const [dates, setDates] = useState<Record<string, string>>({});
+    // Date state: partnerId -> array of date strings (YYYY-MM-DD)
+    const [dates, setDates] = useState<Record<string, string[]>>({});
 
     const totalDiarias = useMemo(() => {
         const hotelItem = pkg?.items?.find(i => i.service_type === 'hotel');
@@ -140,11 +139,7 @@ const PackageBooking: React.FC = () => {
         return hotel.partner?.logo_url || IMAGES.HOTEL_INTERIOR;
     };
 
-    const addCheckOutDate = (checkIn: string, nights: number): string => {
-        const date = new Date(checkIn + 'T12:00:00');
-        date.setDate(date.getDate() + nights);
-        return date.toISOString().split('T')[0];
-    };
+
 
     const isWeekend = (dateStr: string): boolean => {
         const date = new Date(dateStr + 'T12:00:00');
@@ -173,9 +168,10 @@ const PackageBooking: React.FC = () => {
     const canProceedFromDates = useMemo(() => {
         return Object.entries(distribution).every(([partnerId, nights]) => {
             if (nights === 0) return true;
-            const checkIn = dates[partnerId];
-            if (!checkIn) return false;
-            if (pkg?.type !== 'especial' && isWeekend(checkIn)) return false;
+            const hotelDates = dates[partnerId] || [];
+            if (hotelDates.length !== nights) return false;
+            if (hotelDates.some(d => !d)) return false;
+            if (pkg?.type !== 'especial' && hotelDates.some(isWeekend)) return false;
             return true;
         });
     }, [distribution, dates, pkg]);
@@ -190,8 +186,7 @@ const PackageBooking: React.FC = () => {
                     partnerId,
                     partnerName: hotel?.partner?.company_name || 'Hotel',
                     nights: n,
-                    checkIn: dates[partnerId] || '',
-                    checkOut: addCheckOutDate(dates[partnerId] || '', n),
+                    dates: dates[partnerId] || [],
                     avulsoPrice: hotel?.avulso_price_per_night || 0,
                 };
             });
@@ -445,7 +440,24 @@ const PackageBooking: React.FC = () => {
                             Voltar
                         </button>
                         <button
-                            onClick={() => setStep('DATES')}
+                            onClick={() => {
+                                setDates(prev => {
+                                    const next = { ...prev };
+                                    Object.entries(distribution).forEach(([partnerId, nightsRaw]) => {
+                                        const nights = nightsRaw as number;
+                                        if (nights > 0) {
+                                            const currentDates = next[partnerId] || [];
+                                            if (currentDates.length !== nights) {
+                                                next[partnerId] = Array.from({ length: nights }, (_, i) => currentDates[i] || '');
+                                            }
+                                        } else {
+                                            delete next[partnerId];
+                                        }
+                                    });
+                                    return next;
+                                });
+                                setStep('DATES');
+                            }}
                             disabled={!canProceedFromDistribute}
                             className="flex-1 h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
@@ -475,13 +487,11 @@ const PackageBooking: React.FC = () => {
                             .map(([partnerId, nightsRaw]) => {
                                 const nights = nightsRaw as number;
                                 const hotel = hotels.find(h => h.partner_id === partnerId);
-                                const checkIn = dates[partnerId] || '';
-                                const checkOut = checkIn ? addCheckOutDate(checkIn, nights) : '';
-                                const isInvalid = checkIn && pkg.type !== 'especial' && isWeekend(checkIn);
+                                const hotelDates = dates[partnerId] || Array(nights).fill('');
 
                                 return (
                                     <div key={partnerId} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                                        <div className="flex items-center gap-3 mb-4">
+                                        <div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-4">
                                             <div className="w-12 h-12 rounded-xl bg-cover bg-center flex-shrink-0 border border-gray-200"
                                                 style={{ backgroundImage: `url('${getHotelImage(hotel!)}')` }}
                                             />
@@ -491,35 +501,43 @@ const PackageBooking: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="text-xs font-bold text-gray-500 mb-1.5 block">CHECK-IN</label>
-                                                <input
-                                                    type="date"
-                                                    min={getMinDate()}
-                                                    value={checkIn}
-                                                    onChange={(e) => setDates(prev => ({ ...prev, [partnerId]: e.target.value }))}
-                                                    className={`w-full h-12 px-4 rounded-xl border-2 text-sm font-medium outline-none transition-colors ${
-                                                        isInvalid
-                                                            ? 'border-red-300 bg-red-50 text-red-700 focus:border-red-500'
-                                                            : checkIn
-                                                                ? 'border-green-200 bg-green-50 text-gray-900 focus:border-green-400'
-                                                                : 'border-gray-200 bg-white text-gray-900 focus:border-primary'
-                                                    }`}
-                                                />
-                                                {isInvalid && (
-                                                    <p className="text-xs text-red-500 mt-1 font-medium flex items-center gap-1">
-                                                        <span className="material-symbols-outlined text-sm">warning</span>
-                                                        Plano Básico: apenas dias úteis
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <label className="text-xs font-bold text-gray-500 mb-1.5 block">CHECK-OUT</label>
-                                                <div className="w-full h-12 px-4 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm font-medium flex items-center text-gray-500">
-                                                    {checkOut ? formatDate(checkOut) : '—'}
-                                                </div>
-                                            </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {hotelDates.map((currentDate, idx) => {
+                                                const isInvalid = currentDate && pkg.type !== 'especial' && isWeekend(currentDate);
+                                                return (
+                                                    <div key={idx}>
+                                                        <label className="text-xs font-bold text-gray-500 mb-1.5 block">Diária {idx + 1}</label>
+                                                        <input
+                                                            type="date"
+                                                            min={getMinDate()}
+                                                            value={currentDate}
+                                                            onChange={(e) => {
+                                                                const newDate = e.target.value;
+                                                                setDates(prev => {
+                                                                    const next = { ...prev };
+                                                                    const arr = [...(next[partnerId] || Array(nights).fill(''))];
+                                                                    arr[idx] = newDate;
+                                                                    next[partnerId] = arr;
+                                                                    return next;
+                                                                });
+                                                            }}
+                                                            className={`w-full h-12 px-4 rounded-xl border-2 text-sm font-medium outline-none transition-colors ${
+                                                                isInvalid
+                                                                    ? 'border-red-300 bg-red-50 text-red-700 focus:border-red-500'
+                                                                    : currentDate
+                                                                        ? 'border-green-200 bg-green-50 text-gray-900 focus:border-green-400'
+                                                                        : 'border-gray-200 bg-white text-gray-900 focus:border-primary'
+                                                            }`}
+                                                        />
+                                                        {isInvalid && (
+                                                            <p className="text-xs text-red-500 mt-1 font-medium flex items-center gap-1">
+                                                                <span className="material-symbols-outlined text-sm">warning</span>
+                                                                Plano Básico: apenas dias úteis
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 );
@@ -575,55 +593,16 @@ const PackageBooking: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4 mb-4">
-                                            <div className="bg-gray-50 p-3 rounded-xl">
-                                                <span className="text-xs text-gray-400 font-medium">Check-in</span>
-                                                <p className="text-sm font-bold text-gray-900">{formatDate(stay.checkIn)}</p>
-                                            </div>
-                                            <div className="bg-gray-50 p-3 rounded-xl">
-                                                <span className="text-xs text-gray-400 font-medium">Check-out</span>
-                                                <p className="text-sm font-bold text-gray-900">{formatDate(stay.checkOut)}</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="border-t border-gray-100 pt-3 space-y-1.5">
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-gray-500">Preço avulso ({stay.nights}x {formatCurrency(stay.avulsoPrice)})</span>
-                                                <span className="text-gray-400 line-through">{formatCurrency(stay.avulsoPrice * stay.nights)}</span>
-                                            </div>
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-green-600 font-semibold">Preço no pacote ({stay.nights}x {formatCurrency(pricePerNightPackage)})</span>
-                                                <span className="text-green-600 font-bold">{formatCurrency(pricePerNightPackage * stay.nights)}</span>
-                                            </div>
+                                        <div className="border-t border-gray-100 pt-3 flex flex-wrap gap-2">
+                                            {stay.dates.sort().map((date, i) => (
+                                                <div key={i} className="bg-gray-50 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-900 border border-gray-100">
+                                                    {formatDate(date)}
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 );
                             })}
-                        </div>
-
-                        {/* Price Comparison */}
-                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                            <div className="space-y-3">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500">Total avulso ({totalDiarias} diárias)</span>
-                                    <span className="text-gray-400 line-through font-medium">{formatCurrency(totalAvulso)}</span>
-                                </div>
-                                <div className="flex justify-between items-end border-t border-gray-100 pt-3">
-                                    <span className="font-bold text-gray-900">Total com Pacote</span>
-                                    <span className="text-2xl font-black text-primary">{formatCurrency(pkg.price)}</span>
-                                </div>
-                                {economia > 0 && (
-                                    <div className="bg-green-50 rounded-xl p-4 flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                                            <span className="material-symbols-outlined text-green-600">savings</span>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-bold text-green-700">Você economiza {formatCurrency(economia)}</p>
-                                            <p className="text-xs text-green-600">Comparado ao preço avulso dos hotéis</p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
                         </div>
 
                         <div className="flex gap-3">
