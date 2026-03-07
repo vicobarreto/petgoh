@@ -417,20 +417,6 @@ const PackageManagement: React.FC = () => {
                                                         className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                                                     />
                                                     <span className="flex-1 text-sm font-medium text-gray-800">{hotel.company_name}</span>
-                                                    {state.selected && (
-                                                        <div className="flex items-center gap-1.5">
-                                                            <span className="text-xs text-gray-400">R$</span>
-                                                            <input
-                                                                type="number"
-                                                                min="0"
-                                                                step="0.01"
-                                                                placeholder="Preço avulso"
-                                                                value={state.avulsoPrice}
-                                                                onChange={e => setSelectedHotels(prev => ({ ...prev, [hotel.id]: { ...prev[hotel.id], avulsoPrice: e.target.value } }))}
-                                                                className="w-28 border border-gray-200 rounded-lg p-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                                                            />
-                                                        </div>
-                                                    )}
                                                 </div>
                                             );
                                         })}
