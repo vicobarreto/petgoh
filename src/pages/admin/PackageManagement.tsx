@@ -176,7 +176,9 @@ const PackageManagement: React.FC = () => {
             }
 
             // Handle hotel links
-            await supabase.from('package_hotels').delete().eq('package_id', packageId);
+            const { error: deleteHotelsError } = await supabase.from('package_hotels').delete().eq('package_id', packageId);
+            if (deleteHotelsError) throw deleteHotelsError;
+
             const hotelsToLink = (Object.entries(selectedHotels) as [string, { selected: boolean; avulsoPrice: string }][])
                 .filter(([, v]) => v.selected)
                 .map(([partnerId, v]) => ({
@@ -185,7 +187,8 @@ const PackageManagement: React.FC = () => {
                     avulso_price_per_night: parseFloat(v.avulsoPrice) || 0,
                 }));
             if (hotelsToLink.length > 0) {
-                await supabase.from('package_hotels').insert(hotelsToLink);
+                const { error: insertHotelsError } = await supabase.from('package_hotels').insert(hotelsToLink);
+                if (insertHotelsError) throw insertHotelsError;
             }
 
             setIsModalOpen(false);

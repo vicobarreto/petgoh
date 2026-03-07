@@ -41,7 +41,12 @@ CREATE POLICY "Anyone can view package hotels" ON public.package_hotels
 
 -- package_hotels: apenas admin pode inserir/atualizar/deletar
 CREATE POLICY "Admin can manage package hotels" ON public.package_hotels
-  FOR ALL USING (auth.role() = 'service_role');
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE users.id = auth.uid() AND users.role = 'admin'
+    )
+  );
 
 -- package_booking_stays: usuário vê apenas suas reservas
 CREATE POLICY "Users can view own booking stays" ON public.package_booking_stays
