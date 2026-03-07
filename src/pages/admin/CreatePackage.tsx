@@ -89,6 +89,8 @@ const CreatePackage: React.FC = () => {
                         description,
                         price: parseFloat(price),
                         image_url: imageUrl,
+                        type: packageType,
+                        validity_days: parseInt(validityDays),
                         active: true
                     }
                 ])
@@ -197,6 +199,32 @@ const CreatePackage: React.FC = () => {
                                 onChange={e => setImageUrl(e.target.value)}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                                 placeholder="https://..."
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Tipo do Pacote</label>
+                            <select 
+                                value={packageType}
+                                onChange={e => setPackageType(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                            >
+                                <option value="basico">Plano Básico (sem dias de fim de semana)</option>
+                                <option value="especial">Plano Especial (inclui finais de semana)</option>
+                                <option value="promo">Promoção Fim de Semana / Direto</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Dias de Validade</label>
+                            <input 
+                                type="number" 
+                                min="1"
+                                required
+                                value={validityDays}
+                                onChange={e => setValidityDays(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                placeholder="30"
                             />
                         </div>
                     </div>
