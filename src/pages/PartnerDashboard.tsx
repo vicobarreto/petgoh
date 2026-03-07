@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import logoPetgoh from '../imagens/logo-petgoh.png';
 
 interface PartnerService {
     id: string;
@@ -184,6 +185,13 @@ const PartnerDashboard: React.FC = () => {
             <aside className="fixed inset-y-0 left-0 z-40 w-72 bg-white border-r border-gray-200 hidden lg:flex flex-col mt-[68px]">
                 <div className="flex h-full flex-col justify-between p-6">
                     <div className="flex flex-col gap-8">
+                        {/* Logo */}
+                        <div className="flex flex-col items-start pb-4 border-b border-slate-100">
+                            <Link to="/" className="inline-block transition-transform hover:scale-105" title="Voltar para a Home">
+                                <img src={logoPetgoh} alt="PetGoH Logo" className="h-10 w-auto" />
+                            </Link>
+                        </div>
+                        
                         <div className="flex items-center gap-4">
                             <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                                 <span className="material-symbols-outlined text-primary text-2xl">storefront</span>
