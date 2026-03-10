@@ -15,39 +15,36 @@ const CommunityWall: React.FC = () => {
     };
 
     return (
-        <div className="bg-slate-50 min-h-screen">
-            {/* Hero Section */}
-            <div className={`relative overflow-hidden transition-colors duration-500 ${activeTab === 'adoption' ? 'bg-gradient-to-r from-secondary to-orange-400' : 'bg-gradient-to-r from-primary to-blue-900'} text-white py-16 lg:py-20`}>
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-                    <span className="inline-block py-1 px-3 rounded-full bg-white/20 backdrop-blur-sm text-xs font-bold tracking-wider mb-4 border border-white/30">
-                        {activeTab === 'adoption' ? 'ADOÇÃO RESPONSÁVEL' : 'UTILIDADE PÚBLICA'}
-                    </span>
-                    <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-6 drop-shadow-sm">
-                        {activeTab === 'adoption' ? 'Encontre seu novo melhor amigo' : 'Ajude um pet a voltar para casa'}
-                    </h1>
-                    <p className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto font-medium leading-relaxed">
-                        {activeTab === 'adoption'
-                            ? 'Centenas de animais estão esperando por um lar cheio de amor. Conheça as histórias e transforme uma vida hoje mesmo.'
-                            : 'A solidariedade é nossa maior força. Veja os pets desaparecidos na sua região e compartilhe para reunir famílias.'}
-                    </p>
-                </div>
+        <div className="bg-slate-50 min-h-screen pb-[50px] md:pb-0">
+            {/* Thin Instagram-like Tabs for Mural */}
+            <div className="bg-white border-b border-gray-100 flex sticky top-0 z-30">
+                {(['adoption', 'lost'] as const).map(tab => (
+                    <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={`flex-1 py-2.5 text-center text-[13px] font-semibold transition-colors relative ${activeTab === tab ? 'text-gray-900' : 'text-gray-400'}`}
+                    >
+                        {tab === 'adoption' ? 'Adoção' : 'Perdidos'}
+                        {activeTab === tab && <div className="absolute bottom-0 left-1/4 right-1/4 h-[1px] bg-gray-900" />}
+                    </button>
+                ))}
             </div>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full -mt-8 relative z-20">
-                {/* Tabs & Actions */}
-                <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-2 flex flex-col sm:flex-row items-center justify-between gap-4 mb-10">
-                     <div className="flex gap-1 p-1 bg-slate-100/50 rounded-xl w-full sm:w-auto">
-                        <button onClick={() => setActiveTab('adoption')} className={`flex-1 sm:flex-none px-8 py-3 rounded-lg text-sm font-bold transition-all duration-300 ${activeTab === 'adoption' ? 'bg-white text-secondary shadow-md ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}>
-                            Quero Adotar
-                        </button>
-                        <button onClick={() => setActiveTab('lost')} className={`flex-1 sm:flex-none px-8 py-3 rounded-lg text-sm font-bold transition-all duration-300 ${activeTab === 'lost' ? 'bg-white text-primary shadow-md ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}>
-                            Pets Perdidos
-                        </button>
-                    </div>
-                    <button onClick={handleActionClick} className={`w-full sm:w-auto font-bold py-3 px-6 rounded-xl shadow-lg shadow-orange-500/20 hover:shadow-xl hover:shadow-orange-500/30 active:scale-95 transition-all flex items-center justify-center gap-2 ${activeTab === 'adoption' ? 'bg-secondary hover:bg-orange-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20 hover:shadow-red-500/30'}`}>
-                        <span className="material-symbols-outlined text-xl">{activeTab === 'adoption' ? 'pets' : 'campaign'}</span>
-                        {activeTab === 'adoption' ? 'Cadastrar Pet para Adoção' : 'Reportar Desaparecimento'}
+            <main className="max-w-[600px] mx-auto w-full pt-4 px-0 sm:px-4">
+                {/* Action button placed inside the feed discretely */}
+                <div className="px-4 mb-4">
+                    <button 
+                        onClick={handleActionClick} 
+                        className={`w-full font-semibold py-2.5 px-4 rounded-xl shadow-sm text-[14px] flex items-center justify-center gap-2 transition-all ${
+                            activeTab === 'adoption' 
+                                ? 'bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-100' 
+                                : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100'
+                        }`}
+                    >
+                        <span className="material-symbols-outlined text-[18px]">
+                            {activeTab === 'adoption' ? 'add_circle' : 'campaign'}
+                        </span>
+                        {activeTab === 'adoption' ? 'Cadastrar para Adoção' : 'Reportar Desaparecimento'}
                     </button>
                 </div>
 

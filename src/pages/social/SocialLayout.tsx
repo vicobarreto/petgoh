@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import logoPetgoh from '../../imagens/logo-petgoh.png';
 
 const SocialLayout: React.FC = () => {
     const navigate = useNavigate();
@@ -21,7 +22,7 @@ const SocialLayout: React.FC = () => {
                 {/* Top Header */}
                 <header className="sticky top-0 z-50 bg-white border-b border-gray-100 px-4 h-11 flex items-center justify-between">
                     <button onClick={() => navigate('/')} className="flex items-center gap-1.5">
-                        <img src="/src/imagens/logo-petgoh.png" alt="PetGoH" className="h-8 w-auto" />
+                        <img src={logoPetgoh} alt="PetGoH" className="h-8 w-auto" />
                     </button>
                     <div className="flex gap-2 items-center">
                         <button onClick={() => navigate('/caomunicacao/mensagens')} className="relative p-1 md:hidden">
@@ -43,7 +44,7 @@ const SocialLayout: React.FC = () => {
                 {/* Logo area */}
                 <div className="px-5 h-14 flex items-center border-b border-gray-100">
                     <button onClick={() => navigate('/')} className="flex items-center gap-2">
-                        <img src="/src/imagens/logo-petgoh.png" alt="PetGoH" className="h-9 w-auto" />
+                        <img src={logoPetgoh} alt="PetGoH" className="h-9 w-auto" />
                     </button>
                 </div>
 
