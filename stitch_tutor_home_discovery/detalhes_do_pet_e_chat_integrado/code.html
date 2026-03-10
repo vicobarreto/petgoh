@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+
+<html lang="pt-br"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Mural PetGoH - Detalhes do Pet</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1978e5",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111821",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="flex h-auto min-h-screen flex-col overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 md:px-20 py-3 sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-3xl">pets</span>
+<h2 class="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-tight">Mural PetGoH</h2>
+</div>
+<div class="hidden md:flex items-center gap-6">
+<a class="text-slate-600 dark:text-slate-300 text-sm font-medium hover:text-primary transition-colors" href="#">Mural</a>
+<a class="text-slate-600 dark:text-slate-300 text-sm font-medium hover:text-primary transition-colors" href="#">Adote</a>
+<a class="text-slate-600 dark:text-slate-300 text-sm font-medium hover:text-primary transition-colors" href="#">Perdidos</a>
+<a class="text-slate-600 dark:text-slate-300 text-sm font-medium hover:text-primary transition-colors" href="#">Sobre Nós</a>
+</div>
+</div>
+<div class="flex flex-1 justify-end gap-4 items-center">
+<label class="hidden lg:flex flex-col min-w-40 h-10 max-w-64">
+<div class="flex w-full flex-1 items-stretch rounded-lg bg-slate-100 dark:bg-slate-800">
+<div class="text-slate-500 flex items-center justify-center pl-4">
+<span class="material-symbols-outlined text-xl">search</span>
+</div>
+<input class="form-input flex w-full border-none bg-transparent focus:ring-0 text-sm placeholder:text-slate-500" placeholder="Buscar pets..." value=""/>
+</div>
+</label>
+<div class="flex gap-2">
+<button class="flex items-center justify-center rounded-lg h-10 w-10 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="flex items-center justify-center rounded-lg h-10 w-10 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-10 w-10 border border-slate-200" data-alt="Avatar do usuário logado" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD4e3jsAN68ZQ6v72VGv5SMaeBcjDHwX2sh4lKOQsrUedwwb76rVfhDsEVkqbXjPN6SsszwwR4TMXuhHmXMeIfnGE1Kiv8F_rjpxtkDH_cNCLlNySrBgYMEvGAxJl0BHHZwxrOQCvuWrtZUmP8p-qUP8bijafEQJXUFC4ieyFUeD2W9Q49VYe6vAOXHjH46b1Ms3-7MAWr7cd2mbt7AjU9dJqSjqN9rC3mzCLYyLkXOHWQPGYy9_cJVlB_f5nDvNFEQrqWg2Ck1EiFy");'></div>
+</div>
+</header>
+<main class="flex-1 flex items-center justify-center p-4 md:p-8">
+<!-- Modal Post View Container -->
+<div class="max-w-6xl w-full bg-white dark:bg-slate-900 rounded-xl shadow-2xl flex flex-col md:flex-row overflow-hidden min-h-[80vh]">
+<!-- Left Side: Image Gallery/Main Photo -->
+<div class="w-full md:w-1/2 relative bg-slate-200 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
+<div class="absolute top-6 left-6 z-10">
+<span class="bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-lg">
+<span class="material-symbols-outlined text-sm">error</span>
+                            Perdido
+                        </span>
+</div>
+<div class="w-full h-full bg-center bg-cover transition-transform hover:scale-105 duration-500" data-alt="Foto em destaque de um cachorro Golden Retriever chamado Max" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBC8UThCtuPQ56pHZ4x6SJ0qp_AAeqZ0TZ07OxKGU5QIivqCrAF8Fdc0sg8H-1DBUhKyAjabnsqIDe2IZ8V2Ee8o3hQogdlLiEnMfk-CzP8BhgOZeaBN0ltPP9eBf7j6lixtIIbkNtKa_2kirCy1ud-7mH6pQa7-yY8UfYDfGffNjWVIbbVoNAjk1uryvYM0N0HahWklwnptlwrsy7fmf2zjMtLyKdwy6bqBk3RdHROf09S4bHp-3J04RwcEdt1DIER6jYWRQg8ZQaa");'>
+</div>
+<!-- Navigation Overlay for Multiple Images -->
+<div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+<div class="w-2 h-2 rounded-full bg-white"></div>
+<div class="w-2 h-2 rounded-full bg-white/50"></div>
+<div class="w-2 h-2 rounded-full bg-white/50"></div>
+</div>
+</div>
+<!-- Right Side: Content & Chat -->
+<div class="w-full md:w-1/2 flex flex-col h-full bg-white dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800">
+<!-- Header Section -->
+<div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-12 w-12 border-2 border-primary/20" data-alt="Avatar da Mariana Silva" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA156l6ntN6UHmmQjONm8isQ7nyp_7kHA5-RbaCSiwTPKJ_oPs5OD6GV74AGn7HLSYtHkrq99_ZJZvNv3-WKPFEfbG4rDlm7hIF8EHtD7ydUKET3F12vCPVeImJiQguEx1ZKUdKOglAJnmFXnn1wpKHmvQ-L7T4QsjuhL8UxS6MZPOOf8DIsYYMwdmn0h-dDteh7_r_59AuflSGH8IGdcxCFMQ1FgdLX4d6H-z27Q6BSMA6dWADWR199w7X44NYooMSncgufy29AERx");'></div>
+<div>
+<h3 class="text-slate-900 dark:text-white font-bold text-base leading-none mb-1">Mariana Silva</h3>
+<div class="flex items-center text-slate-500 dark:text-slate-400 text-sm">
+<span class="material-symbols-outlined text-xs mr-1">location_on</span>
+                                    Jardim Paulista, São Paulo
+                                </div>
+</div>
+</div>
+<button class="bg-primary/10 hover:bg-primary/20 text-primary p-2 rounded-lg transition-colors">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<!-- Scrollable Content Area -->
+<div class="flex-1 overflow-y-auto p-6 space-y-6">
+<!-- Pet Info -->
+<div>
+<div class="flex justify-between items-start mb-2">
+<h1 class="text-2xl font-black text-slate-900 dark:text-white leading-tight">MAX</h1>
+<span class="text-slate-400 text-xs">Publicado há 2 horas</span>
+</div>
+<p class="text-slate-600 dark:text-slate-300 leading-relaxed text-sm">
+                                Nosso Golden Retriever Max fugiu do quintal ontem à noite. Ele é muito dócil, atende pelo nome e estava usando uma coleira azul. Se você o viu ou sabe de algo, por favor entre em contato!
+                            </p>
+</div>
+<!-- Stats/Traits -->
+<div class="grid grid-cols-3 gap-3">
+<div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50 text-center">
+<span class="text-xs text-slate-500 dark:text-slate-400 block mb-1">Raça</span>
+<span class="text-sm font-semibold">Golden Retr.</span>
+</div>
+<div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50 text-center">
+<span class="text-xs text-slate-500 dark:text-slate-400 block mb-1">Idade</span>
+<span class="text-sm font-semibold">3 anos</span>
+</div>
+<div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50 text-center">
+<span class="text-xs text-slate-500 dark:text-slate-400 block mb-1">Porte</span>
+<span class="text-sm font-semibold">Grande</span>
+</div>
+</div>
+<!-- Integrated Chat Section -->
+<div class="flex flex-col gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-primary text-lg">chat_bubble</span>
+<h4 class="text-sm font-bold uppercase tracking-wider text-slate-400">Conversa privada</h4>
+</div>
+<!-- Messages Container -->
+<div class="space-y-4">
+<!-- Message Inbound -->
+<div class="flex gap-3 items-end">
+<div class="h-8 w-8 rounded-full bg-slate-300 bg-cover flex-shrink-0" data-alt="Avatar do interessado" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBMyHpAiOkHIfskeznYDATrOyhLaC2LzuJuqCzHW4o18aMRRqpmoRXvH7_1gZ2BQPVaKvoiRFUmy4d_lv6R95B13bjVFexhoV-AOGt3Weu4EgR3HdkCJYnugf2siEquoJuR47MpilXvLxu1J9cwA-Z59QvIFA3u6jlVruAPZAgAzXbDZIdFxUhykg4kyBT5i_VLWS_fr97X2tPTGABtuiSeinTUIu4cgfsydjIs_DV-cRfDf8tVOnxMRKrrS0x56re5XEJOOkaHS8L3");'></div>
+<div class="bg-slate-100 dark:bg-slate-800 p-3 rounded-2xl rounded-bl-none max-w-[80%]">
+<p class="text-sm text-slate-800 dark:text-slate-200">Olá Mariana, vi um cachorro parecido perto do Parque Ibirapuera hoje pela manhã. Ele estava com uma coleira azul.</p>
+<span class="text-[10px] text-slate-400 mt-1 block">14:20</span>
+</div>
+</div>
+<!-- Message Outbound -->
+<div class="flex gap-3 items-end justify-end">
+<div class="bg-primary p-3 rounded-2xl rounded-br-none max-w-[80%] shadow-md shadow-primary/20">
+<p class="text-sm text-white">Sério?? Você conseguiu ver para que direção ele foi? Estou indo pra lá agora!</p>
+<span class="text-[10px] text-white/70 mt-1 block text-right">14:25</span>
+</div>
+<div class="h-8 w-8 rounded-full bg-primary bg-cover flex-shrink-0" data-alt="Avatar da Mariana Silva" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCqQTBvzXdNtyO1KOJFcFNHPdndRL4dGVfv60v-9GK0izn7FahFfdBuI83qUfprwxW7fb_rOaVkBQ08GstOOQdCohyWXOQLoWmGJapQOzra8vLlufFHPcRlRNMNqPN8iWVvwsKbuWjSN8kRB42rRYgaa6n3cp17gbD-IKQkgZR-okmI2p44tryKBgfX_t0vX0XkWxqUuo6xIAlTXnhHUCKG4tOVYdGhXo5ybTXigE6YNFXDdXfhYGZmnPXRxQfyRPWHVbo5C4_pXpPb");'></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Chat Input Field -->
+<div class="p-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800">
+<div class="flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2 shadow-sm focus-within:border-primary transition-colors">
+<button class="text-slate-400 hover:text-primary p-1">
+<span class="material-symbols-outlined">add_circle</span>
+</button>
+<input class="flex-1 border-none focus:ring-0 text-sm bg-transparent placeholder:text-slate-400" placeholder="Escreva sua mensagem..." type="text"/>
+<button class="bg-primary text-white h-10 w-10 flex items-center justify-center rounded-lg shadow-lg shadow-primary/30 active:scale-95 transition-transform">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
+</div>
+<!-- Actions Footer -->
+<div class="px-6 py-4 flex gap-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
+<button class="flex-1 flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 h-11 rounded-lg font-bold text-sm transition-colors">
+<span class="material-symbols-outlined text-lg">share</span>
+                            Compartilhar
+                        </button>
+<button class="flex-1 flex items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 h-11 rounded-lg font-bold text-sm transition-colors">
+<span class="material-symbols-outlined text-lg">favorite</span>
+                            Salvar
+                        </button>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="p-10 text-center text-slate-500 dark:text-slate-400 text-sm">
+<p>© 2024 Mural PetGoH. Feito com amor pelos animais.</p>
+</footer>
+</div>
+</div>
+</body></html>

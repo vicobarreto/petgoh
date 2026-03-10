@@ -207,8 +207,9 @@ const App: React.FC = () => {
             <Route index element={<SocialFeed />} />
             <Route path="buscar" element={<SocialSearch />} />
             <Route path="publicar" element={<SocialPublish />} />
-            <Route path="mensagens" element={<SocialMessages />} />
-            <Route path="mensagens/:conversationId" element={<SocialChat />} />
+            <Route path="mensagens" element={<SocialMessages />}>
+              <Route path=":conversationId" element={<SocialChat />} />
+            </Route>
             <Route path="meu-perfil" element={<SocialProfile />} />
             <Route path="perfil/:userId" element={<SocialProfile />} />
             <Route path="post/:postId" element={<SocialPostDetail />} />

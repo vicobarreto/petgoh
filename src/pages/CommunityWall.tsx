@@ -91,50 +91,77 @@ const AdoptionView: React.FC = () => {
     }
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div className="max-w-[600px] mx-auto space-y-8">
             {pets.map((pet) => (
-                <div key={pet.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-slate-100 transition-all duration-300 flex flex-col h-full ring-1 ring-black/5 hover:-translate-y-1">
-                    <div className="relative aspect-[4/5] overflow-hidden bg-slate-100">
-                        <img alt={pet.name} className="object-cover w-full h-full transform group-hover:scale-110 transition-transform duration-700" src={pet.main_image || pet.img} />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60"></div>
-                        <div className="absolute top-3 left-3"><span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-500 text-white shadow-lg backdrop-blur-md bg-opacity-90">Disponível</span></div>
-                        <button className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white hover:text-red-500 transition-colors">
-                            <span className="material-symbols-outlined text-lg">favorite</span>
+                <article key={pet.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+                    {/* User Header */}
+                    <div className="flex items-center justify-between p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="size-10 rounded-full bg-secondary flex items-center justify-center text-white">
+                                <span className="material-symbols-outlined">volunteer_activism</span>
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-semibold hover:underline cursor-pointer">{pet.organization_name || 'Abrigo PetGoH'}</h3>
+                                <p className="text-xs text-slate-500 flex items-center gap-0.5">
+                                    <span className="material-symbols-outlined text-sm">location_on</span>
+                                    {pet.location || 'Local não informado'}
+                                </p>
+                            </div>
+                        </div>
+                        <button className="text-slate-400 hover:text-slate-600">
+                            <span className="material-symbols-outlined">more_horiz</span>
                         </button>
-                        <div className="absolute bottom-4 left-4 text-white">
-                            <p className="text-sm font-medium opacity-90 flex items-center gap-1"><span className="material-symbols-outlined text-base">location_on</span> {pet.location}</p>
+                    </div>
+
+                    {/* Image Section */}
+                    <div className="relative aspect-square w-full bg-slate-100 group">
+                        <img alt={pet.name} className="w-full h-full object-cover" src={pet.main_image || pet.img} />
+                        {/* Floating Badge */}
+                        <div className="absolute top-4 left-4">
+                            <span className="bg-secondary text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1">
+                                <span className="material-symbols-outlined text-xs">favorite</span>
+                                ADOÇÃO
+                            </span>
                         </div>
                     </div>
-                    <div className="p-6 flex flex-col flex-grow relative">
-                        <div className="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 className="text-2xl font-bold text-slate-800 group-hover:text-secondary transition-colors">{pet.name}</h3>
-                                <p className="text-sm font-medium text-slate-500">{pet.breed}</p>
-                            </div>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${pet.gender === 'Macho' ? 'bg-blue-50 text-blue-500' : 'bg-pink-50 text-pink-500'}`}>
-                                <span className="material-symbols-outlined text-lg">{pet.gender === 'Macho' ? 'male' : 'female'}</span>
-                            </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-3 mb-6">
-                            <div className="bg-slate-50 rounded-xl p-2.5 text-center border border-slate-100">
-                                <span className="block text-xs text-slate-400 uppercase font-bold tracking-wider">Idade</span>
-                                <span className="text-sm font-bold text-slate-700">{pet.age}</span>
-                            </div>
-                            <div className="bg-slate-50 rounded-xl p-2.5 text-center border border-slate-100">
-                                <span className="block text-xs text-slate-400 uppercase font-bold tracking-wider">Peso</span>
-                                <span className="text-sm font-bold text-slate-700">{pet.weight}</span>
-                            </div>
-                        </div>
 
-                        <div className="mt-auto">
-                            <button onClick={() => navigate(`/mural/adocao/${pet.id}`)} className="w-full py-3 px-4 bg-primary hover:bg-secondary text-white text-sm font-bold rounded-xl shadow-lg shadow-primary/20 hover:shadow-secondary/30 transition-all flex items-center justify-center gap-2 group-hover:gap-3">
-                                Quero Conhecer
-                                <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                    {/* Interaction Bar */}
+                    <div className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-4">
+                                <button className="hover:scale-110 transition-transform text-secondary dark:text-slate-300">
+                                    <span className="material-symbols-outlined text-[28px]">favorite</span>
+                                </button>
+                                <button className="hover:scale-110 transition-transform text-secondary dark:text-slate-300">
+                                    <span className="material-symbols-outlined text-[28px]">chat_bubble</span>
+                                </button>
+                                <button className="hover:scale-110 transition-transform text-secondary dark:text-slate-300">
+                                    <span className="material-symbols-outlined text-[28px]">share</span>
+                                </button>
+                            </div>
+                            <button className="text-secondary dark:text-slate-300">
+                                <span className="material-symbols-outlined text-[28px]">bookmark</span>
                             </button>
                         </div>
+                        
+                        {/* Caption */}
+                        <div className="space-y-1">
+                            <p className="text-sm">
+                                <span className="font-bold mr-2">{pet.name}</span>
+                                {pet.description || `Este lindo pet está à procura de um lar. Ele(a) é ${pet.gender}, ${pet.breed} e tem ${pet.age}.`}
+                            </p>
+                            <div className="mt-4">
+                                <button onClick={() => navigate(`/mural/adocao/${pet.id}`)} className="w-full bg-secondary hover:bg-secondary/90 text-white font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                    Quero Adotar
+                                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                                </button>
+                            </div>
+                            <p className="text-[10px] text-slate-400 uppercase mt-4">
+                                {new Date(pet.created_at).toLocaleDateString()}
+                            </p>
+                        </div>
                     </div>
-                </div>
+                </article>
             ))}
         </div>
     );
@@ -171,52 +198,77 @@ const LostPetsView: React.FC = () => {
     }
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div className="max-w-[600px] mx-auto space-y-8">
             {lostPets.map((pet) => (
-                <div key={pet.id} className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-slate-100 flex flex-col ring-1 ring-black/5 hover:-translate-y-1">
-                    <div className="relative h-64 overflow-hidden">
-                        <div className="absolute inset-0 bg-slate-900/10 z-10 group-hover:bg-transparent transition-colors"></div>
-                        <img alt={pet.name} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 grayscale group-hover:grayscale-0" src={pet.photo_url || 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'} />
-                        <div className="absolute top-3 left-3 z-20"><span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-600 text-white shadow-lg animate-pulse">PROCURA-SE</span></div>
-                        {pet.reward && (
-                            <div className="absolute top-3 right-3 z-20">
-                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-500 text-white shadow-lg">
-                                    <span className="material-symbols-outlined text-sm mr-1">paid</span>
-                                    Recompensa: {pet.reward}
-                                </span>
+                <article key={pet.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+                    {/* User Header */}
+                    <div className="flex items-center justify-between p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="size-10 rounded-full bg-slate-200 overflow-hidden ring-2 ring-primary/20 p-0.5 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-slate-400">person</span>
                             </div>
-                        )}
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5 z-20">
-                            <p className="text-white text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1 text-red-200">
-                                <span className="material-symbols-outlined text-sm">schedule</span> Desaparecido: {new Date(pet.last_seen_date).toLocaleDateString()}
-                            </p>
-                            <h3 className="text-2xl font-bold text-white mb-1">{pet.name}</h3>
-                            <p className="text-white/80 text-sm flex items-center gap-1">
-                                <span className="material-symbols-outlined text-sm">place</span> {pet.last_seen_location}
-                            </p>
-                        </div>
-                    </div>
-                    <div className="p-5 flex flex-col flex-grow bg-red-50/30">
-                        <div className="space-y-3 mb-6">
-                            <div className="bg-white p-3 rounded-xl border border-red-100 flex items-start gap-3">
-                                <span className="material-symbols-outlined text-red-500 mt-0.5">warning</span>
-                                <p className="text-xs text-slate-600 leading-relaxed line-clamp-3">
-                                    {pet.description}
+                            <div>
+                                <h3 className="text-sm font-semibold hover:underline cursor-pointer">{pet.owner_name || 'Tutor do Pet'}</h3>
+                                <p className="text-xs text-slate-500 flex items-center gap-0.5">
+                                    <span className="material-symbols-outlined text-sm">location_on</span>
+                                    {pet.last_seen_location || 'Local desconhecido'}
                                 </p>
                             </div>
-                            {pet.contact_info && (
-                                <div className="bg-white p-2 rounded-lg border border-slate-100 text-xs text-slate-500 flex items-center gap-2">
-                                     <span className="material-symbols-outlined text-green-600">contact_phone</span>
-                                     {pet.contact_info}
-                                </div>
-                            )}
                         </div>
-                        <button onClick={() => navigate(`/mural/perdido/${pet.id}/informar`)} className="w-full mt-auto bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-red-600/20 hover:shadow-red-600/40 transition-all flex items-center justify-center gap-2">
-                            <span className="material-symbols-outlined text-xl">visibility</span>
-                            Tenho Informações
+                        <button className="text-slate-400 hover:text-slate-600">
+                            <span className="material-symbols-outlined">more_horiz</span>
                         </button>
                     </div>
-                </div>
+
+                    {/* Image Section */}
+                    <div className="relative aspect-square w-full bg-slate-100 group">
+                        <img alt={pet.name} className="w-full h-full object-cover" src={pet.photo_url || 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'} />
+                        {/* Floating Badge */}
+                        <div className="absolute top-4 left-4">
+                            <span className="bg-primary text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1">
+                                <span className="material-symbols-outlined text-xs">warning</span>
+                                PERDIDO
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Interaction Bar */}
+                    <div className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-4">
+                                <button className="hover:scale-110 transition-transform text-secondary dark:text-slate-300">
+                                    <span className="material-symbols-outlined text-[28px]">favorite</span>
+                                </button>
+                                <button className="hover:scale-110 transition-transform text-secondary dark:text-slate-300">
+                                    <span className="material-symbols-outlined text-[28px]">chat_bubble</span>
+                                </button>
+                                <button className="hover:scale-110 transition-transform text-secondary dark:text-slate-300">
+                                    <span className="material-symbols-outlined text-[28px]">share</span>
+                                </button>
+                            </div>
+                            <button className="text-secondary dark:text-slate-300">
+                                <span className="material-symbols-outlined text-[28px]">bookmark</span>
+                            </button>
+                        </div>
+                        
+                        {/* Caption */}
+                        <div className="space-y-1">
+                            <p className="text-sm">
+                                <span className="font-bold mr-2">{pet.name}</span>
+                                {pet.description}
+                            </p>
+                            <div className="mt-4">
+                                <button onClick={() => navigate(`/mural/perdido/${pet.id}/informar`)} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                    Tem informações?
+                                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                                </button>
+                            </div>
+                            <p className="text-[10px] text-slate-400 uppercase mt-4">
+                                Desaparecido em: {pet.last_seen_date ? new Date(pet.last_seen_date).toLocaleDateString() : 'Não informado'}
+                            </p>
+                        </div>
+                    </div>
+                </article>
             ))}
         </div>
     );

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+
+<html lang="pt-br"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1978e5",
+                        "accent-orange": "#f97316",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111821",
+                        "navy-accent": "#0e141b",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .chat-container { height: calc(100-vh - 120px); }
+    </style>
+<title>Caomunicação - Inbox</title>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display overflow-hidden">
+<div class="flex h-screen w-full flex-col">
+<!-- Top Navigation Bar -->
+<header class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark px-6 py-3 shrink-0">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-primary">
+<div class="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined">pets</span>
+</div>
+<h2 class="text-navy-accent dark:text-slate-100 text-xl font-bold leading-tight tracking-tight">Caomunicação</h2>
+</div>
+<div class="hidden md:flex flex-col min-w-64">
+<div class="flex w-full items-center rounded-full bg-slate-100 dark:bg-slate-800 px-4 py-2">
+<span class="material-symbols-outlined text-slate-500 text-xl">search</span>
+<input class="w-full border-none bg-transparent focus:ring-0 text-sm placeholder:text-slate-500" placeholder="Pesquisar pets ou mensagens" type="text"/>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="h-10 w-10 rounded-full border-2 border-primary bg-cover bg-center" data-alt="User profile picture avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDvwSMlQ4eCMjYv-n-n2IJXVvTzVYibL-7O9l4T9IH_5t5I-bH7WVRiVwBp__zW0owqSEIQJ9PckKcji2OVA5dP2g552fj9LXRTwLqugiNsIN3DBoFeZ8-D-_5Z8HvJfp50CUYMfCDnqkw4G9RIdXox6Xm3WOhZobhKL77lt2p0gwAeBbFxcgdt2jpmPeobu-mwuuzusVcg39b2u6vUUvtUZNR7VibBMKbalz3w5qv5PZpW_JQUAnq1N6CU33l5PpXMfsRmN9Bd-9M3')"></div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- Sidebar: Conversation List -->
+<aside class="w-80 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark flex flex-col shrink-0">
+<div class="p-4 border-b border-slate-100 dark:border-slate-800 flex gap-4">
+<button class="flex-1 py-2 text-sm font-semibold border-b-2 border-primary text-primary">Mensagens</button>
+<button class="flex-1 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700">Solicitações</button>
+</div>
+<div class="flex-1 overflow-y-auto">
+<!-- Conversation Item: Active -->
+<div class="flex items-center gap-3 p-4 bg-primary/10 border-l-4 border-primary cursor-pointer transition-colors">
+<div class="relative">
+<div class="size-14 rounded-full bg-cover bg-center border-2 border-white dark:border-slate-700" data-alt="Border Collie named Max profile picture" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBFB5PcqlQhShtYHtUpJ1YJj5cE3ZSrDIhleF8CU3Gw_acmXTveW4K2fnuKY6vWRL3OCKsAKvK7nkXsC7xITJ4ykK9gw3NwSxjeQXzRmsYqUlcGvYRSC9DxPfY-P5LzgqR2XaTA6UuWZEQMxvnzkgeyiQxARd0dL1HUcr5O_31DYoROjn_alhd_qgsbQWRZfjYHp2fnGTUIgfsNy7SG-R7FLEFVIGZ_OpeJrt40ffo3U0G_MVRf1I80YELFFCpzJ-qzCrjKjcXw0IGJ')"></div>
+<div class="absolute bottom-0 right-0 size-4 bg-green-500 border-2 border-white rounded-full"></div>
+</div>
+<div class="flex-1 overflow-hidden">
+<div class="flex justify-between items-baseline">
+<h4 class="font-bold text-sm text-navy-accent dark:text-slate-100 truncate">Max (Border Collie)</h4>
+<span class="text-[10px] text-slate-500 uppercase font-bold">Agora</span>
+</div>
+<p class="text-xs text-slate-600 dark:text-slate-400 truncate font-medium">Você: Alguma pista perto do parque?</p>
+</div>
+</div>
+<!-- Conversation Item -->
+<div class="flex items-center gap-3 p-4 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors border-l-4 border-transparent">
+<div class="size-14 rounded-full bg-cover bg-center" data-alt="Golden Retriever named Bella profile picture" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAPnTjCz7-S25SKsME7AakcoeTMtqLibyjjrFn3r5hpFxO9rUb4EIEQI0JORrPZQd7n7lwV98kVACaHE1epbikzJrQmhGhvNKWtnY-oCtXWTcIrznnztsaXVIk6RaV65fliJbqiwr36s7o7QKNUlORtl29gfzua6fR3NW1HVAsKN4l8DQhxY-brwAFCgMcujLazaTw6rItnqyVByOMBe4UQaar5yZ7AZfhiQJ9r_-dP0RB8xh7wE4ASq5I7Gy7Xk-eA-XeUtZSrvsBk')"></div>
+<div class="flex-1 overflow-hidden">
+<div class="flex justify-between items-baseline">
+<h4 class="font-bold text-sm text-navy-accent dark:text-slate-100 truncate">Bella</h4>
+<span class="text-[10px] text-slate-500 uppercase font-bold">14:20</span>
+</div>
+<p class="text-xs text-slate-500 dark:text-slate-400 truncate">Ela já foi encontrada! Obrigado!</p>
+</div>
+</div>
+<!-- Conversation Item -->
+<div class="flex items-center gap-3 p-4 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors border-l-4 border-transparent">
+<div class="size-14 rounded-full bg-cover bg-center" data-alt="Black cat named Luna profile picture" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDfaVYjlkLupm0PZZ6cUy742b83WaV_K7US6krirBahVViEKAW_EAoWRbgZFM-cSy9HTZ4t-I-qsYUSeIfrmATa8N0TDtGys8dEGahcRuJdbxbspP9sErJjvTLwGnIO3GHF6my7n5sAijrx4lIN-KG5OX1zJFAqp1A6T8ZTZ__3auIiyuR4-lfupiw6r2_tVeySuBZIYWU-qWF57j6otjf3h-z5oNFHM-6xpQsCKM_QoWCeR0QmJL84VSuSstJmO0WUs8K64vIawnL6')"></div>
+<div class="flex-1 overflow-hidden">
+<div class="flex justify-between items-baseline">
+<h4 class="font-bold text-sm text-navy-accent dark:text-slate-100 truncate">Luna (Gato Preto)</h4>
+<span class="text-[10px] text-slate-500 uppercase font-bold">Ontem</span>
+</div>
+<p class="text-xs text-slate-500 dark:text-slate-400 truncate">Vi um gato parecido na rua 15.</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Chat Area -->
+<main class="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900">
+<!-- Chat Header -->
+<div class="flex items-center justify-between bg-white dark:bg-background-dark px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-4">
+<div class="size-12 rounded-full bg-cover bg-center" data-alt="Profile picture of Max the dog" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB2JfI6mrTppnszP4VCYHUn0bzPccjtQunsUS3fkdo1q8ibOQbLuy5cs7d6Yj2kZ2I9Pu3h-LdheG2mCYJzZ6frk1UGCqh-DfceNUQKK5M8AlD-mh8wMy9jzQ-iNTcoC9Lh5Q2RBvi9o7o4-DaL4sazocPKKSioMMNh-tByXOT9I0VTI-iKYrSZ41O_I-oSWJ4mWY-PwMkTU-xX6tp1Lgj4HlyN3Ru9Hue1ZM1Rw74jh3wHzWcPcaN9aDpUhcRQi31aaSjCCkn_CfOw')"></div>
+<div>
+<div class="flex items-center gap-2">
+<h3 class="font-bold text-navy-accent dark:text-slate-100">Max (Border Collie)</h3>
+<span class="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-[10px] font-bold uppercase tracking-wider">Em Busca</span>
+</div>
+<p class="text-xs text-green-500 font-medium">Visto por último: há 2 horas</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-navy-accent dark:text-slate-100 rounded-lg font-bold text-sm hover:bg-slate-200 transition-colors">
+<span class="material-symbols-outlined text-xl">map</span>
+                            Mapa
+                        </button>
+<button class="flex items-center gap-2 px-4 py-2 bg-accent-orange text-white rounded-lg font-bold text-sm hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-xl">call</span>
+                            Ligar para Dono
+                        </button>
+</div>
+</div>
+<!-- Messages Feed -->
+<div class="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col">
+<!-- Date Separator -->
+<div class="flex justify-center">
+<span class="text-[11px] font-bold text-slate-400 bg-white dark:bg-slate-800 px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">Hoje</span>
+</div>
+<!-- Message Received -->
+<div class="flex gap-3 max-w-[70%]">
+<div class="size-8 rounded-full shrink-0 bg-cover bg-center" data-alt="Pet owner avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBb-n6ukbMLs894UBd4-E67Yc-H9q26AovVnUZhcZYrCSCMRukb9yTwmijzKkhrNmRC1rKa6SWimjMAneugZqZD8EB18yCUd1HHRr60GnGY2dMptenK3GtvmIoymddj6nSkSh-aVAqMECDpMhvZrDgX6dub6lKPTTBwPM1TLrd3nO9HFNrLrRCPifkJZun1f99WxbajJQgK1wHa9RYsrZUMn59C8-Cu0MrtCgWqUoRtYw-0H9rWzhdu-DWmshZojRgVnZyKOWWLYL4v')"></div>
+<div class="space-y-1">
+<div class="bg-white dark:bg-slate-800 p-4 rounded-xl rounded-tl-none shadow-sm border border-slate-100 dark:border-slate-700">
+<p class="text-sm leading-relaxed">Olá! Vi seu anúncio sobre o Max. Eu moro perto do Parque do Ibirapuera e acho que vi um cachorro com essas características hoje cedo.</p>
+</div>
+<p class="text-[10px] text-slate-400 pl-1 font-medium">10:45 AM</p>
+</div>
+</div>
+<!-- Message Sent -->
+<div class="flex gap-3 max-w-[70%] self-end flex-row-reverse">
+<div class="size-8 rounded-full shrink-0 bg-cover bg-center border border-primary/20" data-alt="My profile avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCWDHQ1OGFqxYOruf9S_M0WvYBGaXFH0MuqmCNep96LAutsJdm0IbVSoxxJs-Pi7uHYr1_obyYBY2DShC7F6Nb_Bcro_f2wAlk0j8K644AEru45fcW_WsmTyG9DbxM7hw_KruVbfy0mBm1_Hz4o_KNTbPxHMpDOZWB_vwmIjDCf23xIejyFjSkssWrhMxII3e2Lj3vGq7KMK-qUZXyNEQr6KWsb7-9MXuYoSzImpK07-zqt_2kDtnhdlLMQajYByL6q_uBxqr0YRyNG')"></div>
+<div class="space-y-1 items-end flex flex-col">
+<div class="bg-primary text-white p-4 rounded-xl rounded-tr-none shadow-md">
+<p class="text-sm leading-relaxed">Sério? Que ótima notícia! Por volta de que horas você o viu? Ele estava acompanhado ou sozinho?</p>
+</div>
+<p class="text-[10px] text-slate-400 pr-1 font-medium">10:52 AM</p>
+</div>
+</div>
+<!-- Message Received -->
+<div class="flex gap-3 max-w-[70%]">
+<div class="size-8 rounded-full shrink-0 bg-cover bg-center" data-alt="Pet owner avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAzFaOcTw0p-beeUTZrIts_5A95LdcoKqa2CVED-Rebrl901Vz1QgIKq-_rNrFEWbo-bPk3Md8TtbQVu0uhpCIQ1Imgqy1LgzhcDZQjNmKyUuPf6eRShsEl4OWwmb3n8wfDnrQWsnALEwvI6Ug7mqQ7fTnIGUrWe2CVLENxuC2D37Hos4hTXQ6iGvLXcHXvwncOLRKFotrbb2TdURKPp8i1frYslLjBveO4srgJ9bEfOa3XsEcbZ5Kp4uNjyROtBRdB358du9Lj2TnC')"></div>
+<div class="space-y-1">
+<div class="bg-white dark:bg-slate-800 p-4 rounded-xl rounded-tl-none shadow-sm border border-slate-100 dark:border-slate-700">
+<p class="text-sm leading-relaxed">Estava sozinho, parecia um pouco assustado. Foi perto do portão 7, por volta das 08:30. Tirei uma foto rápida, veja se é ele.</p>
+<div class="mt-3 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+<div class="aspect-video bg-cover bg-center bg-slate-200" data-alt="Blurry photo of a dog in a park" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBPltASnFmddo5qXMpUi4DsDGcB1whOOBA3D4NfdTQrXgKFPj4NkILLOPOoykk0HP2fJlC5W3wj2buwQR8iEeGM20tdt66GbnosaVXsGfQHFfDxjjJcF1Ia3mM9UpHB0DrWnkHx5UoAeTP3nMoMtsZMlmPWQx5iOQNf2UzEhU4xj1xCiNLP3aj6b_y4pFmw_OMzp7GOJm1ndQvLZBNEHQ6PxPT-EpNLfFXCxAq_Ijola5OgOxzWtlMRMnLsJ0DQCkdj1ea6lvUz9MhI')"></div>
+</div>
+</div>
+<p class="text-[10px] text-slate-400 pl-1 font-medium">10:55 AM</p>
+</div>
+</div>
+<!-- Message Sent -->
+<div class="flex gap-3 max-w-[70%] self-end flex-row-reverse">
+<div class="size-8 rounded-full shrink-0 bg-cover bg-center border border-primary/20" data-alt="My profile avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDaxb1QTB6DHD6BK2XlFXD-PCGjxN6qXgL3BIMspxtELaYr00kgYCDdpHUtb0pTd1-LDdrasGc83HY3C30XR8TM1tw55ZASfTsy_DtnYKbQ8xmDDrQKMO_sSaoJEUcwqmTNc_lI-KRywIZcR0maGBYFQ4F0MBVix81DkP99yyvnpkAUB25XMxnQNprrRFsguge0wapzoniLFvmTdP2VeSBqb3WC_89XS-IvOq0U_pcIcgsClDOK6sc2yUgtAaS-zC9LWvXmi6PPQu66')"></div>
+<div class="space-y-1 items-end flex flex-col">
+<div class="bg-primary text-white p-4 rounded-xl rounded-tr-none shadow-md">
+<p class="text-sm leading-relaxed">Parece muito com ele! Vou para lá agora mesmo. Alguma pista perto do parque além do portão 7?</p>
+</div>
+<div class="flex items-center gap-1 mt-1 pr-1">
+<p class="text-[10px] text-slate-400 font-medium">11:02 AM</p>
+<span class="material-symbols-outlined text-xs text-primary font-bold">done_all</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Message Input -->
+<div class="p-4 bg-white dark:bg-background-dark border-t border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700">
+<button class="p-2 text-slate-500 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">add_circle</span>
+</button>
+<input class="flex-1 border-none bg-transparent focus:ring-0 text-sm placeholder:text-slate-500 py-2" placeholder="Digite sua mensagem aqui..." type="text"/>
+<button class="p-2 text-slate-500 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">sentiment_satisfied</span>
+</button>
+<button class="bg-accent-orange text-white h-10 w-10 flex items-center justify-center rounded-lg hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Quick Info Column -->
+<aside class="w-72 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark hidden lg:flex flex-col p-6 space-y-6">
+<div class="text-center">
+<div class="size-24 rounded-2xl mx-auto mb-4 bg-cover bg-center shadow-lg border-2 border-primary/20" data-alt="Max the Border Collie main display picture" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD6zjYMZyvUeBRemFGrdyXnLsgmXkvx7Z-jAja0AKPQJtopUF_Q9OgqzIE3ENS6VXlHjbAvZ6aAzKntRJSmEN20WwCurhSJ8BDK1x6IaHH_bPURJ4CBIPgW6VHzACwYj2kb4ybH1R-EYZUlSgJEq0Uk7J4Y7afOpKC9PYIyU1vFUxbPtE8R5P7UlK0N3xa5_RTYnJPgiu_X1pNsljMiWSdtnjjdofZvf75auNZsgLealttWlkbHzyneEbowGl-MLRTo9NrLI-rLOIJe')"></div>
+<h4 class="font-bold text-lg text-navy-accent dark:text-slate-100">Max</h4>
+<p class="text-sm text-slate-500">Border Collie • Macho</p>
+</div>
+<div class="space-y-4">
+<div class="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
+<h5 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Detalhes do Caso</h5>
+<ul class="space-y-2 text-sm">
+<li class="flex items-center gap-2">
+<span class="material-symbols-outlined text-red-500 text-lg">location_on</span>
+<span class="text-slate-700 dark:text-slate-300">Vila Mariana, SP</span>
+</li>
+<li class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg">calendar_today</span>
+<span class="text-slate-700 dark:text-slate-300">Sumido desde 12 Out</span>
+</li>
+<li class="flex items-center gap-2">
+<span class="material-symbols-outlined text-accent-orange text-lg">label</span>
+<span class="text-slate-700 dark:text-slate-300">Coleira Vermelha</span>
+</li>
+</ul>
+</div>
+<div class="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
+<h5 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Recompensa</h5>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-green-600">monetization_on</span>
+<span class="font-bold text-lg text-green-600">R$ 500,00</span>
+</div>
+</div>
+</div>
+<div class="pt-4 border-t border-slate-100 dark:border-slate-800">
+<button class="w-full py-3 rounded-lg border-2 border-red-200 text-red-600 font-bold text-sm hover:bg-red-50 transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">report</span>
+                        Denunciar Usuário
+                    </button>
+</div>
+</aside>
+</div>
+</div>
+</body></html>

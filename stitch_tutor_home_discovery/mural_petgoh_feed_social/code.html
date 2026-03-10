@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+
+<html lang="pt-br"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#FF8C42", // PetGoH Orange
+                        "secondary": "#1E3A8A", // Navy Blue
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111821",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .filled-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<!-- Header Navigation -->
+<header class="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 md:px-8 py-3">
+<div class="max-w-5xl mx-auto flex items-center justify-between gap-4">
+<!-- Logo -->
+<div class="flex items-center gap-2 min-w-max">
+<div class="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined">pets</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight text-secondary dark:text-primary">PetGoH</h1>
+</div>
+<!-- Search Bar -->
+<div class="hidden md:flex flex-1 max-w-md">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
+<input class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl py-2 pl-10 pr-4 focus:ring-2 focus:ring-primary/50 text-sm" placeholder="Buscar pets, raças ou locais..." type="text"/>
+</div>
+</div>
+<!-- Nav Icons -->
+<nav class="flex items-center gap-1 sm:gap-4">
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+<span class="material-symbols-outlined text-[28px]">home</span>
+</button>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors relative">
+<span class="material-symbols-outlined text-[28px]">chat_bubble</span>
+<span class="absolute top-2 right-2 size-2 bg-primary rounded-full border-2 border-white dark:border-slate-900"></span>
+</button>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+<span class="material-symbols-outlined text-[28px]">account_circle</span>
+</button>
+</nav>
+</div>
+</header>
+<!-- Main Content -->
+<main class="max-w-[600px] mx-auto py-8 px-4">
+<!-- Post 1: PERDIDO -->
+<article class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden mb-8 shadow-sm">
+<!-- User Header -->
+<div class="flex items-center justify-between p-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-slate-200 overflow-hidden ring-2 ring-primary/20 p-0.5">
+<img alt="User Profile" class="w-full h-full object-cover rounded-full" data-alt="Female user portrait smiling at the camera" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBe1fftQIAnxxVvHcQZk1XImYDPkbLz-5f_JNAJDCW4jwYeXOUN-_oT4WidzsB_umviLoUo98MpQT_5U2KyuFjQslC4j8XgLCE03M0MbawL-DJi3cmFeKX94zVrc3tzbFreFO-7V5h72xJX_rQfXP_224GHT6fYMnQYu5YqTUxPwpYK848C5rCrIC_peX4B5ZOE-8LjLn8UNirlLn5uWtrkCfS-3Esk-ElrlMrbgAlAbIg5a2X-MKmG9TB5Dbhg3C8kWLTZ40jyojo"/>
+</div>
+<div>
+<h3 class="text-sm font-semibold hover:underline cursor-pointer">Mariana Silva</h3>
+<p class="text-xs text-slate-500 flex items-center gap-0.5">
+<span class="material-symbols-outlined text-sm">location_on</span>
+                            São Paulo, SP
+                        </p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-slate-600">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<!-- Image Section -->
+<div class="relative aspect-square w-full bg-slate-100 group">
+<img alt="Golden Retriever" class="w-full h-full object-cover" data-alt="Sad looking golden retriever dog sitting alone" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdlowf-sRQzOjoxssYEJBjl5npuqeoGXc5iyyaUKs4GW6aAUHSeRgUevvUX976lCjG_cxeEPgvkgXSqvM6QLB_y9W37W_Lv0RsRCy0wJM1CwmFK6zpLKWjG0lwXXhnfOvgm6GuyoYFxl_50cgEgXtDa_Ng7aGWjDqNw7CmdGw6oE7ig8XChXRKNRcrZ6v-FlEvzp7_aQvYa8j6JQH7Obp9R0wLF2z2Ek0XjVsLrWb6engbP34VIGRveEwo7SF6PBtuCwCyTCXDZdtM"/>
+<!-- Floating Badge -->
+<div class="absolute top-4 left-4">
+<span class="bg-primary text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">warning</span>
+                        PERDIDO
+                    </span>
+</div>
+</div>
+<!-- Interaction Bar -->
+<div class="p-4">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-4">
+<button class="hover:scale-110 transition-transform text-secondary dark:text-slate-300">
+<span class="material-symbols-outlined text-[28px]">favorite</span>
+</button>
+<button class="hover:scale-110 transition-transform text-secondary dark:text-slate-300">
+<span class="material-symbols-outlined text-[28px]">chat_bubble</span>
+</button>
+<button class="hover:scale-110 transition-transform text-secondary dark:text-slate-300">
+<span class="material-symbols-outlined text-[28px]">share</span>
+</button>
+</div>
+<button class="text-secondary dark:text-slate-300">
+<span class="material-symbols-outlined text-[28px]">bookmark</span>
+</button>
+</div>
+<!-- Caption -->
+<div class="space-y-1">
+<p class="text-sm font-semibold">124 curtidas</p>
+<p class="text-sm">
+<span class="font-bold mr-2">Buddy</span>
+                        Meu cachorro Buddy fugiu ontem à tarde próximo ao Parque Ibirapuera. Ele é muito dócil e está usando uma coleira azul. Se o vir, por favor entre em contato!
+                    </p>
+<button class="text-slate-400 text-xs mt-2 hover:text-slate-600">Ver todos os 12 comentários</button>
+<p class="text-[10px] text-slate-400 uppercase mt-1">Há 2 horas</p>
+</div>
+</div>
+</article>
+<!-- Post 2: ADOÇÃO -->
+<article class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden mb-8 shadow-sm">
+<!-- User Header -->
+<div class="flex items-center justify-between p-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-secondary flex items-center justify-center text-white">
+<span class="material-symbols-outlined">volunteer_activism</span>
+</div>
+<div>
+<h3 class="text-sm font-semibold hover:underline cursor-pointer">ONG Patas Felizes</h3>
+<p class="text-xs text-slate-500 flex items-center gap-0.5">
+<span class="material-symbols-outlined text-sm">location_on</span>
+                            Curitiba, PR
+                        </p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-slate-600">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<!-- Image Section -->
+<div class="relative aspect-square w-full bg-slate-100 group">
+<img alt="Cute Kitten" class="w-full h-full object-cover" data-alt="Small fluffy grey kitten looking curious" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCniLEXUqwSH6wEI_dMibrJNv6WdK3Zj5bwmpTVR3nEehTrA_Vn5KN-btOf5SjySKX7vvLPa37BTwsXOEob5WMKncSb3dKORSS3KePZjWXuwQe9R7hytrz3GQfZSfRn3pUWcqbZYtSG9YHa0hJzTYB7LoywD_-F5xYt-PmUQAKUsUKcr-z7BlN1CgsMn9xa-VNm4BODu7o7vl6gQYEbIaDhDV_GpXwqHlxnxwHu2YUWG8xNT6ybv8ibUZ8CU3H3S_s143R6Aq_ll-yw"/>
+<!-- Floating Badge -->
+<div class="absolute top-4 left-4">
+<span class="bg-secondary text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">favorite</span>
+                        ADOÇÃO
+                    </span>
+</div>
+</div>
+<!-- Interaction Bar -->
+<div class="p-4">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-4">
+<button class="hover:scale-110 transition-transform text-secondary dark:text-slate-300">
+<span class="material-symbols-outlined text-[28px]">favorite</span>
+</button>
+<button class="hover:scale-110 transition-transform text-secondary dark:text-slate-300">
+<span class="material-symbols-outlined text-[28px]">chat_bubble</span>
+</button>
+<button class="hover:scale-110 transition-transform text-secondary dark:text-slate-300">
+<span class="material-symbols-outlined text-[28px]">share</span>
+</button>
+</div>
+<button class="text-secondary dark:text-slate-300">
+<span class="material-symbols-outlined text-[28px]">bookmark</span>
+</button>
+</div>
+<!-- Caption -->
+<div class="space-y-1">
+<p class="text-sm font-semibold">256 curtidas</p>
+<p class="text-sm">
+<span class="font-bold mr-2">Luna</span>
+                        Esta pequena Luna está à procura de um lar cheio de amor. Tem apenas 3 meses, já está desverminada e com a primeira dose da vacina. Super carinhosa e brincalhona!
+                    </p>
+<div class="mt-4">
+<button class="w-full bg-secondary hover:bg-secondary/90 text-white font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-2">
+                            Quero Adotar
+                            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+<p class="text-[10px] text-slate-400 uppercase mt-4">Há 5 horas</p>
+</div>
+</div>
+</article>
+<!-- Post 3: ADOÇÃO (Dogs) -->
+<article class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden mb-8 shadow-sm">
+<div class="flex items-center justify-between p-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-slate-200 overflow-hidden ring-2 ring-primary/20 p-0.5">
+<img alt="User" class="w-full h-full object-cover rounded-full" data-alt="Young man smiling in casual attire" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUUlRQiMHZgmXO5VQTsaNmH5fytdmt_JFkTJc7_wC8e7ANWD4b6sO3E1Vx1gnvS_OCRJePdPnK1w4iXgBTUiDeb8SgdJ97Zb8R3TrRe4J9PmPvNWqBz-Cntg_PAo8O0u33CIY0ZMgm9wTGF1TRm7lS2f_5jJ1YRTH7L1sR0oY15nwPEBKt5Dww0QqYKrM2EjXeob_ov8fjUlb1qiwGnDEdXclUUssKYeXAY1HmSS9WUMQC_hb1bFi93D_ogLoONb1n14d3sQpe-GZX"/>
+</div>
+<div>
+<h3 class="text-sm font-semibold hover:underline cursor-pointer">Ricardo Mendes</h3>
+<p class="text-xs text-slate-500 flex items-center gap-0.5">
+<span class="material-symbols-outlined text-sm">location_on</span>
+                            Belo Horizonte, MG
+                        </p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-slate-600">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<div class="relative aspect-square w-full bg-slate-100 group">
+<img alt="Pug Dog" class="w-full h-full object-cover" data-alt="Close up of a cute pug dog wearing a small hat" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPd0UVLMqpWO7E1DPuA8LQzA5HN4zHx3pymjmhnoVpILYFiDpMXWEwixMXZWegSjb64JWW278QB-ZkdXtfeUOt4Q4pEYVp7-i2r2tvB7grJGZMco1ZlqwCTXD22pAlJgiM_u66dR94doS1EhiFfA4YglYz0L9yqwIl-XA66QoSE2AkhQdvFOQH4kSU8G6ACZMDW89pHs5VJBBfbcEdj31Oxknv1mUes9oW9MdP5BADhQDISH-XxCUouDcOtLRiMYIvPoCOyDUyY51f"/>
+<div class="absolute top-4 left-4">
+<span class="bg-secondary text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">favorite</span>
+                        ADOÇÃO
+                    </span>
+</div>
+</div>
+<div class="p-4">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-4">
+<button class="text-primary hover:scale-110 transition-transform">
+<span class="material-symbols-outlined filled-icon text-[28px]">favorite</span>
+</button>
+<button class="text-secondary dark:text-slate-300">
+<span class="material-symbols-outlined text-[28px]">chat_bubble</span>
+</button>
+<button class="text-secondary dark:text-slate-300">
+<span class="material-symbols-outlined text-[28px]">share</span>
+</button>
+</div>
+<button class="text-secondary dark:text-slate-300">
+<span class="material-symbols-outlined text-[28px]">bookmark</span>
+</button>
+</div>
+<div class="space-y-1">
+<p class="text-sm font-semibold">89 curtidas</p>
+<p class="text-sm">
+<span class="font-bold mr-2">Pingo</span>
+                        Resgatei este pequeno pug abandonado em uma rodovia. Ele é idoso e precisa de cuidados especiais, mas tem muito amor para dar. Alguém interessado em dar um lar final digno?
+                    </p>
+<p class="text-[10px] text-slate-400 uppercase mt-4">Há 1 dia</p>
+</div>
+</div>
+</article>
+</main>
+<!-- Bottom Mobile Navigation -->
+<div class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-around py-3">
+<button class="text-secondary dark:text-slate-300">
+<span class="material-symbols-outlined text-3xl">home</span>
+</button>
+<button class="text-secondary dark:text-slate-300">
+<span class="material-symbols-outlined text-3xl">search</span>
+</button>
+<button class="text-primary">
+<span class="material-symbols-outlined text-3xl">add_box</span>
+</button>
+<button class="text-secondary dark:text-slate-300">
+<span class="material-symbols-outlined text-3xl">chat_bubble</span>
+</button>
+<button class="text-secondary dark:text-slate-300">
+<span class="material-symbols-outlined text-3xl">account_circle</span>
+</button>
+</div>
+</body></html>

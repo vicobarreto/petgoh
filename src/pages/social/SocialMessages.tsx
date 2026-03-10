@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Outlet, useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 
@@ -16,6 +16,7 @@ interface ConversationItem {
 
 const SocialMessages: React.FC = () => {
     const navigate = useNavigate();
+    const { conversationId } = useParams();
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<'geral' | 'pendentes'>('geral');
     const [conversations, setConversations] = useState<ConversationItem[]>([]);
@@ -135,96 +136,122 @@ const SocialMessages: React.FC = () => {
     }
 
     return (
-        <div className="bg-white min-h-full">
-            {/* Header */}
-            <div className="bg-white border-b border-gray-100 px-4 h-11 flex items-center justify-between">
-                <h2 className="font-semibold text-[15px]">Mensagens</h2>
-                <button className="text-gray-500 p-0.5">
-                    <span className="material-symbols-outlined text-[22px]">edit_square</span>
-                </button>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex border-b border-gray-100 bg-white">
-                {(['geral', 'pendentes'] as const).map(tab => (
-                    <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`flex-1 py-2.5 text-center text-[13px] font-semibold relative ${activeTab === tab ? 'text-gray-900' : 'text-gray-400'}`}
-                    >
-                        {tab === 'geral' ? 'Geral' : 'Pendentes'}
-                        {tab === 'pendentes' && pendingCount > 0 && (
-                            <span className="ml-1 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-px rounded-full">{pendingCount}</span>
-                        )}
-                        {activeTab === tab && <div className="absolute bottom-0 left-1/4 right-1/4 h-[1px] bg-gray-900" />}
-                    </button>
-                ))}
-            </div>
-
-            {/* Conversations List */}
-            {loading ? (
-                <div className="flex items-center justify-center py-16">
-                    <div className="animate-spin size-7 border-2 border-orange-500 border-t-transparent rounded-full" />
-                </div>
-            ) : filteredConversations.length === 0 ? (
-                <div className="text-center py-12 px-6">
-                    <div className="size-14 rounded-full border-2 border-gray-900 flex items-center justify-center mx-auto mb-2.5">
-                        <span className="material-symbols-outlined text-gray-900 text-2xl">
-                            {activeTab === 'pendentes' ? 'mark_chat_unread' : 'chat_bubble_outline'}
-                        </span>
+        <div className="flex h-auto min-h-[max(calc(100vh-80px),600px)] overflow-hidden bg-slate-50 dark:bg-slate-900 p-0 md:p-4">
+            <div className="flex-1 flex w-full max-w-6xl mx-auto bg-white dark:bg-slate-900 md:border md:border-slate-200 dark:border-slate-800 md:shadow-md md:rounded-xl overflow-hidden">
+                {/* Conversations Sidebar (Hidden on mobile if viewing a chat) */}
+                <aside className={`w-full md:w-80 lg:w-96 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-10 ${conversationId ? 'hidden md:flex' : 'flex'}`}>
+                    {/* Header */}
+                    <div className="h-16 border-b border-slate-100 dark:border-slate-800 px-4 flex items-center justify-between shrink-0">
+                        <h2 className="font-extrabold text-xl text-slate-900 dark:text-white flex items-center gap-2">
+                             Mensagens
+                        </h2>
+                        <button className="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
+                            <span className="material-symbols-outlined text-[26px]">edit_square</span>
+                        </button>
                     </div>
-                    <p className="font-semibold text-gray-900 text-[14px] mb-0.5">
-                        {activeTab === 'pendentes' ? 'Nenhuma conversa pendente' : 'Nenhuma conversa'}
-                    </p>
-                    <p className="text-[13px] text-gray-400">
-                        {activeTab === 'geral' ? 'Visite um perfil e envie uma mensagem!' : 'Solicitações aparecerão aqui.'}
-                    </p>
-                </div>
-            ) : (
-                <div>
-                    {filteredConversations.map(conv => (
-                        <div
-                            key={conv.id}
-                            className="flex items-center gap-3 px-4 py-2.5 active:bg-gray-50 cursor-pointer transition-colors"
-                            onClick={() => navigate(`/caomunicacao/mensagens/${conv.id}`)}
-                        >
-                            <div className="relative">
-                                <img
-                                    src={conv.other_user_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.other_user_name)}&background=f97316&color=fff&size=56`}
-                                    alt=""
-                                    className="size-[52px] rounded-full object-cover"
-                                />
-                                {conv.unread_count > 0 && (
-                                    <div className="absolute -top-px -right-px bg-orange-500 text-white text-[9px] font-bold size-[18px] rounded-full flex items-center justify-center">
-                                        {conv.unread_count}
-                                    </div>
-                                )}
-                            </div>
 
-                            <div className="flex-1 min-w-0">
-                                <div className="flex justify-between items-center">
-                                    <span className={`text-[13px] truncate ${conv.unread_count > 0 ? 'font-bold text-gray-900' : 'font-normal text-gray-900'}`}>
-                                        {conv.other_user_name}
+                    {/* Tabs */}
+                    <div className="flex border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
+                        {(['geral', 'pendentes'] as const).map(tab => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`flex-1 py-3.5 text-center text-sm font-semibold relative transition-colors ${activeTab === tab ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                            >
+                                {tab === 'geral' ? 'Geral' : 'Solicitações'}
+                                {tab === 'pendentes' && pendingCount > 0 && (
+                                    <span className="ml-1.5 bg-secondary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pendingCount}</span>
+                                )}
+                                {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900 dark:bg-white" />}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Conversations List */}
+                    <div className="flex-1 overflow-y-auto">
+                        {loading ? (
+                            <div className="flex items-center justify-center py-12">
+                                <div className="animate-spin size-8 border-2 border-secondary border-t-transparent rounded-full" />
+                            </div>
+                        ) : filteredConversations.length === 0 ? (
+                            <div className="text-center py-12 px-6">
+                                <div className="size-16 rounded-full border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center mx-auto mb-4 text-slate-400 dark:text-slate-500">
+                                    <span className="material-symbols-outlined text-3xl">
+                                        {activeTab === 'pendentes' ? 'mark_chat_unread' : 'chat_bubble_outline'}
                                     </span>
-                                    <span className="text-[11px] text-gray-400 shrink-0 ml-2">{timeAgo(conv.last_message_at)}</span>
                                 </div>
-                                <p className={`text-[13px] truncate ${conv.unread_count > 0 ? 'text-gray-900 font-semibold' : 'text-gray-400'}`}>
-                                    {conv.last_message || 'Nenhuma mensagem ainda'}
+                                <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm mb-1">
+                                    {activeTab === 'pendentes' ? 'Nenhuma solicitação' : 'Caixa de entrada vazia'}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    {activeTab === 'geral' ? 'Suas mensagens aparecerão aqui.' : 'Sem mensagens pendentes.'}
                                 </p>
                             </div>
+                        ) : (
+                            <div>
+                                {filteredConversations.map(conv => (
+                                    <div
+                                        key={conv.id}
+                                        className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${conversationId === conv.id ? 'bg-slate-50 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
+                                        onClick={() => navigate(`/caomunicacao/mensagens/${conv.id}`)}
+                                    >
+                                        <div className="relative">
+                                            <img
+                                                src={conv.other_user_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.other_user_name)}&background=f97316&color=fff&size=56`}
+                                                alt=""
+                                                className="size-14 rounded-full object-cover border border-slate-100 dark:border-slate-700"
+                                            />
+                                            {conv.unread_count > 0 && (
+                                                <div className="absolute top-0 right-0 bg-secondary border-2 border-white dark:border-slate-900 text-white text-[10px] font-bold size-5 rounded-full flex items-center justify-center">
+                                                    {conv.unread_count}
+                                                </div>
+                                            )}
+                                        </div>
 
-                            {activeTab === 'pendentes' && (
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handleAcceptConversation(conv.id); }}
-                                    className="bg-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shrink-0"
-                                >
-                                    Aceitar
-                                </button>
-                            )}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-center mb-0.5">
+                                                <span className={`text-sm truncate ${conv.unread_count > 0 ? 'font-bold text-slate-900 dark:text-white' : 'font-medium text-slate-800 dark:text-slate-200'}`}>
+                                                    {conv.other_user_name}
+                                                </span>
+                                                <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0 ml-2">{timeAgo(conv.last_message_at)}</span>
+                                            </div>
+                                            <p className={`text-sm truncate ${conv.unread_count > 0 ? 'text-slate-900 dark:text-white font-semibold' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                {conv.last_message || 'Nenhuma mensagem ainda'}
+                                            </p>
+                                        </div>
+
+                                        {activeTab === 'pendentes' && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleAcceptConversation(conv.id); }}
+                                                className="bg-secondary hover:bg-secondary/90 text-white text-xs font-bold px-3 py-1.5 rounded-lg shrink-0 transition-colors"
+                                            >
+                                                Aceitar
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </aside>
+
+                {/* Main Content Area / Chat Room (Hidden on mobile if no conversation is selected) */}
+                <main className={`flex-1 flex flex-col relative bg-white dark:bg-slate-900 ${!conversationId ? 'hidden md:flex' : 'flex'}`}>
+                    <Outlet />
+                    {!conversationId && (
+                        <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 p-6 text-center">
+                             <div className="size-24 rounded-full border-2 border-slate-800 dark:border-slate-600 flex items-center justify-center mb-4">
+                                  <span className="material-symbols-outlined text-4xl transform -rotate-45 ml-2 mt-2">send</span>
+                             </div>
+                             <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200">Suas Mensagens</h3>
+                             <p className="text-sm mt-2 max-w-xs">Comunique-se de forma privada com seus amigos e outros tutores.</p>
+                             <button onClick={() => {}} className="mt-8 bg-secondary hover:bg-secondary/90 text-white px-6 py-2 rounded-xl font-bold transition-all transform hover:scale-105 shadow-md shadow-secondary/20">
+                                Nova Mensagem
+                             </button>
                         </div>
-                    ))}
-                </div>
-            )}
+                    )}
+                </main>
+            </div>
         </div>
     );
 };
