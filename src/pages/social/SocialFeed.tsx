@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import PostCard from '../../components/social/PostCard';
+import CommunityWall from '../CommunityWall';
 
 interface Story {
     id: string;
@@ -30,8 +31,8 @@ interface PostData {
 const SocialFeed: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const [activeTab, setActiveTab] = useState<'todos' | 'amigos'>('todos');
-    const [posts, setPosts] = useState<PostData[]>([]);
+    const [activeTab, setActiveTab] = useState<'todos' | 'amigos' | 'mural'>('todos');
+    const [posts, setPosts] = useState<PostData[]>();
     const [stories, setStories] = useState<Story[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewingStory, setViewingStory] = useState<Story | null>(null);
@@ -210,19 +211,26 @@ const SocialFeed: React.FC = () => {
 
             {/* Feed Tabs */}
             <div className="bg-white border-b border-gray-100 flex">
-                {(['todos', 'amigos'] as const).map(tab => (
+                {(['todos', 'amigos', 'mural'] as const).map(tab => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
                         className={`flex-1 py-2.5 text-center text-[13px] font-semibold transition-colors relative ${activeTab === tab ? 'text-gray-900' : 'text-gray-400'}`}
                     >
-                        {tab === 'todos' ? 'Todos' : 'Amigos'}
+                        {tab === 'todos' ? 'Todos' : tab === 'amigos' ? 'Amigos' : 'Mural'}
                         {activeTab === tab && <div className="absolute bottom-0 left-1/4 right-1/4 h-[1px] bg-gray-900" />}
                     </button>
                 ))}
             </div>
 
-            {/* Posts */}
+            {/* Content Switcher */}
+            {activeTab === 'mural' ? (
+                <div className="min-h-screen bg-slate-50 relative pb-[50px] md:pb-0">
+                    <CommunityWall />
+                </div>
+            ) : (
+                <>
+                    {/* Posts */}
             {loading ? (
                 <div className="flex items-center justify-center py-16">
                     <div className="animate-spin size-7 border-2 border-orange-500 border-t-transparent rounded-full" />
@@ -251,6 +259,8 @@ const SocialFeed: React.FC = () => {
                 posts.map(post => (
                     <PostCard key={post.id} post={post} onComment={() => fetchPosts()} />
                 ))
+            )}
+            </>
             )}
 
             {/* Story Viewer Modal — Full screen mobile */}

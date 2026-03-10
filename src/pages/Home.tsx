@@ -10,7 +10,7 @@ const Home: React.FC = () => {
         { name: 'Hospedagem', icon: 'home', color: 'orange', route: '/hospedagem' },
         { name: 'Saúde', icon: 'medical_services', color: 'blue', route: '/saude' },
         { name: 'Estética', icon: 'content_cut', color: 'purple', route: '/estetica' },
-        { name: 'Creche', icon: 'pets', color: 'green', route: '/creche' }
+        { name: 'Cãomunicação', icon: 'groups', color: 'purple', route: '/caomunicacao' }
     ];
 
     return (
@@ -39,51 +39,7 @@ const Home: React.FC = () => {
                     </div>
                 </section>
 
-                {/* Quick Access: Favorites, Community Wall & Social Feed */}
-                <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-                    <Link to="/profile?tab=favorites" className="relative h-32 md:h-40 rounded-2xl overflow-hidden group shadow-md hover:shadow-lg transition-all border border-gray-100">
-                        <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" style={{ backgroundImage: `url('${IMAGES.HOTEL_INTERIOR}')` }}></div>
-                        <div className="absolute inset-0 bg-gradient-to-r from-orange-600/90 to-orange-500/40"></div>
-                        <div className="absolute inset-0 flex items-center justify-between p-6 md:p-8">
-                            <div className="flex flex-col text-white">
-                                <h3 className="text-xl md:text-2xl font-bold mb-1">Meus Favoritos</h3>
-                                <p className="text-sm md:text-base text-orange-100 font-medium">Parceiros que você ama</p>
-                            </div>
-                            <div className="size-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white group-hover:bg-white group-hover:text-primary transition-all">
-                                <span className="material-symbols-outlined text-2xl">favorite</span>
-                            </div>
-                        </div>
-                    </Link>
-                    
-                    <Link to="/mural" className="relative h-32 md:h-40 rounded-2xl overflow-hidden group shadow-md hover:shadow-lg transition-all border border-gray-100">
-                        <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" style={{ backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuD2Qw7HCxO94kr_q2OeHKdQ8LpWzmN8Gi6Wic3I8mR5uIy1Bg-90gjrtidy6_vYnMiurNSX3DTz9uzzU6fFWQ4BNAPwua8Bp_-BGDUwSl-tntmHngIrDaPiKQA1ZS-PvlteWSihLgIljETxySnWw7qu9-EbQFYfLkchmIpspQCdpN4Uphm8iSiqSQxNTukUtQAlPW6kh5KfwbviegUsSysFSD8DN-t4gVJN-5O__zvXjaBYp1a-M1F8BSQyIDPixLmXJeuqwALkwyY9')` }}></div>
-                        <div className="absolute inset-0 bg-gradient-to-r from-green-800/90 to-green-600/40"></div>
-                        <div className="absolute inset-0 flex items-center justify-between p-6 md:p-8">
-                            <div className="flex flex-col text-white">
-                                <h3 className="text-xl md:text-2xl font-bold mb-1">Mural da Comunidade</h3>
-                                <p className="text-sm md:text-base text-green-100 font-medium">Adoção e pets perdidos</p>
-                            </div>
-                            <div className="size-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white group-hover:bg-white group-hover:text-green-700 transition-all">
-                                <span className="material-symbols-outlined text-2xl">forum</span>
-                            </div>
-                        </div>
-                    </Link>
-
-                     <Link to="/caomunicacao" className="relative h-32 md:h-40 rounded-2xl overflow-hidden group shadow-md hover:shadow-lg transition-all border border-gray-100">
-                        <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" style={{ backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuB69es8xAtYzY2eIjJShIlTK8wEK06llH40A9ZaRuyqIsK1g0JrLOzWrxrEbIWjbrlKCVVgl_n6sYOMr3qxz08OTupA1Tn92UWcaaDypggJqOAd4Z2BJf-KaJUbtH4wBkflBgv-6o9hW_rXCINPAykhR9ICXTrOx4Qzto-vH-RmgSRvf-uVSWr00wJa2FwbdbXXcOAS3PNZsj1j1GnT1yP8e9ggB80RZLiNOT6wT0IkqhNTS4qsCPFb0sR5QGCsLQpY7Fel2KDzd4LK')` }}></div>
-                        <div className="absolute inset-0 bg-gradient-to-r from-purple-800/90 to-purple-600/40"></div>
-                        <div className="absolute inset-0 flex items-center justify-between p-6 md:p-8">
-                            <div className="flex flex-col text-white">
-                                <h3 className="text-xl md:text-2xl font-bold mb-1">Caomunicação</h3>
-                                <p className="text-sm md:text-base text-purple-100 font-medium">Feed da comunidade</p>
-                            </div>
-                            <div className="size-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white group-hover:bg-white group-hover:text-purple-700 transition-all">
-                                <span className="material-symbols-outlined text-2xl">groups</span>
-                            </div>
-                        </div>
-                    </Link>
-                </section>
 
                 {/* Smart Packages Section */}
                 <section>
