@@ -402,35 +402,81 @@ const FavoritesView: React.FC = () => {
     const { user } = useAuth();
     const [favorites, setFavorites] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
-        if (user) {
-            fetchFavorites();
-        }
+        if (user) fetchFavorites();
     }, [user]);
 
     const fetchFavorites = async () => {
+        setLoading(true);
         try {
-            const { data, error } = await supabase
+            // Busca todos os favoritos do usuário (suporte polimórfico)
+            const { data: favData, error } = await supabase
                 .from('post_favorites')
-                .select(`
-                    id,
-                    post:wall_posts (
-                        id,
-                        images,
-                        likes:post_likes(count),
-                        comments:post_comments(count)
-                    )
-                `)
-                .eq('user_id', user?.id);
+                .select('id, source_id, source_type, post_id')
+                .eq('user_id', user?.id)
+                .order('created_at', { ascending: false });
 
             if (error) throw error;
-            setFavorites(data || []);
+            if (!favData || favData.length === 0) {
+                setFavorites([]);
+                return;
+            }
+
+            // Enriquece cada favorito com dados da entidade correspondente
+            const enriched = await Promise.all(
+                favData.map(async (fav) => {
+                    const sid = fav.source_id || fav.post_id;
+                    const stype = fav.source_type || 'wall_post';
+
+                    if (stype === 'adoption_pet') {
+                        const { data } = await supabase.from('adoption_pets').select('id, name, main_image, img').eq('id', sid).maybeSingle();
+                        return { ...fav, entity: data, sourceType: stype };
+                    } else if (stype === 'lost_pet') {
+                        const { data } = await supabase.from('lost_pets').select('id, pet_name, image_url, photo_url').eq('id', sid).maybeSingle();
+                        return { ...fav, entity: data, sourceType: stype };
+                    } else {
+                        // wall_post
+                        const { data } = await supabase.from('wall_posts').select('id, images, likes:post_likes(count), comments:post_comments(count)').eq('id', sid).maybeSingle();
+                        return { ...fav, entity: data, sourceType: stype };
+                    }
+                })
+            );
+
+            setFavorites(enriched.filter(f => f.entity));
         } catch (error) {
             console.error('Error fetching favorites:', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleRemove = async (favId: string) => {
+        await supabase.from('post_favorites').delete().eq('id', favId);
+        setFavorites(prev => prev.filter(f => f.id !== favId));
+    };
+
+    const getImage = (fav: any): string => {
+        const e = fav.entity;
+        if (!e) return IMAGES.DOG_RUNNING;
+        if (fav.sourceType === 'adoption_pet') return e.main_image || e.img || IMAGES.DOG_RUNNING;
+        if (fav.sourceType === 'lost_pet') return e.photo_url || e.image_url || IMAGES.DOG_RUNNING;
+        // wall_post
+        const imgs = typeof e.images === 'string' ? JSON.parse(e.images) : e.images;
+        return imgs?.[0] || IMAGES.DOG_RUNNING;
+    };
+
+    const getLabel = (fav: any): string => {
+        if (fav.sourceType === 'adoption_pet') return fav.entity?.name || 'Pet para Adoção';
+        if (fav.sourceType === 'lost_pet') return fav.entity?.pet_name || 'Pet Perdido';
+        return 'Post do Mural';
+    };
+
+    const getBadge = (type: string) => {
+        if (type === 'adoption_pet') return { label: 'Adoção', color: 'bg-secondary' };
+        if (type === 'lost_pet') return { label: 'Perdido', color: 'bg-primary' };
+        return { label: 'Mural', color: 'bg-gray-600' };
     };
 
     return (
@@ -440,35 +486,44 @@ const FavoritesView: React.FC = () => {
                     <h1 className="text-2xl font-bold text-gray-900">Meus Favoritos</h1>
                     <p className="text-gray-500 text-sm mt-1">Posts que você salvou para ver depois.</p>
                 </div>
+                <button onClick={() => navigate('/mural')} className="text-sm text-primary font-semibold hover:underline flex items-center gap-1">
+                    <span className="material-symbols-outlined text-lg">explore</span>
+                    Ver Mural
+                </button>
             </div>
 
             {loading ? (
                 <div className="text-center py-10 text-gray-500">Carregando...</div>
             ) : favorites.length === 0 ? (
-                <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                    <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">bookmark_border</span>
-                    <p className="text-gray-500">Você ainda não salvou nenhum post.</p>
+                <div className="text-center py-16 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                    <span className="material-symbols-outlined text-5xl text-gray-300 block mb-3">bookmark_border</span>
+                    <p className="text-gray-600 font-semibold">Nenhum post salvo ainda</p>
+                    <p className="text-gray-400 text-sm mt-1">Toque no ícone <span className="font-bold">🔖</span> nos posts do Mural para salvar aqui.</p>
+                    <button onClick={() => navigate('/mural')} className="mt-5 bg-primary text-white px-6 py-2 rounded-xl font-bold shadow-sm hover:bg-orange-600 transition-colors text-sm">
+                        Explorar o Mural
+                    </button>
                 </div>
             ) : (
-                <div className="grid grid-cols-3 gap-1 sm:gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {favorites.map((fav) => {
-                        const post = fav.post;
-                        if (!post) return null;
-                        const images = typeof post.images === 'string' ? JSON.parse(post.images) : post.images;
-                        const mainImage = images && images.length > 0 ? images[0] : IMAGES.DOG_RUNNING;
-
+                        const badge = getBadge(fav.sourceType);
                         return (
-                            <div key={fav.id} className="aspect-square relative group cursor-pointer overflow-hidden rounded-lg bg-gray-100">
-                                <img src={mainImage} alt="Post" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 text-white font-bold">
-                                    <div className="flex items-center gap-1">
-                                        <span className="material-symbols-outlined fill-white">favorite</span>
-                                        <span>{post.likes?.[0]?.count || 0}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <span className="material-symbols-outlined fill-white">chat_bubble</span>
-                                        <span>{post.comments?.[0]?.count || 0}</span>
-                                    </div>
+                            <div key={fav.id} className="relative group cursor-pointer overflow-hidden rounded-xl bg-gray-100 aspect-square shadow-sm">
+                                <img src={getImage(fav)} alt={getLabel(fav)} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                                {/* Overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                                    <p className="text-white text-xs font-bold truncate">{getLabel(fav)}</p>
+                                    <button
+                                        onClick={() => handleRemove(fav.id)}
+                                        className="mt-2 w-full text-xs bg-white/20 hover:bg-red-500 text-white border border-white/30 rounded-lg py-1.5 font-semibold transition-all flex items-center justify-center gap-1"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">bookmark_remove</span>
+                                        Remover
+                                    </button>
+                                </div>
+                                {/* Badge */}
+                                <div className={`absolute top-2 left-2 ${badge.color} text-white text-[10px] font-bold px-2 py-0.5 rounded-full`}>
+                                    {badge.label}
                                 </div>
                             </div>
                         );

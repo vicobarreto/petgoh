@@ -1,6 +1,62 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+
+// Hook reutilizável para favoritar qualquer tipo de post
+const usePostFavorite = (sourceId: string, sourceType: string) => {
+    const { user } = useAuth();
+    const [isFavorited, setIsFavorited] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (!user || !sourceId) return;
+        const checkFavorite = async () => {
+            const { data } = await supabase
+                .from('post_favorites')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('source_id', sourceId)
+                .eq('source_type', sourceType)
+                .maybeSingle();
+            setIsFavorited(!!data);
+        };
+        checkFavorite();
+    }, [user, sourceId, sourceType]);
+
+    const toggle = useCallback(async () => {
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+        setLoading(true);
+        try {
+            if (isFavorited) {
+                await supabase
+                    .from('post_favorites')
+                    .delete()
+                    .eq('user_id', user.id)
+                    .eq('source_id', sourceId)
+                    .eq('source_type', sourceType);
+                setIsFavorited(false);
+            } else {
+                await supabase.from('post_favorites').insert({
+                    user_id: user.id,
+                    source_id: sourceId,
+                    source_type: sourceType,
+                });
+                setIsFavorited(true);
+            }
+        } catch (err) {
+            console.error('Erro ao favoritar:', err);
+        } finally {
+            setLoading(false);
+        }
+    }, [user, isFavorited, sourceId, sourceType, navigate]);
+
+    return { isFavorited, toggle, loading };
+};
 
 const CommunityWall: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'adoption' | 'lost'>('adoption');
@@ -57,6 +113,24 @@ const CommunityWall: React.FC = () => {
     );
 };
 
+// ==================== BOOKMARK BUTTON ====================
+const BookmarkButton: React.FC<{ sourceId: string; sourceType: string }> = ({ sourceId, sourceType }) => {
+    const { isFavorited, toggle, loading } = usePostFavorite(sourceId, sourceType);
+    return (
+        <button
+            onClick={toggle}
+            disabled={loading}
+            title={isFavorited ? 'Remover dos favoritos' : 'Salvar nos favoritos'}
+            className={`transition-all hover:scale-110 disabled:opacity-50 ${isFavorited ? 'text-primary' : 'text-secondary dark:text-slate-300'}`}
+        >
+            <span className={`material-symbols-outlined text-[28px] ${isFavorited ? 'fill-current' : ''}`}>
+                {isFavorited ? 'bookmark' : 'bookmark'}
+            </span>
+        </button>
+    );
+};
+
+// ==================== ADOPTION VIEW ====================
 const AdoptionView: React.FC = () => {
     const navigate = useNavigate();
     const [pets, setPets] = useState<any[]>([]);
@@ -136,9 +210,7 @@ const AdoptionView: React.FC = () => {
                                     <span className="material-symbols-outlined text-[28px]">share</span>
                                 </button>
                             </div>
-                            <button className="text-secondary dark:text-slate-300">
-                                <span className="material-symbols-outlined text-[28px]">bookmark</span>
-                            </button>
+                            <BookmarkButton sourceId={pet.id} sourceType="adoption_pet" />
                         </div>
                         
                         {/* Caption */}
@@ -164,6 +236,7 @@ const AdoptionView: React.FC = () => {
     );
 };
 
+// ==================== LOST PETS VIEW ====================
 const LostPetsView: React.FC = () => {
     const navigate = useNavigate();
     const [lostPets, setLostPets] = useState<any[]>([]);
@@ -219,7 +292,7 @@ const LostPetsView: React.FC = () => {
 
                     {/* Image Section */}
                     <div className="relative aspect-square w-full bg-slate-100 group">
-                        <img alt={pet.name} className="w-full h-full object-cover" src={pet.photo_url || 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'} />
+                        <img alt={pet.name} className="w-full h-full object-cover" src={pet.photo_url || pet.image_url || 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'} />
                         {/* Floating Badge */}
                         <div className="absolute top-4 left-4">
                             <span className="bg-primary text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1">
@@ -243,15 +316,13 @@ const LostPetsView: React.FC = () => {
                                     <span className="material-symbols-outlined text-[28px]">share</span>
                                 </button>
                             </div>
-                            <button className="text-secondary dark:text-slate-300">
-                                <span className="material-symbols-outlined text-[28px]">bookmark</span>
-                            </button>
+                            <BookmarkButton sourceId={pet.id} sourceType="lost_pet" />
                         </div>
                         
                         {/* Caption */}
                         <div className="space-y-1">
                             <p className="text-sm">
-                                <span className="font-bold mr-2">{pet.name}</span>
+                                <span className="font-bold mr-2">{pet.pet_name || pet.name}</span>
                                 {pet.description}
                             </p>
                             <div className="mt-4">
@@ -272,4 +343,3 @@ const LostPetsView: React.FC = () => {
 };
 
 export default CommunityWall;
-
