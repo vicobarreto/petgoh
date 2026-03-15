@@ -1,422 +1,441 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { IMAGES } from '../types';
 import { useFavorites } from '../context/FavoritesContext';
+import { supabase } from '../lib/supabase';
 
-type ViewState = 'LIST' | 'DETAILS' | 'PARTNERS';
+type BookingStep = 'ITEMS' | 'DISTRIBUTE' | 'DATES' | 'SUMMARY';
 
-interface CrecheService {
+interface Partner {
     id: string;
-    title: string;
-    description: string;
-    schedule: string;
-    price: string;
-    features: string[];
-    image: string;
-    partnerTypeMatch: string;
-    badge?: string;
+    company_name: string;
+    category: string;
+    phone: string | null;
+    email: string | null;
+    rating: number;
+    logo_url: string | null;
+    city: string | null;
+    state: string | null;
+    status: string;
 }
 
-const SERVICES: CrecheService[] = [
-    {
-        id: 'daycare-integral',
-        title: 'Daycare Integral (12h)',
-        description: 'Um dia completo de diversão, socialização e gastos de energia. Ideal para quem trabalha fora o dia todo.',
-        schedule: '07:00 às 19:00',
-        price: 'A partir de R$ 85,00/dia',
-        features: ['Monitoramento 100%', 'Atividades Recreativas', 'Soneca Climatizada', 'Alimentação Supervisionada'],
-        image: IMAGES.TWO_DOGS,
-        partnerTypeMatch: 'Creche',
-        badge: 'Mais Popular'
-    },
-    {
-        id: 'daycare-meio',
-        title: 'Daycare Meio Período (6h)',
-        description: 'Perfeito para gastar energia em um turno (manhã ou tarde). Socialização na medida certa.',
-        schedule: 'Manhã ou Tarde',
-        price: 'A partir de R$ 60,00/dia',
-        features: ['Socialização', 'Gasto de Energia', 'Enriquecimento Ambiental', 'Descanso'],
-        image: IMAGES.DOG_RUNNING || 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=2069&auto=format&fit=crop',
-        partnerTypeMatch: 'Creche'
-    },
-    {
-        id: 'hotel-pet',
-        title: 'Hospedagem (Pernoite)',
-        description: 'Cuidado 24 horas para quando você viajar. Seu pet dorme em quartos confortáveis ou baias individuais.',
-        schedule: 'Check-in 14h / Check-out 12h',
-        price: 'A partir de R$ 90,00/noite',
-        features: ['Câmeras Ao Vivo', 'Relatório Diário', 'Passeios Externos', 'Ambiente Familiar'],
-        image: IMAGES.HOTEL_INTERIOR,
-        partnerTypeMatch: 'Hotel',
-        badge: 'Férias'
-    }
+const STEP_CONFIG: { key: BookingStep; label: string; icon: string }[] = [
+    { key: 'ITEMS', label: 'Creches', icon: 'child_care' },
+    { key: 'DISTRIBUTE', label: 'Diárias', icon: 'tune' },
+    { key: 'DATES', label: 'Datas', icon: 'calendar_month' },
+    { key: 'SUMMARY', label: 'Resumo', icon: 'receipt_long' },
 ];
 
 const Creche: React.FC = () => {
-    const [view, setView] = useState<ViewState>('LIST');
-    const [selectedService, setSelectedService] = useState<CrecheService | null>(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const { isFavorite, toggleFavorite } = useFavorites();
     const navigate = useNavigate();
+    const { isFavorite, toggleFavorite } = useFavorites();
 
-    // Mock Partners
-    const partners = [
-        {
-            id: "quintal-da-alegria",
-            name: "Quintal da Alegria Daycare",
-            type: "Creche",
-            rating: 4.9,
-            reviews: 120,
-            price: 85,
-            location: "Jardim Botânico, RJ",
-            image: IMAGES.DOG_DAYCARE,
-            verified: true,
-            features: ["Piscina", "Gramado Natural"]
-        },
-        {
-            id: "vila-dos-pets-leblon",
-            name: "Vila dos Pets Leblon",
-            type: "Hotel",
-            rating: 5.0,
-            reviews: 215,
-            price: 110,
-            location: "Leblon, RJ",
-            image: IMAGES.PACKAGE_HERO,
-            verified: true,
-            premium: true,
-            features: ["Suítes Individuais", "Webcam 24h"]
-        },
-        {
-            id: "espaco-zen-pet",
-            name: "Espaço Zen Pet",
-            type: "Creche",
-            rating: 4.8,
-            reviews: 56,
-            price: 55,
-            location: "Gávea, RJ",
-            image: IMAGES.HOTEL_INTERIOR,
-            features: ["Musicoterapia", "Massagem"]
-        },
-        {
-            id: "auau-school",
-            name: "AuAu School",
-            type: "Creche",
-            rating: 4.7,
-            reviews: 320,
-            price: 75,
-            location: "Copacabana, RJ",
-            image: "https://images.unsplash.com/photo-1597524213799-a3528b122785?q=80&w=2070&auto=format&fit=crop",
-            verified: true,
-            features: ["Adestramento", "Agility"]
+    const [partners, setPartners] = useState<Partner[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [step, setStep] = useState<BookingStep>('ITEMS');
+
+    const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
+    const [distribution, setDistribution] = useState<Record<string, number>>({});
+    const [dates, setDates] = useState<Record<string, string[]>>({});
+
+    const totalDiarias = 5;
+
+    const distributedTotal = useMemo(() => {
+        return Object.values(distribution).reduce((sum, n) => sum + n, 0);
+    }, [distribution]);
+
+    const canProceedFromDistribute = distributedTotal === totalDiarias;
+
+    useEffect(() => {
+        fetchPartners();
+    }, []);
+
+    const fetchPartners = async () => {
+        setLoading(true);
+        const { data, error } = await supabase
+            .from('partners')
+            .select('*')
+            .eq('category', 'Creche')
+            .eq('status', 'active')
+            .order('rating', { ascending: false });
+
+        if (!error && data) {
+            setPartners(data);
         }
-    ];
-
-    const filteredPartners = useMemo(() => {
-        let filtered = partners;
-        
-        // Filter by Service Type
-        if (selectedService) {
-            filtered = filtered.filter(p => !selectedService.partnerTypeMatch || p.type === selectedService.partnerTypeMatch || (selectedService.partnerTypeMatch === 'Creche' && p.type === 'Hotel')); // Hotels often do daycare
-        }
-
-        // Filter by Location/Name
-        if (searchTerm) {
-            const term = searchTerm.toLowerCase();
-            filtered = filtered.filter(p => 
-                p.name.toLowerCase().includes(term) || 
-                p.location.toLowerCase().includes(term)
-            );
-        }
-
-        return filtered;
-    }, [partners, selectedService, searchTerm]);
-
-    const handleSelectService = (service: CrecheService) => {
-        setSelectedService(service);
-        setView('DETAILS');
+        setLoading(false);
     };
 
-    const handleChoosePartners = () => {
-        setView('PARTNERS');
+    const getPartnerImage = (partner: Partner) => {
+        if (partner.logo_url) return partner.logo_url;
+        return IMAGES.TWO_DOGS;
     };
 
-    const handleSelectPartner = (partner: any) => {
-        navigate('/checkout', { 
-            state: { 
-                package: {
-                    ...selectedService,
-                    title: `Reserva: ${selectedService?.title}`
-                },
-                partner: partner
-            } 
+    const togglePartnerSelection = (partnerId: string) => {
+        setSelectedPartners(prev =>
+            prev.includes(partnerId) ? prev.filter(id => id !== partnerId) : [...prev, partnerId]
+        );
+    };
+
+    const handleAdvanceFromItems = () => {
+        if (selectedPartners.length === 0) return;
+        const initDist: Record<string, number> = {};
+        selectedPartners.forEach(id => { initDist[id] = 0; });
+
+        if (selectedPartners.length === 1) {
+            initDist[selectedPartners[0]] = totalDiarias;
+            setDistribution(initDist);
+            setDates({ [selectedPartners[0]]: Array(totalDiarias).fill('') });
+            setStep('DATES');
+        } else {
+            setDistribution(initDist);
+            setStep('DISTRIBUTE');
+        }
+    };
+
+    const handleAdvanceFromDistribute = () => {
+        const initDates: Record<string, string[]> = {};
+        Object.entries(distribution).forEach(([partnerId, days]) => {
+            if (days > 0) initDates[partnerId] = Array(days).fill('');
+        });
+        setDates(initDates);
+        setStep('DATES');
+    };
+
+    const isWeekend = (dateStr: string): boolean => {
+        const date = new Date(dateStr + 'T12:00:00');
+        const day = date.getDay();
+        return day === 0 || day === 6;
+    };
+
+    const formatDate = (dateStr: string): string => {
+        if (!dateStr) return '';
+        const date = new Date(dateStr + 'T12:00:00');
+        return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    };
+
+    const getMinDate = (): string => {
+        const today = new Date();
+        today.setDate(today.getDate() + 1);
+        return today.toISOString().split('T')[0];
+    };
+
+    const canProceedFromDates = useMemo(() => {
+        return Object.entries(distribution).every(([partnerId, days]) => {
+            if (days === 0) return true;
+            const d = dates[partnerId] || [];
+            if (d.length !== days) return false;
+            if (d.some(v => !v)) return false;
+            if (d.some(isWeekend)) return false;
+            return true;
+        });
+    }, [distribution, dates]);
+
+    const handleContinueToCheckout = () => {
+        const stays = Object.entries(distribution)
+            .filter(([, days]) => days > 0)
+            .map(([partnerId, days]) => {
+                const partner = partners.find(p => p.id === partnerId);
+                return {
+                    partnerId,
+                    partnerName: partner?.company_name || 'Creche',
+                    nights: days,
+                    dates: dates[partnerId] || [],
+                };
+            });
+
+        navigate('/checkout/creche', {
+            state: { bookingStays: stays, totalDiarias, category: 'creche' },
         });
     };
 
-    const handleBack = () => {
-        if (view === 'PARTNERS') setView('DETAILS');
-        else if (view === 'DETAILS') setView('LIST');
-    };
+    const visibleSteps = selectedPartners.length <= 1
+        ? STEP_CONFIG.filter(s => s.key !== 'DISTRIBUTE')
+        : STEP_CONFIG;
+    const visibleStepIndex = visibleSteps.findIndex(s => s.key === step);
+
+    if (loading) {
+        return (
+            <div className="flex-grow w-full flex items-center justify-center py-20">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+                    <p className="text-gray-500 text-sm">Carregando creches...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
-            {/* Header / Nav */}
-            <div className="bg-white px-4 py-4 shadow-sm sticky top-0 z-50">
-                <div className="max-w-3xl mx-auto flex items-center">
-                    {view !== 'LIST' && (
-                        <button onClick={handleBack} className="mr-4 text-gray-600 hover:text-primary p-2 rounded-full hover:bg-gray-100 transition-colors">
-                            <span className="material-symbols-outlined">arrow_back</span>
-                        </button>
-                    )}
-                    <h1 className="text-xl font-bold text-gray-800">
-                        {view === 'LIST' && 'Creche & Hotel'}
-                        {view === 'DETAILS' && 'Detalhes do Serviço'}
-                        {view === 'PARTNERS' && 'Escolher Local'}
-                    </h1>
+        <div className="flex-grow w-full max-w-4xl mx-auto px-4 sm:px-6 py-8 lg:py-12">
+            {/* Breadcrumbs */}
+            <nav className="flex items-center gap-2 text-sm mb-6 text-gray-500">
+                <Link to="/" className="hover:text-primary transition-colors">Home</Link>
+                <span className="material-symbols-outlined text-xs">chevron_right</span>
+                <span className="font-semibold text-[#181310]">Creche & Daycare</span>
+            </nav>
+
+            {/* Hero */}
+            <div className="relative rounded-2xl overflow-hidden h-48 mb-8 group">
+                <img src={IMAGES.TWO_DOGS} alt="Creche" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent flex items-center p-6 sm:p-8">
+                    <div>
+                        <h1 className="text-white text-2xl sm:text-3xl font-bold mb-1">Creche & Daycare</h1>
+                        <p className="text-gray-200 text-sm sm:text-base max-w-md">Segunda casa do seu pet. Diversão, segurança e socialização.</p>
+                    </div>
                 </div>
             </div>
 
-            <main className="max-w-3xl mx-auto px-4 py-6">
-                
-                {/* VIEW 1: LIST OF SERVICES */}
-                {view === 'LIST' && (
-                    <div className="space-y-6">
-                        {/* Hero Banner Mini */}
-                        <div className="relative rounded-2xl overflow-hidden h-48 shadow-sm group">
-                            <img src={IMAGES.TWO_DOGS} alt="Creche Hero" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                            <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent flex items-center p-6">
-                                <div className="max-w-md">
-                                    <h2 className="text-white text-2xl font-bold mb-1">Segunda Casa do seu Pet</h2>
-                                    <p className="text-gray-200 text-sm">Diversão, segurança e muito carinho enquanto você trabalha ou viaja.</p>
-                                </div>
+            {/* Progress Steps */}
+            <div className="flex items-center justify-center gap-1 sm:gap-2 mb-10">
+                {visibleSteps.map((s, i) => (
+                    <React.Fragment key={s.key}>
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all ${
+                                visibleStepIndex >= i ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-gray-100 text-gray-400'
+                            }`}>
+                                {visibleStepIndex > i
+                                    ? <span className="material-symbols-outlined text-lg">check</span>
+                                    : <span className="material-symbols-outlined text-lg">{s.icon}</span>}
                             </div>
+                            <span className={`text-xs sm:text-sm font-medium hidden sm:inline ${visibleStepIndex >= i ? 'text-gray-900' : 'text-gray-400'}`}>{s.label}</span>
                         </div>
+                        {i < visibleSteps.length - 1 && (
+                            <div className={`w-8 sm:w-14 h-0.5 rounded-full transition-colors ${visibleStepIndex > i ? 'bg-primary' : 'bg-gray-200'}`} />
+                        )}
+                    </React.Fragment>
+                ))}
+            </div>
 
-                        <div className="grid grid-cols-1 gap-4">
-                            {SERVICES.map((service) => (
-                                <div 
-                                    key={service.id} 
-                                    onClick={() => handleSelectService(service)}
-                                    className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
-                                >
-                                    {service.badge && (
-                                        <div className="absolute top-0 right-0 bg-secondary text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl z-10">
-                                            {service.badge}
+            {/* ===== STEP 1: ITEMS ===== */}
+            {step === 'ITEMS' && (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-1">Escolha as Creches</h3>
+                        <p className="text-sm text-gray-500">Selecione onde seu pet vai passar o dia. Todas as creches são verificadas pela PetGoH.</p>
+                    </div>
+
+                    {partners.length === 0 ? (
+                        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+                            <span className="material-symbols-outlined text-5xl text-gray-300 mb-3">child_care</span>
+                            <p className="text-gray-500 font-medium">Nenhuma creche disponível no momento.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {partners.map((partner) => {
+                                const isSelected = selectedPartners.includes(partner.id);
+                                return (
+                                    <div key={partner.id} onClick={() => togglePartnerSelection(partner.id)}
+                                        className={`group bg-white rounded-2xl border-2 shadow-sm overflow-hidden hover:shadow-md transition-all cursor-pointer ${isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-gray-100'}`}>
+                                        <div className="relative h-40 bg-gray-200">
+                                            <div className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" style={{ backgroundImage: `url('${getPartnerImage(partner)}')` }} />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+                                            <div className={`absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center transition-all ${isSelected ? 'bg-primary' : 'bg-white/80 backdrop-blur-sm'}`}>
+                                                {isSelected && <span className="material-symbols-outlined text-white text-[18px]">check</span>}
+                                            </div>
+
+                                            <div className="absolute top-3 left-3">
+                                                <div className="bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-bold text-gray-800 shadow-sm flex items-center gap-1">
+                                                    <span className="material-symbols-outlined text-blue-500 text-[14px]">verified</span>
+                                                    Creche
+                                                </div>
+                                            </div>
+
+                                            <div className="absolute bottom-3 left-3 right-3 text-white">
+                                                <h4 className="text-lg font-bold drop-shadow-sm">{partner.company_name}</h4>
+                                                <div className="flex items-center gap-2 text-sm">
+                                                    <div className="flex items-center gap-1 bg-black/30 px-2 py-0.5 rounded-lg backdrop-blur-sm">
+                                                        <span className="material-symbols-outlined text-yellow-400 text-[14px]">star</span>
+                                                        <span className="text-xs">{partner.rating || '—'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                    )}
-                                    
-                                    <div className="size-24 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-                                        <img src={service.image} alt={service.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                        <div className="p-3 border-t border-gray-50 bg-gray-50/30 flex items-center justify-between">
+                                            <span className="text-xs text-gray-400 italic">Parceiro verificado</span>
+                                            <button onClick={(e) => { e.stopPropagation(); toggleFavorite({ id: partner.id, name: partner.company_name, type: 'Creche', image: getPartnerImage(partner), rating: partner.rating, location: partner.city || 'Parceiro PetGoH' }); }} className="p-1.5 rounded-full hover:bg-red-50 transition-colors">
+                                                <span className={`material-symbols-outlined text-[20px] ${isFavorite(partner.id) ? 'fill-current text-red-500' : 'text-gray-300 hover:text-red-400'}`}>favorite</span>
+                                            </button>
+                                        </div>
                                     </div>
-                                    
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex justify-between items-start">
-                                            <h3 className="font-bold text-lg text-gray-800 truncate pr-6">{service.title}</h3>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {selectedPartners.length > 0 && (
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl p-3">
+                                <span className="material-symbols-outlined text-green-600 text-lg">check_circle</span>
+                                <span className="text-sm font-medium text-green-800">{selectedPartners.length} creche{selectedPartners.length > 1 ? 's' : ''} selecionada{selectedPartners.length > 1 ? 's' : ''}</span>
+                            </div>
+                            <button onClick={handleAdvanceFromItems} className="w-full h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2">
+                                {selectedPartners.length === 1 ? 'Escolher Datas' : 'Distribuir Diárias'}
+                                <span className="material-symbols-outlined">arrow_forward</span>
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ===== STEP 2: DISTRIBUTE ===== */}
+            {step === 'DISTRIBUTE' && (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-1">Distribuir Diárias</h3>
+                        <p className="text-sm text-gray-500">Distribua suas <strong>{totalDiarias} diárias</strong> entre as creches selecionadas.</p>
+                    </div>
+
+                    <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-colors ${canProceedFromDistribute ? 'border-green-200 bg-green-50' : distributedTotal > totalDiarias ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-white'}`}>
+                        <span className="text-sm font-semibold text-gray-700">Diárias distribuídas</span>
+                        <span className={`text-2xl font-black ${canProceedFromDistribute ? 'text-green-600' : distributedTotal > totalDiarias ? 'text-red-600' : 'text-gray-900'}`}>{distributedTotal} / {totalDiarias}</span>
+                    </div>
+
+                    <div className="space-y-4">
+                        {selectedPartners.map(partnerId => {
+                            const partner = partners.find(p => p.id === partnerId);
+                            if (!partner) return null;
+                            const days = distribution[partnerId] || 0;
+                            return (
+                                <div key={partnerId} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-12 h-12 rounded-xl bg-cover bg-center flex-shrink-0 border border-gray-200" style={{ backgroundImage: `url('${getPartnerImage(partner)}')` }} />
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-bold text-gray-900 truncate">{partner.company_name}</h4>
+                                            <p className="text-xs text-gray-400">Creche</p>
                                         </div>
-                                        <p className="text-xs text-gray-500 line-clamp-2 mb-2">{service.description}</p>
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-sm font-bold text-primary">{service.price}</span>
-                                        </div>
+                                        <span className={`text-2xl font-black ${days > 0 ? 'text-primary' : 'text-gray-300'}`}>{days}</span>
                                     </div>
-                                    
-                                    <div className="flex flex-col gap-2">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleFavorite({
-                                                    id: service.id,
-                                                    name: service.title,
-                                                    type: 'Creche',
-                                                    image: service.image,
-                                                    rating: 5.0,
-                                                    location: 'PetGoH',
-                                                    description: service.description
-                                                });
-                                            }}
-                                            className="p-2 rounded-full hover:bg-red-50 transition-colors group/fav flex-shrink-0"
-                                        >
-                                            <span className={`material-symbols-outlined text-[24px] ${isFavorite(service.id) ? 'fill-current text-red-500' : 'text-gray-300 group-hover/fav:text-red-400'}`}>
-                                                {isFavorite(service.id) ? 'favorite' : 'favorite'}
-                                            </span>
+                                    <div className="flex items-center gap-3">
+                                        <button onClick={() => { if (days > 0) setDistribution(prev => ({ ...prev, [partnerId]: days - 1 })); }} disabled={days <= 0} className="w-12 h-12 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                                            <span className="material-symbols-outlined text-xl">remove</span>
                                         </button>
-                                        <span className="material-symbols-outlined text-gray-300 self-center">chevron_right</span>
+                                        <div className="flex-1 bg-gray-100 rounded-xl h-3 overflow-hidden">
+                                            <div className="h-full bg-primary rounded-xl transition-all duration-300" style={{ width: `${(days / totalDiarias) * 100}%` }} />
+                                        </div>
+                                        <button onClick={() => { if (distributedTotal < totalDiarias) setDistribution(prev => ({ ...prev, [partnerId]: days + 1 })); }} disabled={distributedTotal >= totalDiarias} className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                                            <span className="material-symbols-outlined text-xl">add</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="flex gap-3">
+                        <button onClick={() => setStep('ITEMS')} className="h-14 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2">
+                            <span className="material-symbols-outlined text-lg">arrow_back</span>Voltar
+                        </button>
+                        <button onClick={handleAdvanceFromDistribute} disabled={!canProceedFromDistribute} className="flex-1 h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Escolher Datas<span className="material-symbols-outlined">arrow_forward</span>
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ===== STEP 3: DATES ===== */}
+            {step === 'DATES' && (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-1">Datas de Creche</h3>
+                        <p className="text-sm text-gray-500">Escolha as datas para cada creche.<span className="text-amber-600 font-semibold"> Somente de segunda a sexta.</span></p>
+                    </div>
+
+                    <div className="space-y-4">
+                        {Object.entries(distribution).filter(([, d]) => d > 0).map(([partnerId, days]) => {
+                            const partner = partners.find(p => p.id === partnerId);
+                            const partnerDates = dates[partnerId] || Array(days).fill('');
+                            return (
+                                <div key={partnerId} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                    <div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-4">
+                                        <div className="w-12 h-12 rounded-xl bg-cover bg-center flex-shrink-0 border border-gray-200" style={{ backgroundImage: `url('${getPartnerImage(partner!)}')` }} />
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-bold text-gray-900 truncate">{partner?.company_name}</h4>
+                                            <p className="text-xs text-gray-500 font-semibold">{days} diária{days > 1 ? 's' : ''}</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {partnerDates.map((currentDate: string, idx: number) => {
+                                            const isInvalid = currentDate && isWeekend(currentDate);
+                                            return (
+                                                <div key={idx}>
+                                                    <label className="text-xs font-bold text-gray-500 mb-1.5 block">Diária {idx + 1}</label>
+                                                    <input type="date" min={getMinDate()} value={currentDate}
+                                                        onChange={(e) => {
+                                                            const newDate = e.target.value;
+                                                            setDates(prev => {
+                                                                const next = { ...prev };
+                                                                const arr = [...(next[partnerId] || Array(days).fill(''))];
+                                                                arr[idx] = newDate;
+                                                                next[partnerId] = arr;
+                                                                return next;
+                                                            });
+                                                        }}
+                                                        className={`w-full h-12 px-4 rounded-xl border-2 text-sm font-medium outline-none transition-colors ${isInvalid ? 'border-red-300 bg-red-50 text-red-700 focus:border-red-500' : currentDate ? 'border-green-200 bg-green-50 text-gray-900 focus:border-green-400' : 'border-gray-200 bg-white text-gray-900 focus:border-primary'}`}
+                                                    />
+                                                    {isInvalid && <p className="text-xs text-red-500 mt-1 font-medium flex items-center gap-1"><span className="material-symbols-outlined text-sm">warning</span>Somente dias úteis</p>}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="flex gap-3">
+                        <button onClick={() => setStep(selectedPartners.length > 1 ? 'DISTRIBUTE' : 'ITEMS')} className="h-14 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2">
+                            <span className="material-symbols-outlined text-lg">arrow_back</span>Voltar
+                        </button>
+                        <button onClick={() => setStep('SUMMARY')} disabled={!canProceedFromDates} className="flex-1 h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Ver Resumo<span className="material-symbols-outlined">arrow_forward</span>
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ===== STEP 4: SUMMARY ===== */}
+            {step === 'SUMMARY' && (() => {
+                const stays = Object.entries(distribution).filter(([, d]) => d > 0).map(([partnerId, days]) => ({
+                    partnerId, partner: partners.find(p => p.id === partnerId), nights: days, dates: dates[partnerId] || [],
+                }));
+                return (
+                    <div className="space-y-6 animate-in fade-in duration-300">
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-1">Resumo da Reserva</h3>
+                            <p className="text-sm text-gray-500">Confira os detalhes antes de ir para o pagamento.</p>
+                        </div>
+                        <div className="space-y-4">
+                            {stays.map((stay, idx) => (
+                                <div key={idx} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-12 h-12 rounded-xl bg-cover bg-center flex-shrink-0 border border-gray-200" style={{ backgroundImage: `url('${getPartnerImage(stay.partner!)}')` }} />
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-bold text-gray-900 truncate">{stay.partner?.company_name}</h4>
+                                            <p className="text-xs text-gray-500">{stay.nights} diária{stay.nights > 1 ? 's' : ''}</p>
+                                        </div>
+                                    </div>
+                                    <div className="border-t border-gray-100 pt-3 flex flex-wrap gap-2">
+                                        {stay.dates.sort().map((date, i) => (
+                                            <div key={i} className="bg-gray-50 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-900 border border-gray-100">{formatDate(date)}</div>
+                                        ))}
                                     </div>
                                 </div>
                             ))}
                         </div>
-                    </div>
-                )}
-
-                {/* VIEW 2: SERVICE DETAILS */}
-                {view === 'DETAILS' && selectedService && (
-                    <div className="flex flex-col gap-6 animate-fade-in">
-                        <div className="relative h-64 rounded-2xl overflow-hidden shadow-md">
-                            <img src={selectedService.image} alt={selectedService.title} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end p-6">
-                                <div>
-                                    {selectedService.badge && (
-                                        <span className="inline-block bg-secondary text-white text-xs font-bold px-2 py-1 rounded-md mb-2">{selectedService.badge}</span>
-                                    )}
-                                    <h2 className="text-3xl font-bold text-white leading-tight">{selectedService.title}</h2>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-6">
-                            <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-                                <div className="flex flex-col">
-                                    <span className="text-sm text-gray-500">Valor Estimado</span>
-                                    <span className="text-2xl font-bold text-primary">{selectedService.price}</span>
-                                </div>
-                                <div className="flex flex-col items-end">
-                                    <span className="text-sm text-gray-500">Horário</span>
-                                    <span className="text-lg font-semibold text-gray-800">{selectedService.schedule}</span>
-                                </div>
-                            </div>
-
-                            <div>
-                                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Incluso no Pacote</h3>
-                                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    {selectedService.features.map((feat, idx) => (
-                                        <li key={idx} className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                            <div className="size-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
-                                                 <span className="material-symbols-outlined text-[18px]">check</span>
-                                            </div>
-                                            <span className="text-gray-700 text-sm font-medium">{feat}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-
-                            <div>
-                                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Descrição</h3>
-                                <p className="text-gray-600 leading-relaxed text-sm bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                    {selectedService.description}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="sticky bottom-4 z-20">
-                            <button 
-                                onClick={handleChoosePartners}
-                                className="w-full bg-secondary hover:bg-blue-900 text-white font-bold text-lg py-4 rounded-xl shadow-lg shadow-blue-900/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
-                            >
-                                <span>Buscar Creches Próximas</span>
-                                <span className="material-symbols-outlined">location_on</span>
+                        <div className="flex gap-3">
+                            <button onClick={() => setStep('DATES')} className="h-14 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2">
+                                <span className="material-symbols-outlined text-lg">arrow_back</span>Voltar
+                            </button>
+                            <button onClick={handleContinueToCheckout} className="flex-1 h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2">
+                                <span className="material-symbols-outlined">lock</span>Ir para Pagamento
                             </button>
                         </div>
+                        <p className="text-center text-xs text-gray-400 flex items-center justify-center gap-1.5">
+                            <span className="material-symbols-outlined text-sm text-green-500">verified_user</span>Pagamento 100% seguro
+                        </p>
                     </div>
-                )}
-
-                {/* VIEW 3: PARTNERS LIST WITH SEARCH */}
-                {view === 'PARTNERS' && (
-                    <div className="flex flex-col gap-4 animate-fade-in">
-                        {/* Search Bar */}
-                        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 sticky top-[72px] z-40">
-                            <div className="relative">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-                                <input 
-                                    type="text" 
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-secondary focus:border-secondary transition-all outline-none" 
-                                    placeholder="Buscar por bairro (ex: Leblon) ou nome..." 
-                                    autoFocus
-                                />
-                            </div>
-                            {searchTerm && (
-                                <p className="text-xs text-gray-500 mt-2 ml-1">
-                                    Encontrados {filteredPartners.length} locais para sua busca.
-                                </p>
-                            )}
-                        </div>
-
-                        {filteredPartners.length > 0 ? (
-                            filteredPartners.map((p, idx) => (
-                                <div key={idx} className="group bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all cursor-pointer" onClick={() => handleSelectPartner(p)}>
-                                    <div className="relative h-48 md:h-56 bg-gray-200">
-                                        <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style={{ backgroundImage: `url('${p.image}')` }}></div>
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60"></div>
-                                        
-                                        <div className="absolute top-3 left-3 flex gap-2">
-                                            <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-gray-800 shadow-sm flex items-center gap-1">
-                                                {p.verified && <span className="material-symbols-outlined text-blue-500 text-[14px]">verified</span>}
-                                                {p.type}
-                                            </div>
-                                            {p.premium && (
-                                                <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm flex items-center gap-1">
-                                                    <span className="material-symbols-outlined text-[14px]">diamond</span> Premium
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <button 
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleFavorite({
-                                                    id: p.id,
-                                                    name: p.name,
-                                                    type: p.type,
-                                                    image: p.image,
-                                                    rating: p.rating,
-                                                    location: p.location,
-                                                    reviews: p.reviews
-                                                });
-                                            }}
-                                            className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-sm hover:scale-110 transition-all z-10"
-                                        >
-                                            <span className={`material-symbols-outlined text-[20px] ${isFavorite(p.id) ? 'fill-current text-red-500' : 'text-gray-400'}`}>
-                                                {isFavorite(p.id) ? 'favorite' : 'favorite'}
-                                            </span>
-                                        </button>
-
-                                        <div className="absolute bottom-3 left-3 right-3 text-white">
-                                            <h3 className="text-xl font-bold mb-1 shadow-black/50 drop-shadow-sm">{p.name}</h3>
-                                            <div className="flex items-center gap-2 text-sm font-medium">
-                                                <div className="flex items-center gap-1 bg-black/30 px-2 py-0.5 rounded-lg backdrop-blur-sm">
-                                                    <span className="material-symbols-outlined text-yellow-400 text-[16px] fill-current">star</span>
-                                                    <span>{p.rating}</span>
-                                                </div>
-                                                <span className="opacity-90">({p.reviews} avaliações)</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="p-4">
-                                        <div className="flex items-center gap-2 mb-4 overflow-x-auto no-scrollbar pb-2">
-                                            {p.features?.map((feat, i) => (
-                                                <span key={i} className="text-xs font-medium text-gray-600 bg-gray-50 px-2 py-1 rounded-md border border-gray-100 flex-shrink-0">
-                                                    {feat}
-                                                </span>
-                                            ))}
-                                        </div>
-
-                                        <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-                                            <div className="flex items-center gap-1.5 text-gray-500 text-sm">
-                                                <span className="material-symbols-outlined text-[18px]">location_on</span>
-                                                <span className="truncate max-w-[150px]">{p.location}</span>
-                                            </div>
-                                            <button 
-                                                className="bg-primary text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-orange-600 transition-all shadow-sm hover:shadow-md"
-                                            >
-                                                Ver Disponibilidade
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                             <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
-                                <div className="mx-auto size-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                                    <span className="material-symbols-outlined text-gray-400 text-3xl">wrong_location</span>
-                                </div>
-                                <h3 className="text-lg font-bold text-gray-900 mb-1">Nenhum local encontrado</h3>
-                                <p className="text-gray-500 text-sm">Tente buscar por outro bairro ou nome.</p>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-            </main>
+                );
+            })()}
         </div>
     );
 };

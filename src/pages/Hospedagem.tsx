@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { IMAGES } from '../types';
 import { useFavorites } from '../context/FavoritesContext';
 import { supabase } from '../lib/supabase';
 
-type ViewState = 'LIST' | 'DETAILS' | 'PARTNERS';
-type TabFilter = 'all' | 'Hotel' | 'Creche';
+type BookingStep = 'ITEMS' | 'DISTRIBUTE' | 'DATES' | 'SUMMARY';
 
 interface Partner {
     id: string;
@@ -15,76 +14,42 @@ interface Partner {
     email: string | null;
     rating: number;
     logo_url: string | null;
+    city: string | null;
+    state: string | null;
     status: string;
 }
 
-interface ServicePackage {
-    id: string;
-    title: string;
-    description: string;
-    usage: string;
-    validity: string;
-    price: string;
-    conditions: string[];
-    image: string;
-    partnerTypeMatch: string;
-}
-
-const PACKAGES: ServicePackage[] = [
-    {
-        id: 'hotel',
-        title: 'Hospedagem em Hotel Pet',
-        description: 'Seu pet hospedado com conforto e segurança em hotéis parceiros verificados. Ideal para viagens longas.',
-        usage: 'Diárias (24h)',
-        validity: '30 dias após compra',
-        price: 'A partir de R$ 80,00/noite',
-        conditions: ['Check-in a partir das 14h', 'Check-out até 12h', 'Carteira de vacinação em dia obrigatória'],
-        image: IMAGES.HOTEL_INTERIOR,
-        partnerTypeMatch: 'Hotel'
-    },
-    {
-        id: 'daycare',
-        title: 'Diárias de Creche',
-        description: 'Socialização e diversão durante o dia para gastar energia. Perfeito para quem trabalha fora.',
-        usage: 'Diárias (Daycare)',
-        validity: '60 dias após compra',
-        price: 'A partir de R$ 65,00/dia',
-        conditions: ['Segunda a Sexta (exceto feriados)', 'Avaliação comportamental necessária'],
-        image: IMAGES.TWO_DOGS,
-        partnerTypeMatch: 'Creche'
-    },
-    {
-        id: 'dayuse',
-        title: 'Day Use',
-        description: 'Um dia de diversão em hotéis fazenda ou clubes pet com piscina e área verde.',
-        usage: 'Uso único (Day Use)',
-        validity: 'Agendamento prévio',
-        price: 'A partir de R$ 120,00',
-        conditions: ['Sábados, Domingos e Feriados', 'Monitoramento integral'],
-        image: IMAGES.PACKAGE_HERO,
-        partnerTypeMatch: 'Hotel'
-    },
-    {
-        id: 'bath',
-        title: 'Banho',
-        description: 'Banho completo para seu pet com os melhores produtos hipoalergênicos.',
-        usage: 'Por sessão',
-        validity: '90 dias após compra',
-        price: 'A partir de R$ 50,00',
-        conditions: ['Agendamento prévio obrigatório'],
-        image: IMAGES.DOG_IN_BATH,
-        partnerTypeMatch: 'Banho e Tosa'
-    },
+const STEP_CONFIG: { key: BookingStep; label: string; icon: string }[] = [
+    { key: 'ITEMS', label: 'Hotéis', icon: 'hotel' },
+    { key: 'DISTRIBUTE', label: 'Diárias', icon: 'tune' },
+    { key: 'DATES', label: 'Datas', icon: 'calendar_month' },
+    { key: 'SUMMARY', label: 'Resumo', icon: 'receipt_long' },
 ];
 
 const Hospedagem: React.FC = () => {
-    const [view, setView] = useState<ViewState>('LIST');
-    const [selectedPackage, setSelectedPackage] = useState<ServicePackage | null>(null);
+    const navigate = useNavigate();
+    const { isFavorite, toggleFavorite } = useFavorites();
+
     const [partners, setPartners] = useState<Partner[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<TabFilter>('all');
-    const { isFavorite, toggleFavorite } = useFavorites();
-    const navigate = useNavigate();
+    const [step, setStep] = useState<BookingStep>('ITEMS');
+
+    // Selected partners (IDs)
+    const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
+
+    // Distribution: partnerId -> nights
+    const [distribution, setDistribution] = useState<Record<string, number>>({});
+
+    // Dates: partnerId -> array of date strings
+    const [dates, setDates] = useState<Record<string, string[]>>({});
+
+    const totalDiarias = 5; // Default package quantity (could be dynamic)
+
+    const distributedTotal = useMemo(() => {
+        return Object.values(distribution).reduce((sum, n) => sum + n, 0);
+    }, [distribution]);
+
+    const canProceedFromDistribute = distributedTotal === totalDiarias;
 
     useEffect(() => {
         fetchPartners();
@@ -95,7 +60,7 @@ const Hospedagem: React.FC = () => {
         const { data, error } = await supabase
             .from('partners')
             .select('*')
-            .in('category', ['Hotel', 'Creche', 'Banho e Tosa'])
+            .in('category', ['Hotel', 'Creche'])
             .eq('status', 'active')
             .order('rating', { ascending: false });
 
@@ -105,44 +70,6 @@ const Hospedagem: React.FC = () => {
         setLoading(false);
     };
 
-    const filteredPartners = activeTab === 'all'
-        ? partners.filter(p => p.category === 'Hotel' || p.category === 'Creche')
-        : partners.filter(p => p.category === activeTab);
-
-    const partnersForPackage = selectedPackage
-        ? partners.filter(p => p.category === selectedPackage.partnerTypeMatch)
-        : [];
-
-    const handleSelectPackage = (pkg: ServicePackage) => {
-        setSelectedPackage(pkg);
-        setView('DETAILS');
-    };
-
-    const handleChoosePartners = () => {
-        setView('PARTNERS');
-    };
-
-    const handleSelectPartner = (partner: Partner) => {
-        navigate('/checkout', {
-            state: {
-                package: selectedPackage,
-                partner: {
-                    id: partner.id,
-                    name: partner.company_name,
-                    type: partner.category,
-                    rating: partner.rating,
-                    image: partner.logo_url || IMAGES.HOTEL_INTERIOR,
-                    location: 'Verificar endereço',
-                }
-            }
-        });
-    };
-
-    const handleBack = () => {
-        if (view === 'PARTNERS') setView('DETAILS');
-        else if (view === 'DETAILS') setView('LIST');
-    };
-
     const getPartnerImage = (partner: Partner) => {
         if (partner.logo_url) return partner.logo_url;
         if (partner.category === 'Hotel') return IMAGES.HOTEL_INTERIOR;
@@ -150,345 +77,534 @@ const Hospedagem: React.FC = () => {
         return IMAGES.PACKAGE_HERO;
     };
 
+    const togglePartnerSelection = (partnerId: string) => {
+        setSelectedPartners(prev =>
+            prev.includes(partnerId)
+                ? prev.filter(id => id !== partnerId)
+                : [...prev, partnerId]
+        );
+    };
+
+    const handleAdvanceFromItems = () => {
+        if (selectedPartners.length === 0) return;
+
+        // Initialize distribution
+        const initDist: Record<string, number> = {};
+        selectedPartners.forEach(id => { initDist[id] = 0; });
+
+        if (selectedPartners.length === 1) {
+            // Skip distribute step — auto-assign all nights
+            initDist[selectedPartners[0]] = totalDiarias;
+            setDistribution(initDist);
+            // Initialize dates
+            setDates({ [selectedPartners[0]]: Array(totalDiarias).fill('') });
+            setStep('DATES');
+        } else {
+            setDistribution(initDist);
+            setStep('DISTRIBUTE');
+        }
+    };
+
+    const handleAdvanceFromDistribute = () => {
+        // Initialize dates arrays based on distribution
+        const initDates: Record<string, string[]> = {};
+        Object.entries(distribution).forEach(([partnerId, nights]) => {
+            if (nights > 0) {
+                initDates[partnerId] = Array(nights).fill('');
+            }
+        });
+        setDates(initDates);
+        setStep('DATES');
+    };
+
+    const isWeekend = (dateStr: string): boolean => {
+        const date = new Date(dateStr + 'T12:00:00');
+        const day = date.getDay();
+        return day === 0 || day === 6;
+    };
+
+    const formatDate = (dateStr: string): string => {
+        if (!dateStr) return '';
+        const date = new Date(dateStr + 'T12:00:00');
+        return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    };
+
+    const getMinDate = (): string => {
+        const today = new Date();
+        today.setDate(today.getDate() + 1);
+        return today.toISOString().split('T')[0];
+    };
+
+    const canProceedFromDates = useMemo(() => {
+        return Object.entries(distribution).every(([partnerId, nights]) => {
+            if (nights === 0) return true;
+            const hotelDates = dates[partnerId] || [];
+            if (hotelDates.length !== nights) return false;
+            if (hotelDates.some(d => !d)) return false;
+            if (hotelDates.some(isWeekend)) return false;
+            return true;
+        });
+    }, [distribution, dates]);
+
+    const handleContinueToCheckout = () => {
+        const stays = Object.entries(distribution)
+            .filter(([, nights]) => nights > 0)
+            .map(([partnerId, nights]) => {
+                const partner = partners.find(p => p.id === partnerId);
+                return {
+                    partnerId,
+                    partnerName: partner?.company_name || 'Hotel',
+                    nights,
+                    dates: dates[partnerId] || [],
+                };
+            });
+
+        navigate('/checkout/hospedagem', {
+            state: {
+                bookingStays: stays,
+                totalDiarias,
+                category: 'hospedagem',
+            },
+        });
+    };
+
+    const stepIndex = STEP_CONFIG.findIndex(s => s.key === step);
+
+    // Determine visible steps (skip DISTRIBUTE if only 1 partner)
+    const visibleSteps = selectedPartners.length <= 1
+        ? STEP_CONFIG.filter(s => s.key !== 'DISTRIBUTE')
+        : STEP_CONFIG;
+
+    const visibleStepIndex = visibleSteps.findIndex(s => s.key === step);
+
+    if (loading) {
+        return (
+            <div className="flex-grow w-full flex items-center justify-center py-20">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+                    <p className="text-gray-500 text-sm">Carregando parceiros...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
-            {/* Header */}
-            <div className="bg-white px-4 py-4 shadow-sm sticky top-0 z-50">
-                <div className="max-w-3xl mx-auto flex items-center">
-                    <button onClick={view === 'LIST' ? () => navigate(-1) : handleBack} className="mr-4 text-gray-600 hover:text-primary p-2 rounded-full hover:bg-gray-100 transition-colors">
-                        <span className="material-symbols-outlined">arrow_back</span>
-                    </button>
-                    <h1 className="text-xl font-bold text-gray-800">
-                        {view === 'LIST' && 'Hospedagem & Creche'}
-                        {view === 'DETAILS' && 'Detalhes do Pacote'}
-                        {view === 'PARTNERS' && 'Escolher Parceiro'}
-                    </h1>
+        <div className="flex-grow w-full max-w-4xl mx-auto px-4 sm:px-6 py-8 lg:py-12">
+            {/* Breadcrumbs */}
+            <nav className="flex items-center gap-2 text-sm mb-6 text-gray-500">
+                <Link to="/" className="hover:text-primary transition-colors">Home</Link>
+                <span className="material-symbols-outlined text-xs">chevron_right</span>
+                <span className="font-semibold text-[#181310]">Hospedagem & Creche</span>
+            </nav>
+
+            {/* Hero Banner */}
+            <div className="relative rounded-2xl overflow-hidden h-48 mb-8 group">
+                <img src={IMAGES.HOTEL_INTERIOR} alt="Hospedagem" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent flex items-center p-6 sm:p-8">
+                    <div>
+                        <h1 className="text-white text-2xl sm:text-3xl font-bold mb-1">Hospedagem & Creche</h1>
+                        <p className="text-gray-200 text-sm sm:text-base max-w-md">Encontre o lugar perfeito para o seu pet. Hotéis e creches verificados.</p>
+                    </div>
                 </div>
             </div>
 
-            <main className="max-w-3xl mx-auto px-4 py-6">
-
-                {/* VIEW 1: PACKAGES + PARTNERS */}
-                {view === 'LIST' && (
-                    <div className="space-y-6">
-                        {/* Hero Banner */}
-                        <div className="relative rounded-2xl overflow-hidden h-48 shadow-md">
-                            <img src={IMAGES.HOTEL_INTERIOR} alt="Hospedagem Hero" className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent flex items-center p-6">
-                                <div>
-                                    <h2 className="text-white text-2xl font-bold mb-1">Hospedagem & Creche</h2>
-                                    <p className="text-gray-200 text-sm">Encontre o lugar perfeito para o seu pet.</p>
-                                </div>
+            {/* Progress Steps */}
+            <div className="flex items-center justify-center gap-1 sm:gap-2 mb-10">
+                {visibleSteps.map((s, i) => (
+                    <React.Fragment key={s.key}>
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all ${
+                                visibleStepIndex >= i
+                                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                                    : 'bg-gray-100 text-gray-400'
+                            }`}>
+                                {visibleStepIndex > i
+                                    ? <span className="material-symbols-outlined text-lg">check</span>
+                                    : <span className="material-symbols-outlined text-lg">{s.icon}</span>
+                                }
                             </div>
+                            <span className={`text-xs sm:text-sm font-medium hidden sm:inline ${
+                                visibleStepIndex >= i ? 'text-gray-900' : 'text-gray-400'
+                            }`}>{s.label}</span>
                         </div>
+                        {i < visibleSteps.length - 1 && (
+                            <div className={`w-8 sm:w-14 h-0.5 rounded-full transition-colors ${
+                                visibleStepIndex > i ? 'bg-primary' : 'bg-gray-200'
+                            }`} />
+                        )}
+                    </React.Fragment>
+                ))}
+            </div>
 
-                        {/* Service Packages */}
-                        <div>
-                            <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                                <span className="material-symbols-outlined text-primary">inventory_2</span>
-                                Pacotes Disponíveis
-                            </h3>
-                            <div className="grid grid-cols-1 gap-3">
-                                {PACKAGES.filter(p => p.partnerTypeMatch === 'Hotel' || p.partnerTypeMatch === 'Creche').map((pkg) => (
+            {/* ============= STEP 1: ITEMS ============= */}
+            {step === 'ITEMS' && (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-1">Escolha os Parceiros</h3>
+                        <p className="text-sm text-gray-500">Selecione os hotéis e creches onde deseja hospedar seu pet. Você pode escolher mais de um.</p>
+                    </div>
+
+                    {partners.length === 0 ? (
+                        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+                            <span className="material-symbols-outlined text-5xl text-gray-300 mb-3">hotel</span>
+                            <p className="text-gray-500 font-medium">Nenhum parceiro disponível no momento.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {partners.map((partner) => {
+                                const isSelected = selectedPartners.includes(partner.id);
+                                return (
                                     <div
-                                        key={pkg.id}
-                                        onClick={() => handleSelectPackage(pkg)}
-                                        className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-all cursor-pointer group"
-                                    >
-                                        <div className="size-20 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-                                            <img src={pkg.image} alt={pkg.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="font-bold text-gray-800 truncate">{pkg.title}</h4>
-                                            <p className="text-xs text-gray-500 line-clamp-2 mb-1">{pkg.description}</p>
-                                            <span className="text-sm font-bold text-secondary">{pkg.price}</span>
-                                        </div>
-                                        <span className="material-symbols-outlined text-gray-300 flex-shrink-0">chevron_right</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Partners Section */}
-                        <div>
-                            <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                                <span className="material-symbols-outlined text-primary">storefront</span>
-                                Parceiros Verificados
-                            </h3>
-
-                            {/* Tab Filter */}
-                            <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar pb-1">
-                                {([
-                                    { key: 'all' as TabFilter, label: 'Todos', icon: 'apps' },
-                                    { key: 'Hotel' as TabFilter, label: 'Hotéis', icon: 'hotel' },
-                                    { key: 'Creche' as TabFilter, label: 'Creches', icon: 'child_care' },
-                                ]).map((tab) => (
-                                    <button
-                                        key={tab.key}
-                                        onClick={() => setActiveTab(tab.key)}
-                                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all flex-shrink-0 ${
-                                            activeTab === tab.key
-                                                ? 'bg-primary text-white shadow-sm'
-                                                : 'bg-white text-gray-600 border border-gray-200 hover:border-primary/30'
+                                        key={partner.id}
+                                        onClick={() => togglePartnerSelection(partner.id)}
+                                        className={`group bg-white rounded-2xl border-2 shadow-sm overflow-hidden hover:shadow-md transition-all cursor-pointer ${
+                                            isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-gray-100'
                                         }`}
                                     >
-                                        <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
-                                        {tab.label}
-                                    </button>
-                                ))}
-                            </div>
+                                        <div className="relative h-40 bg-gray-200">
+                                            <div
+                                                className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                                                style={{ backgroundImage: `url('${getPartnerImage(partner)}')` }}
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-                            {/* Partners Cards */}
-                            {loading ? (
-                                <div className="flex items-center justify-center py-12">
-                                    <div className="animate-spin rounded-full size-8 border-2 border-primary border-t-transparent"></div>
-                                </div>
-                            ) : filteredPartners.length === 0 ? (
-                                <div className="text-center py-12 text-gray-400">
-                                    <span className="material-symbols-outlined text-5xl mb-2">search_off</span>
-                                    <p>Nenhum parceiro encontrado.</p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 gap-4">
-                                    {filteredPartners.map((partner) => (
-                                        <div
-                                            key={partner.id}
-                                            className="group bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all"
-                                        >
-                                            <div className="relative h-44 bg-gray-200">
-                                                <div
-                                                    className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                                                    style={{ backgroundImage: `url('${getPartnerImage(partner)}')` }}
-                                                ></div>
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+                                            {/* Selection Checkbox */}
+                                            <div className={`absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+                                                isSelected ? 'bg-primary' : 'bg-white/80 backdrop-blur-sm'
+                                            }`}>
+                                                {isSelected && <span className="material-symbols-outlined text-white text-[18px]">check</span>}
+                                            </div>
 
-                                                <div className="absolute top-3 left-3 flex gap-2">
-                                                    <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-gray-800 shadow-sm flex items-center gap-1">
-                                                        <span className="material-symbols-outlined text-blue-500 text-[14px]">verified</span>
-                                                        {partner.category}
-                                                    </div>
+                                            <div className="absolute top-3 left-3">
+                                                <div className="bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-bold text-gray-800 shadow-sm flex items-center gap-1">
+                                                    <span className="material-symbols-outlined text-blue-500 text-[14px]">verified</span>
+                                                    {partner.category}
                                                 </div>
+                                            </div>
 
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        toggleFavorite({
-                                                            id: partner.id,
-                                                            name: partner.company_name,
-                                                            type: partner.category,
-                                                            image: getPartnerImage(partner),
-                                                            rating: partner.rating,
-                                                            location: 'Parceiro PetGoH',
-                                                        });
-                                                    }}
-                                                    className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-sm hover:scale-110 transition-all z-10"
-                                                >
-                                                    <span className={`material-symbols-outlined text-[20px] ${isFavorite(partner.id) ? 'fill-current text-red-500' : 'text-gray-400'}`}>
-                                                        favorite
-                                                    </span>
-                                                </button>
-
-                                                <div className="absolute bottom-3 left-3 right-3 text-white">
-                                                    <h3 className="text-xl font-bold mb-1 drop-shadow-sm">{partner.company_name}</h3>
-                                                    <div className="flex items-center gap-2 text-sm font-medium">
-                                                        <div className="flex items-center gap-1 bg-black/30 px-2 py-0.5 rounded-lg backdrop-blur-sm">
-                                                            <span className="material-symbols-outlined text-yellow-400 text-[16px] fill-current">star</span>
-                                                            <span>{partner.rating || '—'}</span>
+                                            <div className="absolute bottom-3 left-3 right-3 text-white">
+                                                <h4 className="text-lg font-bold drop-shadow-sm">{partner.company_name}</h4>
+                                                <div className="flex items-center gap-2 text-sm">
+                                                    <div className="flex items-center gap-1 bg-black/30 px-2 py-0.5 rounded-lg backdrop-blur-sm">
+                                                        <span className="material-symbols-outlined text-yellow-400 text-[14px]">star</span>
+                                                        <span className="text-xs">{partner.rating || '—'}</span>
+                                                    </div>
+                                                    {partner.city && (
+                                                        <div className="flex items-center gap-1 bg-black/30 px-2 py-0.5 rounded-lg backdrop-blur-sm text-xs">
+                                                            <span className="material-symbols-outlined text-[14px]">location_on</span>
+                                                            {partner.city}{partner.state && `, ${partner.state}`}
                                                         </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="p-4">
-                                                <div className="flex items-center gap-4 mb-3 text-sm text-gray-500">
-                                                    {partner.phone && (
-                                                        <span className="flex items-center gap-1">
-                                                            <span className="material-symbols-outlined text-[16px]">call</span>
-                                                            {partner.phone}
-                                                        </span>
-                                                    )}
-                                                    {partner.email && (
-                                                        <span className="flex items-center gap-1 truncate">
-                                                            <span className="material-symbols-outlined text-[16px]">mail</span>
-                                                            {partner.email}
-                                                        </span>
                                                     )}
                                                 </div>
-                                                <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-                                                    <div className="flex items-center gap-1.5 text-gray-500 text-sm">
-                                                        <span className="material-symbols-outlined text-[18px]">location_on</span>
-                                                        <span>Parceiro Verificado</span>
-                                                    </div>
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedPackage(PACKAGES.find(p => p.partnerTypeMatch === partner.category) || PACKAGES[0]);
-                                                            handleSelectPartner(partner);
-                                                        }}
-                                                        className="bg-secondary text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-secondary/90 transition-all shadow-sm hover:shadow-md"
-                                                    >
-                                                        Agendar
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* VIEW 2: PACKAGE DETAILS */}
-                {view === 'DETAILS' && selectedPackage && (
-                    <div className="flex flex-col gap-6 animate-fade-in">
-                        <div className="relative h-64 rounded-2xl overflow-hidden shadow-md">
-                            <img src={selectedPackage.image} alt={selectedPackage.title} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end p-6">
-                                <h2 className="text-3xl font-bold text-white leading-tight">{selectedPackage.title}</h2>
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-6">
-                            <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-                                <div className="flex flex-col">
-                                    <span className="text-sm text-gray-500">Valor</span>
-                                    <span className="text-2xl font-bold text-secondary">{selectedPackage.price}</span>
-                                </div>
-                                <div className="flex flex-col items-end">
-                                    <span className="text-sm text-gray-500">Uso / Validade</span>
-                                    <span className="text-sm font-semibold text-gray-800">{selectedPackage.usage}</span>
-                                    <span className="text-xs text-gray-400">{selectedPackage.validity}</span>
-                                </div>
-                            </div>
-
-                            <div>
-                                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Condições</h3>
-                                <ul className="space-y-2">
-                                    {selectedPackage.conditions.map((cond, idx) => (
-                                        <li key={idx} className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                            <div className="size-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
-                                                <span className="material-symbols-outlined text-[18px]">info</span>
-                                            </div>
-                                            <span className="text-gray-700 text-sm font-medium">{cond}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-
-                            <div>
-                                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Sobre o Pacote</h3>
-                                <p className="text-gray-600 leading-relaxed text-sm bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                    {selectedPackage.description}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="sticky bottom-4 z-20">
-                            <button
-                                onClick={handleChoosePartners}
-                                className="w-full bg-primary hover:bg-orange-600 text-white font-bold text-lg py-4 rounded-xl shadow-lg shadow-primary/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
-                            >
-                                <span>Encontrar Parceiro</span>
-                                <span className="material-symbols-outlined">search</span>
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* VIEW 3: PARTNERS FOR SELECTED PACKAGE */}
-                {view === 'PARTNERS' && (
-                    <div className="flex flex-col gap-4 animate-fade-in">
-                        <div className="bg-blue-50 p-4 rounded-xl flex gap-3 text-blue-800 text-sm mb-2 border border-blue-100">
-                            <span className="material-symbols-outlined flex-shrink-0">storefront</span>
-                            <p>Parceiros qualificados para <strong>{selectedPackage?.title}</strong>.</p>
-                        </div>
-
-                        {loading ? (
-                            <div className="flex items-center justify-center py-12">
-                                <div className="animate-spin rounded-full size-8 border-2 border-primary border-t-transparent"></div>
-                            </div>
-                        ) : partnersForPackage.length === 0 ? (
-                            <div className="text-center py-12 text-gray-400">
-                                <span className="material-symbols-outlined text-5xl mb-2">search_off</span>
-                                <p>Nenhum parceiro disponível para este pacote.</p>
-                            </div>
-                        ) : (
-                            partnersForPackage.map((partner) => (
-                                <div
-                                    key={partner.id}
-                                    className="group bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all cursor-pointer"
-                                    onClick={() => handleSelectPartner(partner)}
-                                >
-                                    <div className="relative h-48 bg-gray-200">
-                                        <div
-                                            className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                                            style={{ backgroundImage: `url('${getPartnerImage(partner)}')` }}
-                                        ></div>
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
-
-                                        <div className="absolute top-3 left-3">
-                                            <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-gray-800 shadow-sm flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-blue-500 text-[14px]">verified</span>
-                                                {partner.category}
                                             </div>
                                         </div>
 
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleFavorite({
-                                                    id: partner.id,
-                                                    name: partner.company_name,
-                                                    type: partner.category,
-                                                    image: getPartnerImage(partner),
-                                                    rating: partner.rating,
-                                                    location: 'Parceiro PetGoH',
-                                                });
-                                            }}
-                                            className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-sm hover:scale-110 transition-all z-10"
-                                        >
-                                            <span className={`material-symbols-outlined text-[20px] ${isFavorite(partner.id) ? 'fill-current text-red-500' : 'text-gray-400'}`}>
-                                                favorite
-                                            </span>
-                                        </button>
-
-                                        <div className="absolute bottom-3 left-3 right-3 text-white">
-                                            <h3 className="text-xl font-bold mb-1 drop-shadow-sm">{partner.company_name}</h3>
-                                            <div className="flex items-center gap-2 text-sm font-medium">
-                                                <div className="flex items-center gap-1 bg-black/30 px-2 py-0.5 rounded-lg backdrop-blur-sm">
-                                                    <span className="material-symbols-outlined text-yellow-400 text-[16px] fill-current">star</span>
-                                                    <span>{partner.rating || '—'}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-4">
-                                        <div className="flex items-center gap-4 mb-3 text-sm text-gray-500">
-                                            {partner.phone && (
-                                                <span className="flex items-center gap-1">
-                                                    <span className="material-symbols-outlined text-[16px]">call</span>
-                                                    {partner.phone}
+                                        <div className="p-3 border-t border-gray-50 bg-gray-50/30 flex items-center justify-between">
+                                            <span className="text-xs text-gray-400 italic">Parceiro verificado</span>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleFavorite({
+                                                        id: partner.id,
+                                                        name: partner.company_name,
+                                                        type: partner.category,
+                                                        image: getPartnerImage(partner),
+                                                        rating: partner.rating,
+                                                        location: partner.city || 'Parceiro PetGoH',
+                                                    });
+                                                }}
+                                                className="p-1.5 rounded-full hover:bg-red-50 transition-colors"
+                                            >
+                                                <span className={`material-symbols-outlined text-[20px] ${isFavorite(partner.id) ? 'fill-current text-red-500' : 'text-gray-300 hover:text-red-400'}`}>
+                                                    favorite
                                                 </span>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-                                            <div className="flex items-center gap-1.5 text-gray-500 text-sm">
-                                                <span className="material-symbols-outlined text-[18px]">location_on</span>
-                                                <span>Parceiro Verificado</span>
-                                            </div>
-                                            <button className="bg-secondary text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-secondary/90 transition-all shadow-sm hover:shadow-md">
-                                                Agendar
                                             </button>
                                         </div>
                                     </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                )}
+                                );
+                            })}
+                        </div>
+                    )}
 
-            </main>
+                    {selectedPartners.length > 0 && (
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl p-3">
+                                <span className="material-symbols-outlined text-green-600 text-lg">check_circle</span>
+                                <span className="text-sm font-medium text-green-800">{selectedPartners.length} parceiro{selectedPartners.length > 1 ? 's' : ''} selecionado{selectedPartners.length > 1 ? 's' : ''}</span>
+                            </div>
+                            <button
+                                onClick={handleAdvanceFromItems}
+                                className="w-full h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
+                            >
+                                {selectedPartners.length === 1 ? 'Escolher Datas' : 'Distribuir Diárias'}
+                                <span className="material-symbols-outlined">arrow_forward</span>
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ============= STEP 2: DISTRIBUTE ============= */}
+            {step === 'DISTRIBUTE' && (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-1">Distribuir Diárias</h3>
+                        <p className="text-sm text-gray-500">
+                            Distribua suas <strong>{totalDiarias} diárias</strong> entre os parceiros selecionados.
+                        </p>
+                    </div>
+
+                    {/* Counter */}
+                    <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-colors ${
+                        canProceedFromDistribute
+                            ? 'border-green-200 bg-green-50'
+                            : distributedTotal > totalDiarias
+                                ? 'border-red-200 bg-red-50'
+                                : 'border-gray-200 bg-white'
+                    }`}>
+                        <span className="text-sm font-semibold text-gray-700">Diárias distribuídas</span>
+                        <span className={`text-2xl font-black ${
+                            canProceedFromDistribute ? 'text-green-600' : distributedTotal > totalDiarias ? 'text-red-600' : 'text-gray-900'
+                        }`}>
+                            {distributedTotal} / {totalDiarias}
+                        </span>
+                    </div>
+
+                    <div className="space-y-4">
+                        {selectedPartners.map((partnerId) => {
+                            const partner = partners.find(p => p.id === partnerId);
+                            if (!partner) return null;
+                            const nights = distribution[partnerId] || 0;
+                            return (
+                                <div key={partnerId} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-12 h-12 rounded-xl bg-cover bg-center flex-shrink-0 border border-gray-200"
+                                            style={{ backgroundImage: `url('${getPartnerImage(partner)}')` }}
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-bold text-gray-900 truncate">{partner.company_name}</h4>
+                                            <p className="text-xs text-gray-400">{partner.category}</p>
+                                        </div>
+                                        <span className={`text-2xl font-black ${nights > 0 ? 'text-primary' : 'text-gray-300'}`}>
+                                            {nights}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={() => {
+                                                if (nights > 0) {
+                                                    setDistribution(prev => ({ ...prev, [partnerId]: nights - 1 }));
+                                                }
+                                            }}
+                                            disabled={nights <= 0}
+                                            className="w-12 h-12 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                        >
+                                            <span className="material-symbols-outlined text-xl">remove</span>
+                                        </button>
+
+                                        <div className="flex-1 bg-gray-100 rounded-xl h-3 overflow-hidden">
+                                            <div
+                                                className="h-full bg-primary rounded-xl transition-all duration-300"
+                                                style={{ width: `${(nights / totalDiarias) * 100}%` }}
+                                            />
+                                        </div>
+
+                                        <button
+                                            onClick={() => {
+                                                if (distributedTotal < totalDiarias) {
+                                                    setDistribution(prev => ({ ...prev, [partnerId]: nights + 1 }));
+                                                }
+                                            }}
+                                            disabled={distributedTotal >= totalDiarias}
+                                            className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                        >
+                                            <span className="material-symbols-outlined text-xl">add</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setStep('ITEMS')}
+                            className="h-14 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-lg">arrow_back</span>
+                            Voltar
+                        </button>
+                        <button
+                            onClick={handleAdvanceFromDistribute}
+                            disabled={!canProceedFromDistribute}
+                            className="flex-1 h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Escolher Datas
+                            <span className="material-symbols-outlined">arrow_forward</span>
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ============= STEP 3: DATES ============= */}
+            {step === 'DATES' && (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-1">Datas de Hospedagem</h3>
+                        <p className="text-sm text-gray-500">
+                            Escolha as datas para cada hospedagem.
+                            <span className="text-amber-600 font-semibold"> Somente dias úteis.</span>
+                        </p>
+                    </div>
+
+                    <div className="space-y-4">
+                        {Object.entries(distribution)
+                            .filter(([, nights]) => nights > 0)
+                            .map(([partnerId, nights]) => {
+                                const partner = partners.find(p => p.id === partnerId);
+                                const hotelDates = dates[partnerId] || Array(nights).fill('');
+
+                                return (
+                                    <div key={partnerId} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                        <div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-4">
+                                            <div className="w-12 h-12 rounded-xl bg-cover bg-center flex-shrink-0 border border-gray-200"
+                                                style={{ backgroundImage: `url('${getPartnerImage(partner!)}')` }}
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-bold text-gray-900 truncate">{partner?.company_name}</h4>
+                                                <p className="text-xs text-gray-500 font-semibold">{nights} diária{nights > 1 ? 's' : ''}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {hotelDates.map((currentDate: string, idx: number) => {
+                                                const isInvalid = currentDate && isWeekend(currentDate);
+                                                return (
+                                                    <div key={idx}>
+                                                        <label className="text-xs font-bold text-gray-500 mb-1.5 block">Diária {idx + 1}</label>
+                                                        <input
+                                                            type="date"
+                                                            min={getMinDate()}
+                                                            value={currentDate}
+                                                            onChange={(e) => {
+                                                                const newDate = e.target.value;
+                                                                setDates(prev => {
+                                                                    const next = { ...prev };
+                                                                    const arr = [...(next[partnerId] || Array(nights).fill(''))];
+                                                                    arr[idx] = newDate;
+                                                                    next[partnerId] = arr;
+                                                                    return next;
+                                                                });
+                                                            }}
+                                                            className={`w-full h-12 px-4 rounded-xl border-2 text-sm font-medium outline-none transition-colors ${
+                                                                isInvalid
+                                                                    ? 'border-red-300 bg-red-50 text-red-700 focus:border-red-500'
+                                                                    : currentDate
+                                                                        ? 'border-green-200 bg-green-50 text-gray-900 focus:border-green-400'
+                                                                        : 'border-gray-200 bg-white text-gray-900 focus:border-primary'
+                                                            }`}
+                                                        />
+                                                        {isInvalid && (
+                                                            <p className="text-xs text-red-500 mt-1 font-medium flex items-center gap-1">
+                                                                <span className="material-symbols-outlined text-sm">warning</span>
+                                                                Somente dias úteis
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                    </div>
+
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setStep(selectedPartners.length > 1 ? 'DISTRIBUTE' : 'ITEMS')}
+                            className="h-14 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-lg">arrow_back</span>
+                            Voltar
+                        </button>
+                        <button
+                            onClick={() => setStep('SUMMARY')}
+                            disabled={!canProceedFromDates}
+                            className="flex-1 h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Ver Resumo
+                            <span className="material-symbols-outlined">arrow_forward</span>
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ============= STEP 4: SUMMARY ============= */}
+            {step === 'SUMMARY' && (() => {
+                const stays = Object.entries(distribution)
+                    .filter(([, nights]) => nights > 0)
+                    .map(([partnerId, nights]) => ({
+                        partnerId,
+                        partner: partners.find(p => p.id === partnerId),
+                        nights,
+                        dates: dates[partnerId] || [],
+                    }));
+
+                return (
+                    <div className="space-y-6 animate-in fade-in duration-300">
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-1">Resumo da Reserva</h3>
+                            <p className="text-sm text-gray-500">Confira os detalhes antes de ir para o pagamento.</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            {stays.map((stay, idx) => (
+                                <div key={idx} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-12 h-12 rounded-xl bg-cover bg-center flex-shrink-0 border border-gray-200"
+                                            style={{ backgroundImage: `url('${getPartnerImage(stay.partner!)}')` }}
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-bold text-gray-900 truncate">{stay.partner?.company_name}</h4>
+                                            <p className="text-xs text-gray-500">{stay.nights} diária{stay.nights > 1 ? 's' : ''}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="border-t border-gray-100 pt-3 flex flex-wrap gap-2">
+                                        {stay.dates.sort().map((date, i) => (
+                                            <div key={i} className="bg-gray-50 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-900 border border-gray-100">
+                                                {formatDate(date)}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setStep('DATES')}
+                                className="h-14 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
+                            >
+                                <span className="material-symbols-outlined text-lg">arrow_back</span>
+                                Voltar
+                            </button>
+                            <button
+                                onClick={handleContinueToCheckout}
+                                className="flex-1 h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
+                            >
+                                <span className="material-symbols-outlined">lock</span>
+                                Ir para Pagamento
+                            </button>
+                        </div>
+                        <p className="text-center text-xs text-gray-400 flex items-center justify-center gap-1.5">
+                            <span className="material-symbols-outlined text-sm text-green-500">verified_user</span>
+                            Pagamento 100% seguro
+                        </p>
+                    </div>
+                );
+            })()}
         </div>
     );
 };
