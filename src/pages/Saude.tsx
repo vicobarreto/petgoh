@@ -4,7 +4,7 @@ import { IMAGES } from '../types';
 import { useFavorites } from '../context/FavoritesContext';
 import { supabase } from '../lib/supabase';
 
-type BookingStep = 'ITEMS' | 'DISTRIBUTE' | 'DATES' | 'SUMMARY';
+type BookingStep = 'ITEMS' | 'QUANTITY' | 'DISTRIBUTE' | 'DATES' | 'SUMMARY';
 
 interface HealthService {
     id: string;
@@ -49,6 +49,7 @@ const AVAILABLE_TIMES = [
 
 const STEP_CONFIG: { key: BookingStep; label: string; icon: string }[] = [
     { key: 'ITEMS', label: 'Serviços', icon: 'medical_services' },
+    { key: 'QUANTITY', label: 'Quantidade', icon: 'tag' },
     { key: 'DISTRIBUTE', label: 'Sessões', icon: 'tune' },
     { key: 'DATES', label: 'Datas', icon: 'calendar_month' },
     { key: 'SUMMARY', label: 'Resumo', icon: 'receipt_long' },
@@ -73,9 +74,9 @@ const Saude: React.FC = () => {
     // Dates: vetId -> array of { date: string, time: string }
     const [appointments, setAppointments] = useState<Record<string, { date: string; time: string }[]>>({});
 
-    const totalSessions = 1; // Default: 1 session per appointment
+    const [totalSessions, setTotalSessions] = useState(1);
 
-    const distributedTotal = useMemo(() => Object.values(distribution).reduce((sum, n) => sum + n, 0), [distribution]);
+    const distributedTotal = useMemo(() => (Object.values(distribution) as number[]).reduce((sum, n) => sum + n, 0), [distribution]);
     const canProceedFromDistribute = distributedTotal === totalSessions;
 
     useEffect(() => { fetchData(); }, []);
@@ -100,13 +101,17 @@ const Saude: React.FC = () => {
 
     const handleAdvanceFromItems = () => {
         if (selectedVets.length === 0 || !selectedService) return;
+        setStep('QUANTITY');
+    };
+
+    const handleAdvanceFromQuantity = () => {
         const initDist: Record<string, number> = {};
         selectedVets.forEach(id => { initDist[id] = 0; });
 
         if (selectedVets.length === 1) {
             initDist[selectedVets[0]] = totalSessions;
             setDistribution(initDist);
-            setAppointments({ [selectedVets[0]]: [{ date: '', time: '' }] });
+            setAppointments({ [selectedVets[0]]: Array(totalSessions).fill(null).map(() => ({ date: '', time: '' })) });
             setStep('DATES');
         } else {
             setDistribution(initDist);
@@ -116,7 +121,7 @@ const Saude: React.FC = () => {
 
     const handleAdvanceFromDistribute = () => {
         const initAppt: Record<string, { date: string; time: string }[]> = {};
-        Object.entries(distribution).forEach(([vetId, sessions]) => {
+        (Object.entries(distribution) as [string, number][]).forEach(([vetId, sessions]) => {
             if (sessions > 0) {
                 initAppt[vetId] = Array(sessions).fill(null).map(() => ({ date: '', time: '' }));
             }
@@ -137,7 +142,7 @@ const Saude: React.FC = () => {
     };
 
     const canProceedFromDates = useMemo(() => {
-        return Object.entries(distribution).every(([vetId, sessions]) => {
+        return (Object.entries(distribution) as [string, number][]).every(([vetId, sessions]) => {
             if (sessions === 0) return true;
             const appts = appointments[vetId] || [];
             if (appts.length !== sessions) return false;
@@ -146,7 +151,7 @@ const Saude: React.FC = () => {
     }, [distribution, appointments]);
 
     const handleContinueToCheckout = () => {
-        const stays = Object.entries(distribution)
+        const stays = (Object.entries(distribution) as [string, number][])
             .filter(([, sessions]) => sessions > 0)
             .map(([vetId, sessions]) => {
                 const vet = vets.find(v => v.id === vetId);
@@ -307,7 +312,7 @@ const Saude: React.FC = () => {
                                 </span>
                             </div>
                             <button onClick={handleAdvanceFromItems} className="w-full h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2">
-                                {selectedVets.length === 1 ? 'Escolher Data e Horário' : 'Distribuir Sessões'}
+                                Continuar
                                 <span className="material-symbols-outlined">arrow_forward</span>
                             </button>
                         </div>
@@ -315,7 +320,74 @@ const Saude: React.FC = () => {
                 </div>
             )}
 
-            {/* ===== STEP 2: DISTRIBUTE ===== */}
+            {/* ===== STEP 2: QUANTITY ===== */}
+            {step === 'QUANTITY' && (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-1">Quantas Sessões / Consultas?</h3>
+                        <p className="text-sm text-gray-500">Informe quantas sessões de {selectedService?.name?.toLowerCase() || 'serviço'} você precisa.</p>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm flex flex-col items-center justify-center space-y-6">
+                        <div className="text-gray-400">
+                            <span className="material-symbols-outlined text-6xl">medical_services</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-6">
+                            <button 
+                                onClick={() => setTotalSessions(Math.max(1, totalSessions - 1))}
+                                className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 hover:text-gray-900 transition-colors disabled:opacity-50"
+                                disabled={totalSessions <= 1}
+                            >
+                                <span className="material-symbols-outlined text-2xl">remove</span>
+                            </button>
+                            
+                            <div className="w-24 text-center">
+                                <span className="text-5xl font-black text-gray-900">{totalSessions}</span>
+                                <span className="block text-sm font-semibold text-gray-500 uppercase tracking-wider mt-1">Sessões</span>
+                            </div>
+
+                            <button 
+                                onClick={() => setTotalSessions(Math.min(10, totalSessions + 1))}
+                                className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all disabled:opacity-50"
+                                disabled={totalSessions >= 10}
+                            >
+                                <span className="material-symbols-outlined text-2xl">add</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {selectedService && selectedService.price > 0 && (
+                        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 shadow-sm flex items-center justify-between">
+                            <div>
+                                <span className="text-sm font-bold text-blue-900 block">Total Estimado</span>
+                                <span className="text-xs text-blue-700">R$ {selectedService.price.toFixed(2)} × {totalSessions} {totalSessions === 1 ? 'sessão' : 'sessões'}</span>
+                            </div>
+                            <span className="text-2xl font-black text-secondary">
+                                R$ {(selectedService.price * totalSessions).toFixed(2)}
+                            </span>
+                        </div>
+                    )}
+
+                    <div className="pt-4 flex items-center gap-3">
+                        <button
+                            onClick={() => setStep('ITEMS')}
+                            className="flex-1 h-14 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-lg transition-colors"
+                        >
+                            Voltar
+                        </button>
+                        <button
+                            onClick={handleAdvanceFromQuantity}
+                            className="flex-[2] h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
+                        >
+                            Continuar
+                            <span className="material-symbols-outlined">arrow_forward</span>
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ===== STEP 3: DISTRIBUTE ===== */}
             {step === 'DISTRIBUTE' && (
                 <div className="space-y-6 animate-in fade-in duration-300">
                     <div>
@@ -360,7 +432,7 @@ const Saude: React.FC = () => {
                     </div>
 
                     <div className="flex gap-3">
-                        <button onClick={() => setStep('ITEMS')} className="h-14 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2">
+                        <button onClick={() => setStep('QUANTITY')} className="h-14 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2">
                             <span className="material-symbols-outlined text-lg">arrow_back</span>Voltar
                         </button>
                         <button onClick={handleAdvanceFromDistribute} disabled={!canProceedFromDistribute} className="flex-1 h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
@@ -370,7 +442,7 @@ const Saude: React.FC = () => {
                 </div>
             )}
 
-            {/* ===== STEP 3: DATES + TIME ===== */}
+            {/* ===== STEP 4: DATES + TIME ===== */}
             {step === 'DATES' && (
                 <div className="space-y-6 animate-in fade-in duration-300">
                     <div>
@@ -379,7 +451,7 @@ const Saude: React.FC = () => {
                     </div>
 
                     <div className="space-y-4">
-                        {Object.entries(distribution).filter(([, s]) => s > 0).map(([vetId, sessions]) => {
+                        {(Object.entries(distribution) as [string, number][]).filter(([, s]) => s > 0).map(([vetId, sessions]) => {
                             const vet = vets.find(v => v.id === vetId);
                             const appts = appointments[vetId] || Array(sessions).fill(null).map(() => ({ date: '', time: '' }));
                             return (
@@ -444,7 +516,7 @@ const Saude: React.FC = () => {
                     </div>
 
                     <div className="flex gap-3">
-                        <button onClick={() => setStep(selectedVets.length > 1 ? 'DISTRIBUTE' : 'ITEMS')} className="h-14 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2">
+                        <button onClick={() => setStep(selectedVets.length > 1 ? 'DISTRIBUTE' : 'QUANTITY')} className="h-14 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2">
                             <span className="material-symbols-outlined text-lg">arrow_back</span>Voltar
                         </button>
                         <button onClick={() => setStep('SUMMARY')} disabled={!canProceedFromDates} className="flex-1 h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
@@ -456,7 +528,7 @@ const Saude: React.FC = () => {
 
             {/* ===== STEP 4: SUMMARY ===== */}
             {step === 'SUMMARY' && (() => {
-                const stays = Object.entries(distribution).filter(([, s]) => s > 0).map(([vetId, sessions]) => ({
+                const stays = (Object.entries(distribution) as [string, number][]).filter(([, s]) => s > 0).map(([vetId, sessions]) => ({
                     vetId, vet: vets.find(v => v.id === vetId), sessions, appointments: appointments[vetId] || [],
                 }));
                 return (

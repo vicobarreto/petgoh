@@ -4,7 +4,7 @@ import { IMAGES } from '../types';
 import { useFavorites } from '../context/FavoritesContext';
 import { supabase } from '../lib/supabase';
 
-type BookingStep = 'ITEMS' | 'DISTRIBUTE' | 'DATES' | 'SUMMARY';
+type BookingStep = 'ITEMS' | 'QUANTITY' | 'DISTRIBUTE' | 'DATES' | 'SUMMARY';
 
 interface Partner {
     id: string;
@@ -21,6 +21,7 @@ interface Partner {
 
 const STEP_CONFIG: { key: BookingStep; label: string; icon: string }[] = [
     { key: 'ITEMS', label: 'Hotéis', icon: 'hotel' },
+    { key: 'QUANTITY', label: 'Quantidade', icon: 'tag' },
     { key: 'DISTRIBUTE', label: 'Diárias', icon: 'tune' },
     { key: 'DATES', label: 'Datas', icon: 'calendar_month' },
     { key: 'SUMMARY', label: 'Resumo', icon: 'receipt_long' },
@@ -44,10 +45,10 @@ const Hospedagem: React.FC = () => {
     // Dates: partnerId -> array of date strings
     const [dates, setDates] = useState<Record<string, string[]>>({});
 
-    const totalDiarias = 5; // Default package quantity (could be dynamic)
+    const [totalDiarias, setTotalDiarias] = useState(1);
 
     const distributedTotal = useMemo(() => {
-        return Object.values(distribution).reduce((sum, n) => sum + n, 0);
+        return (Object.values(distribution) as number[]).reduce((sum, n) => sum + n, 0);
     }, [distribution]);
 
     const canProceedFromDistribute = distributedTotal === totalDiarias;
@@ -88,7 +89,10 @@ const Hospedagem: React.FC = () => {
 
     const handleAdvanceFromItems = () => {
         if (selectedPartners.length === 0) return;
+        setStep('QUANTITY');
+    };
 
+    const handleAdvanceFromQuantity = () => {
         // Initialize distribution
         const initDist: Record<string, number> = {};
         selectedPartners.forEach(id => { initDist[id] = 0; });
@@ -109,7 +113,7 @@ const Hospedagem: React.FC = () => {
     const handleAdvanceFromDistribute = () => {
         // Initialize dates arrays based on distribution
         const initDates: Record<string, string[]> = {};
-        Object.entries(distribution).forEach(([partnerId, nights]) => {
+        (Object.entries(distribution) as [string, number][]).forEach(([partnerId, nights]) => {
             if (nights > 0) {
                 initDates[partnerId] = Array(nights).fill('');
             }
@@ -137,7 +141,7 @@ const Hospedagem: React.FC = () => {
     };
 
     const canProceedFromDates = useMemo(() => {
-        return Object.entries(distribution).every(([partnerId, nights]) => {
+        return (Object.entries(distribution) as [string, number][]).every(([partnerId, nights]) => {
             if (nights === 0) return true;
             const hotelDates = dates[partnerId] || [];
             if (hotelDates.length !== nights) return false;
@@ -148,7 +152,7 @@ const Hospedagem: React.FC = () => {
     }, [distribution, dates]);
 
     const handleContinueToCheckout = () => {
-        const stays = Object.entries(distribution)
+        const stays = (Object.entries(distribution) as [string, number][])
             .filter(([, nights]) => nights > 0)
             .map(([partnerId, nights]) => {
                 const partner = partners.find(p => p.id === partnerId);
@@ -374,7 +378,7 @@ const Hospedagem: React.FC = () => {
                                 onClick={handleAdvanceFromItems}
                                 className="w-full h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
                             >
-                                {selectedPartners.length === 1 ? 'Escolher Datas' : 'Distribuir Diárias'}
+                                {selectedPartners.length === 1 ? 'Continuar' : 'Continuar'}
                                 <span className="material-symbols-outlined">arrow_forward</span>
                             </button>
                         </div>
@@ -383,7 +387,64 @@ const Hospedagem: React.FC = () => {
                 );
             })()}
 
-            {/* ============= STEP 2: DISTRIBUTE ============= */}
+            {/* ============= STEP 2: QUANTITY ============= */}
+            {step === 'QUANTITY' && (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-1">Quantas Diárias?</h3>
+                        <p className="text-sm text-gray-500">
+                            Informe quantas diárias no total você precisa para o seu pet.
+                        </p>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm flex flex-col items-center justify-center space-y-6">
+                        <div className="text-gray-400">
+                            <span className="material-symbols-outlined text-6xl">night_shelter</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-6">
+                            <button 
+                                onClick={() => setTotalDiarias(Math.max(1, totalDiarias - 1))}
+                                className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 hover:text-gray-900 transition-colors disabled:opacity-50"
+                                disabled={totalDiarias <= 1}
+                            >
+                                <span className="material-symbols-outlined text-2xl">remove</span>
+                            </button>
+                            
+                            <div className="w-24 text-center">
+                                <span className="text-5xl font-black text-gray-900">{totalDiarias}</span>
+                                <span className="block text-sm font-semibold text-gray-500 uppercase tracking-wider mt-1">Diárias</span>
+                            </div>
+
+                            <button 
+                                onClick={() => setTotalDiarias(Math.min(15, totalDiarias + 1))}
+                                className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all disabled:opacity-50"
+                                disabled={totalDiarias >= 15}
+                            >
+                                <span className="material-symbols-outlined text-2xl">add</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="pt-4 flex items-center gap-3">
+                        <button
+                            onClick={() => setStep('ITEMS')}
+                            className="flex-1 h-14 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-lg transition-colors"
+                        >
+                            Voltar
+                        </button>
+                        <button
+                            onClick={handleAdvanceFromQuantity}
+                            className="flex-[2] h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
+                        >
+                            Continuar
+                            <span className="material-symbols-outlined">arrow_forward</span>
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ============= STEP 3: DISTRIBUTE ============= */}
             {step === 'DISTRIBUTE' && (
                 <div className="space-y-6 animate-in fade-in duration-300">
                     <div>
@@ -468,7 +529,7 @@ const Hospedagem: React.FC = () => {
 
                     <div className="flex gap-3">
                         <button
-                            onClick={() => setStep('ITEMS')}
+                            onClick={() => setStep('QUANTITY')}
                             className="h-14 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
                         >
                             <span className="material-symbols-outlined text-lg">arrow_back</span>
@@ -486,7 +547,7 @@ const Hospedagem: React.FC = () => {
                 </div>
             )}
 
-            {/* ============= STEP 3: DATES ============= */}
+            {/* ============= STEP 4: DATES ============= */}
             {step === 'DATES' && (
                 <div className="space-y-6 animate-in fade-in duration-300">
                     <div>
@@ -498,7 +559,7 @@ const Hospedagem: React.FC = () => {
                     </div>
 
                     <div className="space-y-4">
-                        {Object.entries(distribution)
+                        {(Object.entries(distribution) as [string, number][])
                             .filter(([, nights]) => nights > 0)
                             .map(([partnerId, nights]) => {
                                 const partner = partners.find(p => p.id === partnerId);
@@ -561,7 +622,7 @@ const Hospedagem: React.FC = () => {
 
                     <div className="flex gap-3">
                         <button
-                            onClick={() => setStep(selectedPartners.length > 1 ? 'DISTRIBUTE' : 'ITEMS')}
+                            onClick={() => setStep(selectedPartners.length > 1 ? 'DISTRIBUTE' : 'QUANTITY')}
                             className="h-14 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
                         >
                             <span className="material-symbols-outlined text-lg">arrow_back</span>
@@ -579,9 +640,9 @@ const Hospedagem: React.FC = () => {
                 </div>
             )}
 
-            {/* ============= STEP 4: SUMMARY ============= */}
+            {/* ============= STEP 5: SUMMARY ============= */}
             {step === 'SUMMARY' && (() => {
-                const stays = Object.entries(distribution)
+                const stays = (Object.entries(distribution) as [string, number][])
                     .filter(([, nights]) => nights > 0)
                     .map(([partnerId, nights]) => ({
                         partnerId,
