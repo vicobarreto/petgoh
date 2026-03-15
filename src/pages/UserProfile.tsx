@@ -445,10 +445,10 @@ const FavoritesView: React.FC = () => {
                         const stype = fav.source_type || 'wall_post';
 
                         if (stype === 'adoption_pet') {
-                            const { data } = await supabase.from('adoption_pets').select('id, name, main_image, img').eq('id', sid).maybeSingle();
+                            const { data } = await supabase.from('adoption_pets').select('id, name, main_image').eq('id', sid).maybeSingle();
                             return { ...fav, entity: data, sourceType: stype };
                         } else if (stype === 'lost_pet') {
-                            const { data } = await supabase.from('lost_pets').select('id, pet_name, image_url, photo_url').eq('id', sid).maybeSingle();
+                            const { data } = await supabase.from('lost_pets').select('id, pet_name, image_url').eq('id', sid).maybeSingle();
                             return { ...fav, entity: data, sourceType: stype };
                         } else {
                             // wall_post
@@ -475,8 +475,8 @@ const FavoritesView: React.FC = () => {
         const e = fav.entity;
         if (!e) return IMAGES.DOG_RUNNING;
         if (fav.sourceType === 'partner') return e.image || IMAGES.DOG_RUNNING;
-        if (fav.sourceType === 'adoption_pet') return e.main_image || e.img || IMAGES.DOG_RUNNING;
-        if (fav.sourceType === 'lost_pet') return e.photo_url || e.image_url || IMAGES.DOG_RUNNING;
+        if (fav.sourceType === 'adoption_pet') return e.main_image || IMAGES.DOG_RUNNING;
+        if (fav.sourceType === 'lost_pet') return e.image_url || IMAGES.DOG_RUNNING;
         // wall_post
         const imgs = typeof e.images === 'string' ? JSON.parse(e.images) : e.images;
         return imgs?.[0] || IMAGES.DOG_RUNNING;
