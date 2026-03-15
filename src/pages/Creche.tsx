@@ -280,9 +280,7 @@ const Creche: React.FC = () => {
                                         </div>
                                         <div className="p-3 border-t border-gray-50 bg-gray-50/30 flex items-center justify-between">
                                             <span className="text-xs text-gray-400 italic">Parceiro verificado</span>
-                                            <button onClick={(e) => { e.stopPropagation(); toggleFavorite({ id: partner.id, name: partner.company_name, type: 'Creche', image: getPartnerImage(partner), rating: partner.rating, location: partner.city || 'Parceiro PetGoH' }); }} className="p-1.5 rounded-full hover:bg-red-50 transition-colors">
-                                                <span className={`material-symbols-outlined text-[20px] ${isFavorite(partner.id) ? 'fill-current text-red-500' : 'text-gray-300 hover:text-red-400'}`}>favorite</span>
-                                            </button>
+                                            <PartnerFavoriteButton isFav={isFavorite(partner.id)} onToggle={(e) => { e.stopPropagation(); toggleFavorite({ id: partner.id, name: partner.company_name, type: 'Creche', image: getPartnerImage(partner), rating: partner.rating, location: partner.city || 'Parceiro PetGoH' }); }} />
                                         </div>
                                     </div>
                                 );
