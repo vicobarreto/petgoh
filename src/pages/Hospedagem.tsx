@@ -33,6 +33,7 @@ const Hospedagem: React.FC = () => {
     const [partners, setPartners] = useState<Partner[]>([]);
     const [loading, setLoading] = useState(true);
     const [step, setStep] = useState<BookingStep>('ITEMS');
+    const [categoryFilter, setCategoryFilter] = useState<'Todos' | 'Hotel' | 'Creche'>('Todos');
 
     // Selected partners (IDs)
     const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
@@ -237,21 +238,58 @@ const Hospedagem: React.FC = () => {
             </div>
 
             {/* ============= STEP 1: ITEMS ============= */}
-            {step === 'ITEMS' && (
+            {step === 'ITEMS' && (() => {
+                const FILTER_TABS: { key: 'Todos' | 'Hotel' | 'Creche'; label: string; icon: string }[] = [
+                    { key: 'Todos', label: 'Todos', icon: 'apps' },
+                    { key: 'Hotel', label: 'Hotéis', icon: 'hotel' },
+                    { key: 'Creche', label: 'Creche', icon: 'child_care' },
+                ];
+                const filteredPartners = categoryFilter === 'Todos'
+                    ? partners
+                    : partners.filter(p => p.category === categoryFilter);
+
+                return (
                 <div className="space-y-6 animate-in fade-in duration-300">
                     <div>
                         <h3 className="text-xl font-bold text-gray-900 mb-1">Escolha os Parceiros</h3>
-                        <p className="text-sm text-gray-500">Selecione os hotéis e creches onde deseja hospedar seu pet. Você pode escolher mais de um.</p>
+                        <p className="text-sm text-gray-500">Selecione onde deseja hospedar seu pet. Você pode escolher mais de um.
+                        </p>
                     </div>
 
-                    {partners.length === 0 ? (
+                    {/* ---- Filtro de Categoria ---- */}
+                    <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
+                        {FILTER_TABS.map(tab => (
+                            <button
+                                key={tab.key}
+                                onClick={() => setCategoryFilter(tab.key)}
+                                className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-semibold transition-all ${
+                                    categoryFilter === tab.key
+                                        ? 'bg-white text-primary shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                            >
+                                <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
+                                <span className="hidden sm:inline">{tab.label}</span>
+                                <span className="sm:hidden">{tab.label}</span>
+                                {tab.key !== 'Todos' && (
+                                    <span className={`ml-1 text-[11px] font-bold px-1.5 py-0.5 rounded-full ${
+                                        categoryFilter === tab.key ? 'bg-primary/10 text-primary' : 'bg-gray-200 text-gray-500'
+                                    }`}>
+                                        {partners.filter(p => p.category === tab.key).length}
+                                    </span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+
+                    {filteredPartners.length === 0 ? (
                         <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
                             <span className="material-symbols-outlined text-5xl text-gray-300 mb-3">hotel</span>
-                            <p className="text-gray-500 font-medium">Nenhum parceiro disponível no momento.</p>
+                            <p className="text-gray-500 font-medium">Nenhum parceiro disponível nesta categoria.</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {partners.map((partner) => {
+                            {filteredPartners.map((partner) => {
                                 const isSelected = selectedPartners.includes(partner.id);
                                 return (
                                     <div
@@ -342,7 +380,8 @@ const Hospedagem: React.FC = () => {
                         </div>
                     )}
                 </div>
-            )}
+                );
+            })()}
 
             {/* ============= STEP 2: DISTRIBUTE ============= */}
             {step === 'DISTRIBUTE' && (
