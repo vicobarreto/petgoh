@@ -18,3 +18,8 @@ View your app in AI Studio: https://ai.studio/apps/drive/1UPfm32UaXCkAycV3Avk0pJ
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+---
+
+### Imersão e Dados de Teste
+Para demonstrar o potencial da plataforma, foram adicionados 7 novos parceiros fictícios (como "Recanto dos Peludos" e "Creche Au-Au Alegria") com localizações e avaliações reais através do Supabase.
