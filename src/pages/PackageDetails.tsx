@@ -18,6 +18,7 @@ interface Package {
     type: string;
     validity_days: number;
     is_active: boolean;
+    image_url?: string;
     items?: PackageItem[];
 }
 
@@ -65,6 +66,9 @@ const PackageDetails: React.FC = () => {
                 return;
             }
             setPkg(data);
+            if (data.image_url) {
+                setMainImage(data.image_url);
+            }
         } catch {
             navigate('/packages');
         } finally {

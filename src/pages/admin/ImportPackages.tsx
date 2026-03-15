@@ -56,7 +56,7 @@ const ImportPackages: React.FC = () => {
                             description: pkg.description,
                             price: pkg.price,
                             image_url: pkg.image_url,
-                            active: true
+                            is_active: true
                         }
                     ])
                     .select()

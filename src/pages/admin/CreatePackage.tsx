@@ -97,7 +97,7 @@ const CreatePackage: React.FC = () => {
                         start_date: startDate || null,
                         end_date: endDate || null,
                         external_link: externalLink || null,
-                        active: true
+                        is_active: true, // Por padrão, pacotes criados via este form são ativos
                     }
                 ])
                 .select()

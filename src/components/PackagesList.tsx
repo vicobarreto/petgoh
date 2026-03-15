@@ -15,8 +15,11 @@ interface Package {
     price: number;
     validity_days: number;
     is_active: boolean;
+    image_url?: string;
     items?: PackageItem[];
 }
+
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80";
 
 interface PackagesListProps {
     limit?: number;
@@ -96,7 +99,7 @@ const PackagesList: React.FC<PackagesListProps> = ({ limit, showTitle = true }) 
                         <div className="h-48 relative bg-gray-200 flex-shrink-0">
                             <div
                                 className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-500"
-                                style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1548199973-03cce0bbc87b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80")' }}
+                                style={{ backgroundImage: `url("${pkg.image_url || FALLBACK_IMAGE}")` }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                         </div>

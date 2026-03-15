@@ -21,6 +21,7 @@ interface Package {
     type: string;
     validity_days: number;
     is_active: boolean;
+    image_url?: string;
     items?: PackageItem[];
 }
 
@@ -140,6 +141,7 @@ const PackageManagement: React.FC = () => {
                 type: currentPackage.type || 'basico',
                 validity_days: currentPackage.validity_days || 30,
                 is_active: currentPackage.is_active ?? true,
+                image_url: currentPackage.image_url || '',
             };
 
             let packageId: string;
@@ -348,6 +350,15 @@ const PackageManagement: React.FC = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
                                     <textarea className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none resize-none" rows={2} value={currentPackage.description || ''} onChange={e => setCurrentPackage({ ...currentPackage, description: e.target.value })} placeholder="Descreva o que está incluso no pacote..." />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">URL da Imagem</label>
+                                    <input type="text" className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" value={currentPackage.image_url || ''} onChange={e => setCurrentPackage({ ...currentPackage, image_url: e.target.value })} placeholder="https://exemplo.com/imagem.jpg" />
+                                    {currentPackage.image_url && (
+                                        <div className="mt-2 aspect-video w-full rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                                            <img src={currentPackage.image_url} alt="Preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80')} />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
