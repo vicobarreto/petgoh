@@ -402,21 +402,26 @@ const FavoritesView: React.FC = () => {
     const { user } = useAuth();
     const [favorites, setFavorites] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<'mural' | 'partners'>('mural');
     const navigate = useNavigate();
 
     useEffect(() => {
         if (user) fetchFavorites();
-    }, [user]);
+    }, [user, activeTab]);
 
     const fetchFavorites = async () => {
         setLoading(true);
         try {
-            // Busca todos os favoritos do usuário (suporte polimórfico)
-            const { data: favData, error } = await supabase
-                .from('post_favorites')
-                .select('id, source_id, source_type, post_id')
-                .eq('user_id', user?.id)
-                .order('created_at', { ascending: false });
+            // Busca os favoritos baseados na aba ativa
+            let query = supabase.from('post_favorites').select('id, source_id, source_type, post_id, source_metadata').eq('user_id', user?.id).order('created_at', { ascending: false });
+            
+            if (activeTab === 'mural') {
+                query = query.in('source_type', ['wall_post', 'adoption_pet', 'lost_pet']);
+            } else {
+                query = query.eq('source_type', 'partner');
+            }
+
+            const { data: favData, error } = await query;
 
             if (error) throw error;
             if (!favData || favData.length === 0) {
@@ -424,27 +429,36 @@ const FavoritesView: React.FC = () => {
                 return;
             }
 
-            // Enriquece cada favorito com dados da entidade correspondente
-            const enriched = await Promise.all(
-                favData.map(async (fav) => {
-                    const sid = fav.source_id || fav.post_id;
-                    const stype = fav.source_type || 'wall_post';
+            if (activeTab === 'partners') {
+                // Para parceiros, usamos os dados salvos no source_metadata
+                const enriched = favData.map(fav => ({
+                    ...fav,
+                    entity: fav.source_metadata,
+                    sourceType: 'partner'
+                }));
+                setFavorites(enriched);
+            } else {
+                // Para mural, enriquece cada favorito com dados da entidade correspondente
+                const enriched = await Promise.all(
+                    favData.map(async (fav: any) => {
+                        const sid = fav.source_id || fav.post_id;
+                        const stype = fav.source_type || 'wall_post';
 
-                    if (stype === 'adoption_pet') {
-                        const { data } = await supabase.from('adoption_pets').select('id, name, main_image, img').eq('id', sid).maybeSingle();
-                        return { ...fav, entity: data, sourceType: stype };
-                    } else if (stype === 'lost_pet') {
-                        const { data } = await supabase.from('lost_pets').select('id, pet_name, image_url, photo_url').eq('id', sid).maybeSingle();
-                        return { ...fav, entity: data, sourceType: stype };
-                    } else {
-                        // wall_post
-                        const { data } = await supabase.from('wall_posts').select('id, images, likes:post_likes(count), comments:post_comments(count)').eq('id', sid).maybeSingle();
-                        return { ...fav, entity: data, sourceType: stype };
-                    }
-                })
-            );
-
-            setFavorites(enriched.filter(f => f.entity));
+                        if (stype === 'adoption_pet') {
+                            const { data } = await supabase.from('adoption_pets').select('id, name, main_image, img').eq('id', sid).maybeSingle();
+                            return { ...fav, entity: data, sourceType: stype };
+                        } else if (stype === 'lost_pet') {
+                            const { data } = await supabase.from('lost_pets').select('id, pet_name, image_url, photo_url').eq('id', sid).maybeSingle();
+                            return { ...fav, entity: data, sourceType: stype };
+                        } else {
+                            // wall_post
+                            const { data } = await supabase.from('wall_posts').select('id, images, likes:post_likes(count), comments:post_comments(count)').eq('id', sid).maybeSingle();
+                            return { ...fav, entity: data, sourceType: stype };
+                        }
+                    })
+                );
+                setFavorites(enriched.filter(f => f.entity));
+            }
         } catch (error) {
             console.error('Error fetching favorites:', error);
         } finally {
@@ -460,6 +474,7 @@ const FavoritesView: React.FC = () => {
     const getImage = (fav: any): string => {
         const e = fav.entity;
         if (!e) return IMAGES.DOG_RUNNING;
+        if (fav.sourceType === 'partner') return e.image || IMAGES.DOG_RUNNING;
         if (fav.sourceType === 'adoption_pet') return e.main_image || e.img || IMAGES.DOG_RUNNING;
         if (fav.sourceType === 'lost_pet') return e.photo_url || e.image_url || IMAGES.DOG_RUNNING;
         // wall_post
@@ -468,12 +483,14 @@ const FavoritesView: React.FC = () => {
     };
 
     const getLabel = (fav: any): string => {
+        if (fav.sourceType === 'partner') return fav.entity?.name || 'Parceiro';
         if (fav.sourceType === 'adoption_pet') return fav.entity?.name || 'Pet para Adoção';
         if (fav.sourceType === 'lost_pet') return fav.entity?.pet_name || 'Pet Perdido';
         return 'Post do Mural';
     };
 
-    const getBadge = (type: string) => {
+    const getBadge = (type: string, entity?: any) => {
+        if (type === 'partner') return { label: entity?.type || 'Serviço', color: 'bg-green-600' };
         if (type === 'adoption_pet') return { label: 'Adoção', color: 'bg-secondary' };
         if (type === 'lost_pet') return { label: 'Perdido', color: 'bg-primary' };
         return { label: 'Mural', color: 'bg-gray-600' };
@@ -481,14 +498,34 @@ const FavoritesView: React.FC = () => {
 
     return (
         <div className="flex-1">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Meus Favoritos</h1>
-                    <p className="text-gray-500 text-sm mt-1">Posts que você salvou para ver depois.</p>
+                    <p className="text-gray-500 text-sm mt-1">Posts e serviços que você salvou para ver depois.</p>
                 </div>
-                <button onClick={() => navigate('/mural')} className="text-sm text-primary font-semibold hover:underline flex items-center gap-1">
+                <button onClick={() => navigate(activeTab === 'mural' ? '/mural' : '/')} className="text-sm text-primary font-semibold hover:underline flex items-center gap-1">
                     <span className="material-symbols-outlined text-lg">explore</span>
-                    Ver Mural
+                    Explorar {activeTab === 'mural' ? 'Mural' : 'Serviços'}
+                </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex items-center gap-2 border-b border-gray-200 mb-6">
+                <button
+                    onClick={() => setActiveTab('mural')}
+                    className={`py-2 pt-0 px-4 text-sm font-semibold border-b-2 transition-colors ${
+                        activeTab === 'mural' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                    Mural da Comunidade
+                </button>
+                <button
+                    onClick={() => setActiveTab('partners')}
+                    className={`py-2 pt-0 px-4 text-sm font-semibold border-b-2 transition-colors ${
+                        activeTab === 'partners' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                    Hospedagens & Creches
                 </button>
             </div>
 
@@ -497,16 +534,13 @@ const FavoritesView: React.FC = () => {
             ) : favorites.length === 0 ? (
                 <div className="text-center py-16 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                     <span className="material-symbols-outlined text-5xl text-gray-300 block mb-3">bookmark_border</span>
-                    <p className="text-gray-600 font-semibold">Nenhum post salvo ainda</p>
-                    <p className="text-gray-400 text-sm mt-1">Toque no ícone <span className="font-bold">🔖</span> nos posts do Mural para salvar aqui.</p>
-                    <button onClick={() => navigate('/mural')} className="mt-5 bg-primary text-white px-6 py-2 rounded-xl font-bold shadow-sm hover:bg-orange-600 transition-colors text-sm">
-                        Explorar o Mural
-                    </button>
+                    <p className="text-gray-600 font-semibold">Nenhum item salvo em {activeTab === 'mural' ? 'Mural' : 'Hospedagens'}</p>
+                    <p className="text-gray-400 text-sm mt-1">Navegue e clique no ícone <span className="font-bold">🔖</span> ou <span className="font-bold">❤️</span> para salvar.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {favorites.map((fav) => {
-                        const badge = getBadge(fav.sourceType);
+                        const badge = getBadge(fav.sourceType, fav.entity);
                         return (
                             <div key={fav.id} className="relative group cursor-pointer overflow-hidden rounded-xl bg-gray-100 aspect-square shadow-sm">
                                 <img src={getImage(fav)} alt={getLabel(fav)} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
@@ -522,7 +556,7 @@ const FavoritesView: React.FC = () => {
                                     </button>
                                 </div>
                                 {/* Badge */}
-                                <div className={`absolute top-2 left-2 ${badge.color} text-white text-[10px] font-bold px-2 py-0.5 rounded-full`}>
+                                <div className={`absolute top-2 left-2 ${badge.color} text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md`}>
                                     {badge.label}
                                 </div>
                             </div>
