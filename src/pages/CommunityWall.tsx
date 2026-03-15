@@ -113,18 +113,28 @@ const CommunityWall: React.FC = () => {
     );
 };
 
-// ==================== BOOKMARK BUTTON ====================
-const BookmarkButton: React.FC<{ sourceId: string; sourceType: string }> = ({ sourceId, sourceType }) => {
+// ==================== FAVORITE BUTTON ====================
+const FavoriteButton: React.FC<{ sourceId: string; sourceType: string }> = ({ sourceId, sourceType }) => {
     const { isFavorited, toggle, loading } = usePostFavorite(sourceId, sourceType);
+    const [animating, setAnimating] = useState(false);
+
+    const handleToggle = () => {
+        if (!isFavorited) {
+            setAnimating(true);
+            setTimeout(() => setAnimating(false), 300);
+        }
+        toggle();
+    };
+
     return (
         <button
-            onClick={toggle}
+            onClick={handleToggle}
             disabled={loading}
-            title={isFavorited ? 'Remover dos favoritos' : 'Salvar nos favoritos'}
-            className={`transition-all hover:scale-110 disabled:opacity-50 ${isFavorited ? 'text-primary' : 'text-secondary dark:text-slate-300'}`}
+            title={isFavorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+            className={`transition-transform hover:scale-110 disabled:opacity-50 ${isFavorited ? 'text-red-500' : 'text-secondary dark:text-slate-300'} ${animating ? 'animate-heart-pulse text-red-500' : ''}`}
         >
-            <span className={`material-symbols-outlined text-[28px] ${isFavorited ? 'fill-current' : ''}`}>
-                {isFavorited ? 'bookmark' : 'bookmark'}
+            <span className={`material-symbols-outlined text-[28px] ${isFavorited || animating ? 'fill-current' : ''}`}>
+                favorite
             </span>
         </button>
     );
@@ -200,9 +210,7 @@ const AdoptionView: React.FC = () => {
                     <div className="p-4">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-4">
-                                <button className="hover:scale-110 transition-transform text-secondary dark:text-slate-300">
-                                    <span className="material-symbols-outlined text-[28px]">favorite</span>
-                                </button>
+                                <FavoriteButton sourceId={pet.id} sourceType="adoption_pet" />
                                 <button className="hover:scale-110 transition-transform text-secondary dark:text-slate-300">
                                     <span className="material-symbols-outlined text-[28px]">chat_bubble</span>
                                 </button>
@@ -210,7 +218,6 @@ const AdoptionView: React.FC = () => {
                                     <span className="material-symbols-outlined text-[28px]">share</span>
                                 </button>
                             </div>
-                            <BookmarkButton sourceId={pet.id} sourceType="adoption_pet" />
                         </div>
                         
                         {/* Caption */}
@@ -306,9 +313,7 @@ const LostPetsView: React.FC = () => {
                     <div className="p-4">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-4">
-                                <button className="hover:scale-110 transition-transform text-secondary dark:text-slate-300">
-                                    <span className="material-symbols-outlined text-[28px]">favorite</span>
-                                </button>
+                                <FavoriteButton sourceId={pet.id} sourceType="lost_pet" />
                                 <button className="hover:scale-110 transition-transform text-secondary dark:text-slate-300">
                                     <span className="material-symbols-outlined text-[28px]">chat_bubble</span>
                                 </button>
@@ -316,7 +321,6 @@ const LostPetsView: React.FC = () => {
                                     <span className="material-symbols-outlined text-[28px]">share</span>
                                 </button>
                             </div>
-                            <BookmarkButton sourceId={pet.id} sourceType="lost_pet" />
                         </div>
                         
                         {/* Caption */}

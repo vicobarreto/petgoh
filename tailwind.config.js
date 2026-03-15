@@ -21,6 +21,16 @@ export default {
         display: ["Inter", "sans-serif"],
         sans: ["Inter", "sans-serif"],
       },
+      keyframes: {
+        heartPulse: {
+          '0%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(1.3)' },
+          '100%': { transform: 'scale(1)' },
+        }
+      },
+      animation: {
+        'heart-pulse': 'heartPulse 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+      }
     },
   },
   plugins: [],

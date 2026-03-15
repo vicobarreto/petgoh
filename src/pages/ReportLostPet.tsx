@@ -95,16 +95,17 @@ const ReportLostPet: React.FC = () => {
                 .from('lost_pets')
                 .insert([{
                     user_id: user.id,
-                    name: formData.pet_name,
-                    breed: formData.breed || `${formData.species} - SRD`,
+                    pet_name: formData.pet_name,
                     last_seen_date: formData.date_lost,
                     last_seen_location: formData.last_seen_location,
-                    description: formData.time_lost
-                        ? `${formData.description} — Horário: ${formData.time_lost}`
-                        : formData.description,
+                    description: [
+                        formData.description,
+                        `Espécie/Raça: ${formData.species} ${formData.breed ? '- ' + formData.breed : ''}`,
+                        formData.time_lost ? `Horário visto: ${formData.time_lost}` : '',
+                        formData.reward ? `Recompensa: ${formData.reward}` : ''
+                    ].filter(Boolean).join(' | '),
                     contact_info: formData.contact_info,
-                    photo_url: imageUrl,
-                    reward: formData.reward || null,
+                    image_url: imageUrl,
                     status: 'lost',
                 }]);
 

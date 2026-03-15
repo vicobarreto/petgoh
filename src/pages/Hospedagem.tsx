@@ -4,6 +4,29 @@ import { IMAGES } from '../types';
 import { useFavorites } from '../context/FavoritesContext';
 import { supabase } from '../lib/supabase';
 
+const PartnerFavoriteButton: React.FC<{ isFav: boolean, onToggle: (e: React.MouseEvent) => void }> = ({ isFav, onToggle }) => {
+    const [animating, setAnimating] = React.useState(false);
+
+    const handleClick = (e: React.MouseEvent) => {
+        if (!isFav) {
+            setAnimating(true);
+            setTimeout(() => setAnimating(false), 300);
+        }
+        onToggle(e);
+    };
+
+    return (
+        <button
+            onClick={handleClick}
+            className={`p-1.5 rounded-full hover:bg-red-50 transition-colors ${animating ? 'animate-heart-pulse' : ''}`}
+        >
+            <span className={`material-symbols-outlined text-[20px] ${isFav || animating ? 'fill-current text-red-500' : 'text-gray-300 hover:text-red-400'}`}>
+                favorite
+            </span>
+        </button>
+    );
+};
+
 type BookingStep = 'ITEMS' | 'QUANTITY' | 'DISTRIBUTE' | 'DATES' | 'SUMMARY';
 
 interface Partner {
@@ -343,8 +366,9 @@ const Hospedagem: React.FC = () => {
 
                                         <div className="p-3 border-t border-gray-50 bg-gray-50/30 flex items-center justify-between">
                                             <span className="text-xs text-gray-400 italic">Parceiro verificado</span>
-                                            <button
-                                                onClick={(e) => {
+                                            <PartnerFavoriteButton
+                                                isFav={isFavorite(partner.id)}
+                                                onToggle={(e) => {
                                                     e.stopPropagation();
                                                     toggleFavorite({
                                                         id: partner.id,
@@ -355,12 +379,7 @@ const Hospedagem: React.FC = () => {
                                                         location: partner.city || 'Parceiro PetGoH',
                                                     });
                                                 }}
-                                                className="p-1.5 rounded-full hover:bg-red-50 transition-colors"
-                                            >
-                                                <span className={`material-symbols-outlined text-[20px] ${isFavorite(partner.id) ? 'fill-current text-red-500' : 'text-gray-300 hover:text-red-400'}`}>
-                                                    favorite
-                                                </span>
-                                            </button>
+                                            />
                                         </div>
                                     </div>
                                 );
