@@ -41,6 +41,24 @@ export interface Package {
     }[];
 }
 
+export interface AnatomyService {
+    id: string;
+    zone_id: string;
+    package_id: string;
+    package?: Package; // Joined package data
+}
+
+export interface AnatomyZone {
+    id: string;
+    name: string;
+    description: string;
+    symptoms: string[];
+    x_pos: number;
+    y_pos: number;
+    icon: string;
+    services?: AnatomyService[]; // Joined services
+}
+
 // Image Constants (Direct links from HTML provided)
 export const IMAGES = {
     DOG_IN_BATH: "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?q=80&w=2071&auto=format&fit=crop",

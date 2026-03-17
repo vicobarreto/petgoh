@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { IMAGES } from '../types';
+import { IMAGES, AnatomyZone } from '../types';
 import { useFavorites } from '../context/FavoritesContext';
 import { supabase } from '../lib/supabase';
+import { InteractiveAnatomy } from '../components/anatomy/InteractiveAnatomy';
+import { ZoneDetailsPanel } from '../components/anatomy/ZoneDetailsPanel';
 
 const PartnerFavoriteButton: React.FC<{ isFav: boolean, onToggle: (e: React.MouseEvent) => void }> = ({ isFav, onToggle }) => {
     const [animating, setAnimating] = React.useState(false);
@@ -98,6 +100,7 @@ const Saude: React.FC = () => {
     const [appointments, setAppointments] = useState<Record<string, { date: string; time: string }[]>>({});
 
     const [totalSessions, setTotalSessions] = useState(1);
+    const [activeAnatomyZone, setActiveAnatomyZone] = useState<AnatomyZone | null>(null);
 
     const distributedTotal = useMemo(() => (Object.values(distribution) as number[]).reduce((sum, n) => sum + n, 0), [distribution]);
     const canProceedFromDistribute = distributedTotal === totalSessions;
@@ -217,17 +220,52 @@ const Saude: React.FC = () => {
             </nav>
 
             {/* Hero */}
-            <div className="relative rounded-2xl overflow-hidden h-48 mb-8 group">
+            <div className="relative rounded-3xl overflow-hidden h-64 sm:h-80 mb-12 group">
                 <img src={IMAGES.VET_EXAM} alt="Saúde" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent flex items-center p-6 sm:p-8">
-                    <div>
-                        <h1 className="text-white text-2xl sm:text-3xl font-bold mb-1">Saúde & Bem-Estar</h1>
-                        <p className="text-gray-200 text-sm sm:text-base max-w-md">Consultas, vacinas e exames com profissionais qualificados.</p>
+                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent flex items-center p-8 sm:p-12">
+                    <div className="max-w-lg">
+                        <span className="inline-block px-3 py-1 bg-primary/20 text-primary border border-primary/30 rounded-full text-xs font-black uppercase tracking-widest mb-4 backdrop-blur-sm">
+                            Saúde Premium
+                        </span>
+                        <h1 className="text-white text-3xl sm:text-5xl font-black mb-4 leading-tight">
+                            Saúde Integral <br className="hidden sm:block" />& Bem-Estar Pet
+                        </h1>
+                        <p className="text-gray-300 text-sm sm:text-base leading-relaxed">
+                            Acompanhamento veterinário de ponta, vacinas atualizadas e anatomia interativa para entender melhor as necessidades do seu cão.
+                        </p>
                     </div>
                 </div>
             </div>
 
-            {/* Progress Steps */}
+            {/* Interactive Anatomy Section */}
+            <div className="mb-16 pb-12 border-b border-gray-100">
+                <InteractiveAnatomy 
+                    activeZoneId={activeAnatomyZone?.id} 
+                    onZoneClick={(zone) => setActiveAnatomyZone(zone)} 
+                />
+                
+                {activeAnatomyZone && (
+                     <div className="mt-8 transition-all animate-in slide-in-from-top-4 duration-500">
+                         <ZoneDetailsPanel 
+                             zone={activeAnatomyZone}
+                             onBookService={(serviceQuery) => {
+                                // Jump directly to service selection based on the zone
+                                // This could be implemented by filtering the available services
+                                setStep('ITEMS');
+                                // Example: quick scroll to booking section
+                                window.scrollTo({ top: document.getElementById('booking-section')?.offsetTop, behavior: 'smooth' });
+                             }}
+                         />
+                     </div>
+                )}
+            </div>
+
+            <div id="booking-section">
+                <div className="text-center mb-10">
+                    <h2 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight">Agendamento de Serviços</h2>
+                    <p className="text-gray-500 text-sm mt-2">Escolha entre consultas, exames e vacinação.</p>
+                </div>
+                {/* Progress Steps */}
             <div className="flex items-center justify-center gap-1 sm:gap-2 mb-10">
                 {visibleSteps.map((s, i) => (
                     <React.Fragment key={s.key}>
@@ -604,6 +642,7 @@ const Saude: React.FC = () => {
                     </div>
                 );
             })()}
+            </div>
         </div>
     );
 };
