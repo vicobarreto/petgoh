@@ -30,6 +30,9 @@ jobs:
         run: npm run build
 
       # 5. Envia a pasta 'dist' gerada para a TurboCloud via FTP/FTPS
+      # OBS: Caso o GitHub indique "Error: getaddrinfo EAI_AGAIN", 
+      # isso é uma falha de rede/DNS INTERNA e temporária dos servidores do próprio GitHub Actions (eles perdem o sinal).
+      # Como não é um erro do código nem da senha, a solução é sempre disparar um novo deploy (Re-run all jobs).
       - name: 📤 FTP Deploy
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
