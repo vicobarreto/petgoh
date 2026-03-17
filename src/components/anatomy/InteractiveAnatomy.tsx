@@ -50,11 +50,11 @@ export const InteractiveAnatomy: React.FC<InteractiveAnatomyProps> = ({ onZoneCl
              </div>
 
              {/* Image Container with relative positioning for absolute hotspots */}
-             <div className="relative w-full aspect-[4/3] max-w-3xl rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-orange-50/50 flex items-center justify-center">
+             <div className="relative w-full aspect-[4/3] max-w-3xl rounded-3xl shadow-2xl border-4 border-white bg-orange-50/50 flex items-center justify-center">
                  <img 
                     src={DOG_ANATOMY_IMG} 
                     alt="Anatomia do Cão" 
-                    className="w-full h-full object-cover opacity-90 mix-blend-multiply" 
+                    className="w-full h-full object-cover opacity-90 mix-blend-multiply rounded-[1.25rem]" 
                  />
                  
                  {/* Hotspots Overlay */}
