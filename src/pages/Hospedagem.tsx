@@ -4,7 +4,11 @@ import { IMAGES } from '../types';
 import { useFavorites } from '../context/FavoritesContext';
 import { supabase } from '../lib/supabase';
 
-const PartnerFavoriteButton: React.FC<{ isFav: boolean, onToggle: (e: React.MouseEvent) => void }> = ({ isFav, onToggle }) => {
+import { InteractiveMap } from '../components/map/InteractiveMap';
+import { AccommodationCard } from '../components/map/AccommodationCard';
+import { MOCK_ACCOMMODATIONS } from '../components/map/mapData';
+
+export const PartnerFavoriteButton: React.FC<{ isFav: boolean, onToggle: (e: React.MouseEvent) => void }> = ({ isFav, onToggle }) => {
     const [animating, setAnimating] = React.useState(false);
 
     const handleClick = (e: React.MouseEvent) => {
@@ -57,7 +61,10 @@ const Hospedagem: React.FC = () => {
     const [partners, setPartners] = useState<Partner[]>([]);
     const [loading, setLoading] = useState(true);
     const [step, setStep] = useState<BookingStep>('ITEMS');
-    const [categoryFilter, setCategoryFilter] = useState<'Todos' | 'Hotel' | 'Creche'>('Todos');
+    const [categoryFilter, setCategoryFilter] = useState<'Todos' | 'Hotel' | 'Creche' | 'Pet Friendly'>('Todos');
+    
+    // Map states
+    const [hoveredAccommodationId, setHoveredAccommodationId] = useState<string | null>(null);
 
     // Selected partners (IDs)
     const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
@@ -217,7 +224,7 @@ const Hospedagem: React.FC = () => {
     }
 
     return (
-        <div className="flex-grow w-full max-w-4xl mx-auto px-4 sm:px-6 py-8 lg:py-12">
+        <div className="flex-grow w-full max-w-[1400px] mx-auto px-4 sm:px-6 py-6 lg:py-8">
             {/* Breadcrumbs */}
             <nav className="flex items-center gap-2 text-sm mb-6 text-gray-500">
                 <Link to="/" className="hover:text-primary transition-colors">Home</Link>
@@ -266,142 +273,120 @@ const Hospedagem: React.FC = () => {
 
             {/* ============= STEP 1: ITEMS ============= */}
             {step === 'ITEMS' && (() => {
-                const FILTER_TABS: { key: 'Todos' | 'Hotel' | 'Creche'; label: string; icon: string }[] = [
+                const FILTER_TABS: { key: 'Todos' | 'Hotel' | 'Creche' | 'Pet Friendly'; label: string; icon: string }[] = [
                     { key: 'Todos', label: 'Todos', icon: 'apps' },
                     { key: 'Hotel', label: 'Hotéis', icon: 'hotel' },
                     { key: 'Creche', label: 'Creche', icon: 'child_care' },
+                    { key: 'Pet Friendly', label: 'Pet Friendly', icon: 'pets' },
                 ];
-                const filteredPartners = categoryFilter === 'Todos'
-                    ? partners
-                    : partners.filter(p => p.category === categoryFilter);
+                
+                // Combine DB partners with Mock Data logic
+                const allAccommodations = MOCK_ACCOMMODATIONS;
+                
+                const filteredAccommodations = categoryFilter === 'Todos'
+                    ? allAccommodations
+                    : allAccommodations.filter(p => p.category === categoryFilter);
 
                 return (
-                <div className="space-y-6 animate-in fade-in duration-300">
-                    <div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-1">Escolha os Parceiros</h3>
-                        <p className="text-sm text-gray-500">Selecione onde deseja hospedar seu pet. Você pode escolher mais de um.
+                <div className="w-full animate-in fade-in duration-300">
+                    <div className="mb-6">
+                        <h3 className="text-xl sm:text-2xl font-black text-[#181310] mb-2 tracking-tight">Onde seu pet vai ficar?</h3>
+                        <p className="text-sm text-gray-500 max-w-2xl">
+                            Explore as opções no mapa ou na lista abaixo. Tudo verificado e pronto para receber seu melhor amigo.
                         </p>
                     </div>
 
-                    {/* ---- Filtro de Categoria ---- */}
-                    <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
-                        {FILTER_TABS.map(tab => (
-                            <button
-                                key={tab.key}
-                                onClick={() => setCategoryFilter(tab.key)}
-                                className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-semibold transition-all ${
-                                    categoryFilter === tab.key
-                                        ? 'bg-white text-primary shadow-sm'
-                                        : 'text-gray-500 hover:text-gray-700'
-                                }`}
-                            >
-                                <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
-                                <span className="hidden sm:inline">{tab.label}</span>
-                                <span className="sm:hidden">{tab.label}</span>
-                                {tab.key !== 'Todos' && (
-                                    <span className={`ml-1 text-[11px] font-bold px-1.5 py-0.5 rounded-full ${
-                                        categoryFilter === tab.key ? 'bg-primary/10 text-primary' : 'bg-gray-200 text-gray-500'
-                                    }`}>
-                                        {partners.filter(p => p.category === tab.key).length}
-                                    </span>
-                                )}
-                            </button>
-                        ))}
-                    </div>
+                    <div className="flex flex-col lg:flex-row h-[75vh] min-h-[600px] border border-gray-200 rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white">
+                        {/* LEFT SIDE: LIST */}
+                        <div className="w-full lg:w-[45%] h-full flex flex-col bg-white border-r border-gray-100 order-2 lg:order-1 relative z-10">
+                            {/* Header / Filters inside List */}
+                            <div className="p-4 sm:p-6 border-b border-gray-100 shrink-0 bg-white/80 backdrop-blur-md sticky top-0 z-20">
+                                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2 sm:px-0">
+                                    {FILTER_TABS.map(tab => (
+                                        <button
+                                            key={tab.key}
+                                            onClick={() => setCategoryFilter(tab.key)}
+                                            className={`whitespace-nowrap flex-shrink-0 flex items-center gap-1.5 py-2 px-4 rounded-full text-sm font-bold transition-all shadow-sm border ${
+                                                categoryFilter === tab.key
+                                                    ? 'bg-primary border-primary text-white shadow-primary/20 hover:bg-orange-600'
+                                                    : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'
+                                            }`}
+                                        >
+                                            <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
+                                            {tab.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="mt-4 flex items-center justify-between">
+                                    <span className="text-sm font-bold text-gray-900">{filteredAccommodations.length} acomodações encontradas</span>
+                                </div>
+                            </div>
+                            
+                            {/* Scrollable Cards */}
+                            <div className="flex-1 overflow-y-auto p-4 sm:p-6 relative bg-gray-50/50">
+                                {/* Mobile Map Container - Only visible on sm and below inside the scroll area to prevent splitting the layout awkwardly */}
+                                <div className="w-full h-64 sm:h-80 rounded-2xl overflow-hidden mb-6 lg:hidden border border-gray-200 shadow-sm shrink-0">
+                                    <InteractiveMap 
+                                        accommodations={filteredAccommodations}
+                                        selectedId={hoveredAccommodationId}
+                                        onSelectAccommodation={setHoveredAccommodationId}
+                                        onViewDetails={(id) => togglePartnerSelection(id)}
+                                    />
+                                </div>
 
-                    {filteredPartners.length === 0 ? (
-                        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-                            <span className="material-symbols-outlined text-5xl text-gray-300 mb-3">hotel</span>
-                            <p className="text-gray-500 font-medium">Nenhum parceiro disponível nesta categoria.</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {filteredPartners.map((partner) => {
-                                const isSelected = selectedPartners.includes(partner.id);
-                                return (
-                                    <div
-                                        key={partner.id}
-                                        onClick={() => togglePartnerSelection(partner.id)}
-                                        className={`group bg-white rounded-2xl border-2 shadow-sm overflow-hidden hover:shadow-md transition-all cursor-pointer ${
-                                            isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-gray-100'
-                                        }`}
-                                    >
-                                        <div className="relative h-40 bg-gray-200">
-                                            <div
-                                                className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-                                                style={{ backgroundImage: `url('${getPartnerImage(partner)}')` }}
-                                            />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-                                            {/* Selection Checkbox */}
-                                            <div className={`absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center transition-all ${
-                                                isSelected ? 'bg-primary' : 'bg-white/80 backdrop-blur-sm'
-                                            }`}>
-                                                {isSelected && <span className="material-symbols-outlined text-white text-[18px]">check</span>}
-                                            </div>
-
-                                            <div className="absolute top-3 left-3">
-                                                <div className="bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-bold text-gray-800 shadow-sm flex items-center gap-1">
-                                                    <span className="material-symbols-outlined text-blue-500 text-[14px]">verified</span>
-                                                    {partner.category}
-                                                </div>
-                                            </div>
-
-                                            <div className="absolute bottom-3 left-3 right-3 text-white">
-                                                <h4 className="text-lg font-bold drop-shadow-sm">{partner.company_name}</h4>
-                                                <div className="flex items-center gap-2 text-sm">
-                                                    <div className="flex items-center gap-1 bg-black/30 px-2 py-0.5 rounded-lg backdrop-blur-sm">
-                                                        <span className="material-symbols-outlined text-yellow-400 text-[14px]">star</span>
-                                                        <span className="text-xs">{partner.rating || '—'}</span>
-                                                    </div>
-                                                    {partner.city && (
-                                                        <div className="flex items-center gap-1 bg-black/30 px-2 py-0.5 rounded-lg backdrop-blur-sm text-xs">
-                                                            <span className="material-symbols-outlined text-[14px]">location_on</span>
-                                                            {partner.city}{partner.state && `, ${partner.state}`}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="p-3 border-t border-gray-50 bg-gray-50/30 flex items-center justify-between">
-                                            <span className="text-xs text-gray-400 italic">Parceiro verificado</span>
-                                            <PartnerFavoriteButton
-                                                isFav={isFavorite(partner.id)}
-                                                onToggle={(e) => {
-                                                    e.stopPropagation();
-                                                    toggleFavorite({
-                                                        id: partner.id,
-                                                        name: partner.company_name,
-                                                        type: partner.category,
-                                                        image: getPartnerImage(partner),
-                                                        rating: partner.rating,
-                                                        location: partner.city || 'Parceiro PetGoH',
-                                                    });
+                                {filteredAccommodations.length === 0 ? (
+                                    <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 h-full flex flex-col items-center justify-center">
+                                        <span className="material-symbols-outlined text-5xl text-gray-300 mb-3 block">search_off</span>
+                                        <p className="text-gray-500 font-medium">Nenhum resultado para este filtro.</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 gap-4 sm:gap-6">
+                                        {filteredAccommodations.map((acc) => (
+                                            <AccommodationCard 
+                                                key={acc.id}
+                                                accommodation={acc}
+                                                isSelected={selectedPartners.includes(acc.id) || hoveredAccommodationId === acc.id}
+                                                onHover={setHoveredAccommodationId}
+                                                onClick={(id) => {
+                                                    togglePartnerSelection(id);
+                                                    setHoveredAccommodationId(id);
                                                 }}
                                             />
-                                        </div>
+                                        ))}
                                     </div>
-                                );
-                            })}
-                        </div>
-                    )}
-
-                    {selectedPartners.length > 0 && (
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl p-3">
-                                <span className="material-symbols-outlined text-green-600 text-lg">check_circle</span>
-                                <span className="text-sm font-medium text-green-800">{selectedPartners.length} parceiro{selectedPartners.length > 1 ? 's' : ''} selecionado{selectedPartners.length > 1 ? 's' : ''}</span>
+                                )}
                             </div>
-                            <button
-                                onClick={handleAdvanceFromItems}
-                                className="w-full h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
-                            >
-                                {selectedPartners.length === 1 ? 'Continuar' : 'Continuar'}
-                                <span className="material-symbols-outlined">arrow_forward</span>
-                            </button>
+
+                            {/* Floating Continue Action (if selected) */}
+                            {selectedPartners.length > 0 && (
+                                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] sm:w-auto bg-white p-2 sm:p-3 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-gray-100 flex items-center gap-3 animate-in slide-in-from-bottom-5 z-30">
+                                    <div className="hidden sm:flex items-center justify-center w-10 h-10 bg-green-50 text-green-600 rounded-full shrink-0">
+                                        <span className="material-symbols-outlined">check</span>
+                                    </div>
+                                    <div className="flex-1 min-w-0 px-2 sm:px-0">
+                                        <p className="text-sm font-bold text-gray-900 leading-tight">Pronto para reservar!</p>
+                                        <p className="text-[11px] text-gray-500 truncate">{selectedPartners.length} item(s) selecionado(s)</p>
+                                    </div>
+                                    <button
+                                        onClick={handleAdvanceFromItems}
+                                        className="h-12 sm:h-10 px-6 bg-gray-900 hover:bg-black text-white font-bold rounded-xl text-sm transition-all shadow-md shrink-0 whitespace-nowrap"
+                                    >
+                                        Continuar
+                                    </button>
+                                </div>
+                            )}
                         </div>
-                    )}
+
+                        {/* RIGHT SIDE: MAP (Desktop Only) */}
+                        <div className="hidden lg:block lg:w-[55%] h-full bg-gray-100 relative order-1 lg:order-2 shrink-0 z-0">
+                            <InteractiveMap 
+                                accommodations={filteredAccommodations}
+                                selectedId={hoveredAccommodationId}
+                                onSelectAccommodation={setHoveredAccommodationId}
+                                onViewDetails={(id) => togglePartnerSelection(id)}
+                            />
+                        </div>
+                    </div>
                 </div>
                 );
             })()}

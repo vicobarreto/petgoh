@@ -12,6 +12,26 @@
   }
 }
 
+.animate-heart-pulse {
+  animation: heart-pulse 0.3s ease-in-out;
+}
+
+/* Leaflet Custom Overrides for PetGoH Airbnb-Style Map */
+.petgoh-popup .leaflet-popup-content-wrapper {
+  padding: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+.petgoh-popup .leaflet-popup-content {
+  margin: 0;
+  width: 224px !important; /* matches w-56 */
+}
+.petgoh-popup .leaflet-popup-tip-container {
+  display: none; /* Hide default tip */
+}
+
+
 .material-symbols-outlined {
   font-variation-settings:
   'FILL' 0,
