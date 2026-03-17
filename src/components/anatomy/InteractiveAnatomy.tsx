@@ -7,7 +7,7 @@ interface InteractiveAnatomyProps {
     activeZoneId?: string;
 }
 
-const DOG_ANATOMY_IMG = '/dog-anatomy.png'; // Updated to use the local dog image provided by the user
+const DOG_ANATOMY_IMG = '/foto.saude.jpeg'; // Updated to use the exact jpeg file name
 
 export const InteractiveAnatomy: React.FC<InteractiveAnatomyProps> = ({ onZoneClick, activeZoneId }) => {
     const [zones, setZones] = useState<AnatomyZone[]>([]);
