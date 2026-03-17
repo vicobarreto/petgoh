@@ -288,24 +288,35 @@ const Saude: React.FC = () => {
                         <h3 className="text-xl font-bold text-gray-900 mb-1">1. Escolha o Serviço</h3>
                         <p className="text-sm text-gray-500 mb-4">Selecione o serviço de saúde que deseja agendar.</p>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="flex overflow-x-auto pb-4 gap-4 snap-x lg:grid lg:grid-cols-5 lg:overflow-visible">
                             {services.map((service) => {
                                 const colors = CATEGORY_COLORS[service.category] || { bg: 'bg-gray-100', text: 'text-gray-600' };
                                 const icon = CATEGORY_ICONS[service.category] || 'medical_services';
                                 const isSelected = selectedService?.id === service.id;
                                 return (
-                                    <div key={service.id} onClick={() => setSelectedService(service)}
-                                        className={`bg-white rounded-2xl p-4 border-2 flex items-center gap-4 hover:shadow-md transition-all cursor-pointer ${isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-gray-100'}`}>
-                                        <div className={`size-12 rounded-xl ${colors.bg} flex items-center justify-center flex-shrink-0`}>
-                                            <span className={`material-symbols-outlined text-2xl ${colors.text}`}>{icon}</span>
+                                    <div key={service.id} 
+                                        className={`shrink-0 w-[280px] lg:w-auto bg-white rounded-2xl p-5 border flex flex-col hover:shadow-lg transition-all snap-start shadow-sm border-gray-100 relative ${isSelected ? 'ring-2 ring-primary border-primary' : ''}`}>
+                                        <div className="flex items-start gap-3 mb-3">
+                                            <div className={`size-10 rounded-lg ${colors.bg} flex items-center justify-center flex-shrink-0`}>
+                                                <span className={`material-symbols-outlined text-[20px] ${colors.text}`}>{icon}</span>
+                                            </div>
+                                            <h4 className="font-bold text-gray-900 text-sm leading-tight flex-1">{service.name}</h4>
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="font-bold text-gray-800 truncate text-sm">{service.name}</h4>
-                                            {service.description && <p className="text-xs text-gray-400 line-clamp-1">{service.description}</p>}
-                                            <span className="text-sm font-bold text-secondary">R$ {service.price?.toFixed(2)}</span>
-                                        </div>
-                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${isSelected ? 'bg-primary' : 'bg-gray-100'}`}>
-                                            {isSelected && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
+                                        <p className="text-xs text-gray-500 mb-4 line-clamp-4 min-h-[4rem]">{service.description}</p>
+                                        <div className="mt-auto pt-4 border-t border-gray-50 flex flex-col gap-3">
+                                            <div className="flex items-center gap-1 text-sm font-bold text-gray-700">
+                                                <span className="text-xs text-gray-400 font-normal">Exemplo:</span> R$ {service.price?.toFixed(2)}
+                                            </div>
+                                            <button 
+                                                onClick={() => { 
+                                                    setSelectedService(service); 
+                                                    setTimeout(() => {
+                                                        window.scrollTo({ top: document.getElementById('vets-section')?.offsetTop || 0, behavior: 'smooth' });
+                                                    }, 100);
+                                                }} 
+                                                className={`w-full text-sm font-semibold py-2.5 rounded-xl transition-colors ${isSelected ? 'bg-primary text-white' : 'bg-[#124b6d] hover:bg-[#0c3650] text-white'}`}>
+                                                {isSelected ? 'Selecionado' : 'Agendar Agora'}
+                                            </button>
                                         </div>
                                     </div>
                                 );
@@ -315,7 +326,7 @@ const Saude: React.FC = () => {
 
                     {/* Vet Selection */}
                     {selectedService && (
-                        <div>
+                        <div id="vets-section" className="pt-8">
                             <h3 className="text-xl font-bold text-gray-900 mb-1">2. Escolha o Veterinário</h3>
                             <p className="text-sm text-gray-500 mb-4">Selecione o veterinário para o atendimento.</p>
 
