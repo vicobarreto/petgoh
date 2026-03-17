@@ -36,5 +36,8 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./dist/      # Pasta onde o Vite e React geram o site pronto
           server-dir: ./ # A pasta destino na sua hospedagem
+          local-dir: ./dist/      # Pasta onde o Vite e React geram o site pronto
+          protocol: ftp 
+          # TurboCloud/cPanel pode ter delays de resposta via Actions, aumentar o timeout é recomendado:
+          timeout: 60000
