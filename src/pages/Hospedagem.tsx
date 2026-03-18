@@ -285,11 +285,12 @@ const Hospedagem: React.FC = () => {
                 const allAccommodations: any[] = partners.map((p, index) => {
                     const mockIndex = index % MOCK_ACCOMMODATIONS.length;
                     const mock = MOCK_ACCOMMODATIONS[mockIndex];
-                    // Use real lat/lng from DB if they are valid numbers; otherwise fall back to mock
-                    const dbLat = (p as any).lat;
-                    const dbLng = (p as any).lng;
-                    const lat = (typeof dbLat === 'number' && isFinite(dbLat)) ? dbLat : mock.lat;
-                    const lng = (typeof dbLng === 'number' && isFinite(dbLng)) ? dbLng : mock.lng;
+                    // Always use parseFloat to guarantee we get a real JS number (DB may return string)
+                    const dbLat = parseFloat(String((p as any).lat ?? ''));
+                    const dbLng = parseFloat(String((p as any).lng ?? ''));
+                    // Prefer valid DB coords; fall back to mock coords (which are always valid numbers)
+                    const lat = isFinite(dbLat) ? dbLat : mock.lat;
+                    const lng = isFinite(dbLng) ? dbLng : mock.lng;
                     return {
                         id: p.id,
                         name: p.company_name,
@@ -300,11 +301,11 @@ const Hospedagem: React.FC = () => {
                         lng,
                         price: (p as any).price || mock.price,
                         rating: p.rating || mock.rating,
-                        // Prefer unsplash images for the Airbnb vibe if DB logo is standard local asset
                         image: (p.logo_url && !p.logo_url.startsWith('/')) ? p.logo_url : mock.image,
                         website: (p as any).website || mock.website
                     };
-                });
+                // Final safety filter: discard any entry where coords are still not valid numbers
+                }).filter((a) => isFinite(a.lat) && isFinite(a.lng));
                 
                 const filteredAccommodations = categoryFilter === 'Todos'
                     ? allAccommodations

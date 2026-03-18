@@ -36,14 +36,16 @@ const MapEffect: React.FC<{ selectedId: string | null; accommodations: Accommoda
     const map = useMap();
     
     useEffect(() => {
-        if (selectedId) {
-            const selected = accommodations.find(a => a.id === selectedId);
-            if (selected && isFinite(selected.lat) && isFinite(selected.lng)) {
-                map.flyTo([selected.lat, selected.lng], 14, {
-                    animate: true,
-                    duration: 1.5
-                });
-            }
+        if (!selectedId) return;
+        const selected = accommodations.find(a => a.id === selectedId);
+        if (!selected) return;
+        const lat = parseFloat(String(selected.lat));
+        const lng = parseFloat(String(selected.lng));
+        if (!isFinite(lat) || !isFinite(lng)) return;
+        try {
+            map.flyTo([lat, lng], 14, { animate: true, duration: 1.5 });
+        } catch (e) {
+            console.warn('Map flyTo failed, invalid coords:', lat, lng, e);
         }
     }, [selectedId, map, accommodations]);
 
