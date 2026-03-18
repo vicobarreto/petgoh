@@ -83,7 +83,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                 
                 <MapEffect selectedId={selectedId} accommodations={accommodations} />
 
-                {accommodations.map((acc) => (
+                {accommodations
+                    .filter((acc) => typeof acc.lat === 'number' && typeof acc.lng === 'number' && isFinite(acc.lat) && isFinite(acc.lng))
+                    .map((acc) => (
                     <Marker 
                         key={acc.id} 
                         position={[acc.lat, acc.lng]}
