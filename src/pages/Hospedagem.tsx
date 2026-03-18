@@ -65,6 +65,7 @@ const Hospedagem: React.FC = () => {
     
     // Map states
     const [hoveredAccommodationId, setHoveredAccommodationId] = useState<string | null>(null);
+    const [viewingDetails, setViewingDetails] = useState<any | null>(null); // Details modal state
 
     // Selected partners (IDs)
     const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
@@ -280,8 +281,27 @@ const Hospedagem: React.FC = () => {
                     { key: 'Pet Friendly', label: 'Pet Friendly', icon: 'pets' },
                 ];
                 
-                // Combine DB partners with Mock Data logic
-                const allAccommodations = MOCK_ACCOMMODATIONS;
+                // Convert DB partners into Accommodation map objects using mock data as rich fallbacks
+                const allAccommodations: any[] = partners.map((p, index) => {
+                    const mockIndex = index % MOCK_ACCOMMODATIONS.length;
+                    const mock = MOCK_ACCOMMODATIONS[mockIndex];
+                    // Keep real ID so the rest of the booking flow (Quantity, Dates) works
+                    return {
+                        id: p.id,
+                        name: p.company_name,
+                        category: p.category as 'Hotel' | 'Creche' | 'Pet Friendly',
+                        description: (p as any).description || mock.description || 'Hospedagem de alta qualidade e com muito amor para seu pet. Verificada pela equipe PetGoH.',
+                        address: p.city ? `${p.city} - ${p.state || 'PE'}` : mock.address,
+                        // Add slight random offset so markers don't overlap if they all use the exact same mock point
+                        lat: mock.lat + (Number(p.id.charCodeAt(0)) % 10) * 0.002, 
+                        lng: mock.lng + (Number(p.id.charCodeAt(1)) % 10) * 0.002,
+                        price: (p as any).price || mock.price,
+                        rating: p.rating || mock.rating,
+                        // Prefer unsplash images for the Airbnb vibe if DB logo is standard local asset
+                        image: (p.logo_url && !p.logo_url.startsWith('/')) ? p.logo_url : mock.image,
+                        website: mock.website
+                    };
+                });
                 
                 const filteredAccommodations = categoryFilter === 'Todos'
                     ? allAccommodations
@@ -330,7 +350,7 @@ const Hospedagem: React.FC = () => {
                                         accommodations={filteredAccommodations}
                                         selectedId={hoveredAccommodationId}
                                         onSelectAccommodation={setHoveredAccommodationId}
-                                        onViewDetails={(id) => togglePartnerSelection(id)}
+                                        onViewDetails={(id) => setViewingDetails(filteredAccommodations.find((a: any) => a.id === id) || null)}
                                     />
                                 </div>
 
@@ -341,16 +361,14 @@ const Hospedagem: React.FC = () => {
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 gap-4 sm:gap-6">
-                                        {filteredAccommodations.map((acc) => (
+                                        {filteredAccommodations.map((acc: any) => (
                                             <AccommodationCard 
                                                 key={acc.id}
                                                 accommodation={acc}
                                                 isSelected={selectedPartners.includes(acc.id) || hoveredAccommodationId === acc.id}
                                                 onHover={setHoveredAccommodationId}
-                                                onClick={(id) => {
-                                                    togglePartnerSelection(id);
-                                                    setHoveredAccommodationId(id);
-                                                }}
+                                                onToggleSelect={(id) => togglePartnerSelection(id)}
+                                                onViewDetails={(id) => setViewingDetails(filteredAccommodations.find((a: any) => a.id === id) || null)}
                                             />
                                         ))}
                                     </div>
@@ -383,10 +401,86 @@ const Hospedagem: React.FC = () => {
                                 accommodations={filteredAccommodations}
                                 selectedId={hoveredAccommodationId}
                                 onSelectAccommodation={setHoveredAccommodationId}
-                                onViewDetails={(id) => togglePartnerSelection(id)}
+                                onViewDetails={(id) => setViewingDetails(filteredAccommodations.find((a: any) => a.id === id) || null)}
                             />
                         </div>
                     </div>
+
+                    {/* DETAILS MODAL */}
+                    {viewingDetails && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+                            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setViewingDetails(null)} />
+                            <div className="relative w-full max-w-3xl bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+                                <button className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/50 hover:bg-white backdrop-blur-md text-gray-900 rounded-full flex items-center justify-center transition-all shadow-sm" onClick={() => setViewingDetails(null)}>
+                                    <span className="material-symbols-outlined text-xl">close</span>
+                                </button>
+                                
+                                <div className="w-full h-64 sm:h-80 shrink-0 relative">
+                                    <img src={viewingDetails.image} alt={viewingDetails.name} className="w-full h-full object-cover" />
+                                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent text-white pt-20">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="bg-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">{viewingDetails.category}</span>
+                                            <span className="flex items-center gap-1 bg-yellow-500/20 backdrop-blur-md text-yellow-300 px-2 py-1 rounded-full text-xs font-bold border border-yellow-500/50">
+                                                <span className="material-symbols-outlined text-[14px]">star</span> {viewingDetails.rating}
+                                            </span>
+                                        </div>
+                                        <h2 className="text-3xl font-black mb-1 drop-shadow-md">{viewingDetails.name}</h2>
+                                        <p className="text-gray-200 text-sm flex items-center gap-1.5 opacity-90">
+                                            <span className="material-symbols-outlined text-[16px]">location_on</span>
+                                            {viewingDetails.address}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="p-6 sm:p-8 overflow-y-auto flex-1 bg-gray-50 flex flex-col sm:flex-row gap-6 sm:gap-10">
+                                    <div className="flex-1">
+                                        <h3 className="text-xl font-bold text-gray-900 mb-3">Sobre o local</h3>
+                                        <p className="text-gray-600 mb-6 leading-relaxed bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">{viewingDetails.description}</p>
+                                        
+                                        <h3 className="text-lg font-bold text-gray-900 mb-3">Comodidades</h3>
+                                        <div className="grid grid-cols-2 gap-3 mb-6">
+                                            {['Área de Recreação', 'Monitoramento 24h', 'Atualização por WhatsApp', 'Cuidadores Treinados'].map(feat => (
+                                                <div key={feat} className="flex items-center gap-2 text-sm text-gray-700 bg-white px-3 py-2 rounded-xl border border-gray-100">
+                                                    <span className="material-symbols-outlined text-green-500 text-lg">check_circle</span>
+                                                    {feat}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="w-full sm:w-64 shrink-0">
+                                        <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-lg sticky top-0">
+                                            <div className="text-xs text-gray-500 mb-1 font-medium uppercase tracking-wide">A partir de</div>
+                                            <div className="text-4xl font-black text-gray-900 mb-6 font-mono flex items-baseline gap-1">
+                                                <span className="text-xl">R$</span>{viewingDetails.price}
+                                                <span className="text-sm text-gray-400 font-sans font-normal">/noite</span>
+                                            </div>
+                                            
+                                            <button 
+                                                onClick={() => {
+                                                    if (!selectedPartners.includes(viewingDetails.id)) {
+                                                        togglePartnerSelection(viewingDetails.id);
+                                                    }
+                                                    setViewingDetails(null);
+                                                }}
+                                                className={`w-full py-4 rounded-xl font-bold text-lg shadow-xl shadow-primary/20 transition-all flex items-center justify-center gap-2 ${
+                                                    selectedPartners.includes(viewingDetails.id) 
+                                                        ? 'bg-green-500 hover:bg-green-600 text-white shadow-green-500/30' 
+                                                        : 'bg-primary hover:bg-orange-600 text-white'
+                                                }`}
+                                            >
+                                                {selectedPartners.includes(viewingDetails.id) ? (
+                                                    <><span className="material-symbols-outlined">check</span> Selecionado</>
+                                                ) : (
+                                                    'Selecionar Local'
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
                 );
             })()}

@@ -6,23 +6,25 @@ interface AccommodationCardProps {
     accommodation: Accommodation;
     isSelected: boolean;
     onHover: (id: string | null) => void;
-    onClick: (id: string) => void;
+    onToggleSelect: (id: string) => void;
+    onViewDetails: (id: string) => void;
 }
 
 export const AccommodationCard: React.FC<AccommodationCardProps> = ({
     accommodation,
     isSelected,
     onHover,
-    onClick
+    onToggleSelect,
+    onViewDetails
 }) => {
     return (
         <div 
             className={`w-full flex-shrink-0 snap-center md:snap-align-none bg-white rounded-2xl border-2 transition-all cursor-pointer overflow-hidden flex flex-col sm:flex-row h-full sm:h-auto
-                ${isSelected ? 'border-primary ring-4 ring-primary/10 shadow-md' : 'border-gray-100 hover:border-gray-200 shadow-sm'}
+                ${isSelected ? 'border-primary ring-4 ring-primary/10 shadow-md transform scale-[1.02]' : 'border-gray-100 hover:border-gray-200 shadow-sm'}
             `}
             onMouseEnter={() => onHover(accommodation.id)}
             onMouseLeave={() => onHover(null)}
-            onClick={() => onClick(accommodation.id)}
+            onClick={() => onToggleSelect(accommodation.id)}
         >
             {/* Image Section */}
             <div className="relative w-full sm:w-48 h-48 sm:h-full flex-shrink-0">
@@ -63,11 +65,17 @@ export const AccommodationCard: React.FC<AccommodationCardProps> = ({
                     </div>
                     
                     {/* Botão Agendar ou Info */}
-                    <button className={`h-10 px-4 rounded-xl font-bold text-sm transition-all sm:w-auto w-full max-w-[120px] ${
-                        isSelected 
-                            ? 'bg-primary text-white shadow-lg shadow-primary/20 hover:bg-orange-600' 
-                            : 'bg-orange-50 text-primary hover:bg-primary/10'
-                    }`}>
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation(); // prevent triggering the card's onToggleSelect
+                            onViewDetails(accommodation.id);
+                        }}
+                        className={`h-10 px-4 rounded-xl font-bold text-sm transition-all sm:w-auto w-full max-w-[120px] ${
+                            isSelected 
+                                ? 'bg-primary text-white shadow-lg shadow-primary/20 hover:bg-orange-600' 
+                                : 'bg-orange-50 text-primary hover:bg-primary/10'
+                        }`}
+                    >
                         Ver Unidade
                     </button>
                 </div>
