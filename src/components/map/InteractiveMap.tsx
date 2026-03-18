@@ -38,7 +38,7 @@ const MapEffect: React.FC<{ selectedId: string | null; accommodations: Accommoda
     useEffect(() => {
         if (selectedId) {
             const selected = accommodations.find(a => a.id === selectedId);
-            if (selected) {
+            if (selected && isFinite(selected.lat) && isFinite(selected.lng)) {
                 map.flyTo([selected.lat, selected.lng], 14, {
                     animate: true,
                     duration: 1.5

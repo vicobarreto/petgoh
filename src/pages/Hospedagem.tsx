@@ -285,21 +285,24 @@ const Hospedagem: React.FC = () => {
                 const allAccommodations: any[] = partners.map((p, index) => {
                     const mockIndex = index % MOCK_ACCOMMODATIONS.length;
                     const mock = MOCK_ACCOMMODATIONS[mockIndex];
-                    // Keep real ID so the rest of the booking flow (Quantity, Dates) works
+                    // Use real lat/lng from DB if they are valid numbers; otherwise fall back to mock
+                    const dbLat = (p as any).lat;
+                    const dbLng = (p as any).lng;
+                    const lat = (typeof dbLat === 'number' && isFinite(dbLat)) ? dbLat : mock.lat;
+                    const lng = (typeof dbLng === 'number' && isFinite(dbLng)) ? dbLng : mock.lng;
                     return {
                         id: p.id,
                         name: p.company_name,
                         category: p.category as 'Hotel' | 'Creche' | 'Pet Friendly',
                         description: (p as any).description || mock.description || 'Hospedagem de alta qualidade e com muito amor para seu pet. Verificada pela equipe PetGoH.',
-                        address: p.city ? `${p.city} - ${p.state || 'PE'}` : mock.address,
-                        // Add slight random offset so markers don't overlap if they all use the exact same mock point
-                        lat: mock.lat + (Number(p.id.charCodeAt(0)) % 10) * 0.002, 
-                        lng: mock.lng + (Number(p.id.charCodeAt(1)) % 10) * 0.002,
+                        address: (p as any).address || (p.city ? `${p.city} - ${p.state || 'PE'}` : mock.address),
+                        lat,
+                        lng,
                         price: (p as any).price || mock.price,
                         rating: p.rating || mock.rating,
                         // Prefer unsplash images for the Airbnb vibe if DB logo is standard local asset
                         image: (p.logo_url && !p.logo_url.startsWith('/')) ? p.logo_url : mock.image,
-                        website: mock.website
+                        website: (p as any).website || mock.website
                     };
                 });
                 
