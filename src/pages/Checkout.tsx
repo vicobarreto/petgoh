@@ -308,7 +308,15 @@ const Checkout: React.FC = () => {
                                         <h3 className="text-lg font-bold text-gray-900">Reservas de Hotel</h3>
                                     </div>
                                     <div className="p-6 space-y-4">
-                                        {bookingStays.map((stay: any, idx: number) => (
+                                        {bookingStays.map((stay: any, idx: number) => {
+                                            // Derive check-in / check-out from the dates array
+                                            const sortedDates = [...(stay.dates || [])].sort();
+                                            const checkInDate = sortedDates[0] || '';
+                                            const lastDate = sortedDates[sortedDates.length - 1] || '';
+                                            const checkOutDate = lastDate
+                                                ? new Date(new Date(lastDate + 'T12:00:00').getTime() + 86400000).toISOString().split('T')[0]
+                                                : '';
+                                            return (
                                             <div key={idx} className="bg-gray-50 rounded-xl p-4">
                                                 <div className="flex items-center justify-between mb-3">
                                                     <h4 className="font-bold text-gray-900">{stay.partnerName}</h4>
@@ -316,26 +324,23 @@ const Checkout: React.FC = () => {
                                                         {stay.nights} diária{stay.nights > 1 ? 's' : ''}
                                                     </span>
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-3 mb-3">
+                                                <div className="grid grid-cols-2 gap-3">
                                                     <div>
                                                         <span className="text-xs text-gray-400">Check-in</span>
                                                         <p className="text-sm font-semibold text-gray-800">
-                                                            {new Date(stay.checkIn + 'T12:00:00').toLocaleDateString('pt-BR')}
+                                                            {checkInDate ? new Date(checkInDate + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
                                                         </p>
                                                     </div>
                                                     <div>
                                                         <span className="text-xs text-gray-400">Check-out</span>
                                                         <p className="text-sm font-semibold text-gray-800">
-                                                            {new Date(stay.checkOut + 'T12:00:00').toLocaleDateString('pt-BR')}
+                                                            {checkOutDate ? new Date(checkOutDate + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
-                                                    <span className="text-gray-500">Avulso: <span className="line-through">R$ {(stay.avulsoPrice * stay.nights).toFixed(2).replace('.', ',')}</span></span>
-                                                    <span className="text-green-600 font-bold">Pacote: R$ {(bookingPricePerNight * stay.nights).toFixed(2).replace('.', ',')}</span>
-                                                </div>
                                             </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}

@@ -9,6 +9,8 @@ interface Partner {
     email: string | null;
     phone: string | null;
     cnpj: string | null;
+    city: string | null;
+    state: string | null;
     status: 'active' | 'pending' | 'rejected';
     logo_url: string | null;
     custom_commission_rate: number | null;
@@ -74,6 +76,8 @@ const PartnerManagement: React.FC = () => {
                 email: formData.email,
                 phone: formData.phone,
                 cnpj: formData.cnpj,
+                city: formData.city,
+                state: formData.state,
                 status: formData.status || 'pending',
                 logo_url: formData.logo_url,
                 custom_commission_rate: formData.custom_commission_rate
@@ -409,6 +413,25 @@ const PartnerManagement: React.FC = () => {
                                         className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary/20 outline-none"
                                         value={formData.phone || ''}
                                         onChange={e => setFormData({...formData, phone: e.target.value})}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">Cidade</label>
+                                    <input 
+                                        type="text" 
+                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary/20 outline-none"
+                                        value={formData.city || ''}
+                                        onChange={e => setFormData({...formData, city: e.target.value})}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">Estado (UF)</label>
+                                    <input 
+                                        type="text" 
+                                        maxLength={2}
+                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary/20 outline-none uppercase"
+                                        value={formData.state || ''}
+                                        onChange={e => setFormData({...formData, state: e.target.value.toUpperCase()})}
                                     />
                                 </div>
                                 <div className="space-y-2">

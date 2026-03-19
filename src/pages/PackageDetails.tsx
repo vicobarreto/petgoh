@@ -39,8 +39,6 @@ const PackageDetails: React.FC = () => {
 
     const [pkg, setPkg] = useState<Package | null>(null);
     const [loading, setLoading] = useState(true);
-    const [addingToCart, setAddingToCart] = useState(false);
-    const [addedToCart, setAddedToCart] = useState(false);
     const [mainImage, setMainImage] = useState(IMAGES.DOG_RUNNING);
     const [isFavorite, setIsFavorite] = useState(false);
 
@@ -76,33 +74,7 @@ const PackageDetails: React.FC = () => {
         }
     };
 
-    const handleAddToCart = async () => {
-        if (!user) {
-            navigate('/login', { state: { from: `/package/${id}` } });
-            return;
-        }
 
-        setAddingToCart(true);
-        try {
-            const { error } = await supabase
-                .from('cart_items')
-                .upsert(
-                    { user_id: user.id, package_id: id, quantity: 1 },
-                    { onConflict: 'user_id,package_id' }
-                );
-
-            if (error) throw error;
-
-            window.dispatchEvent(new CustomEvent('cartUpdated'));
-
-            setAddedToCart(true);
-            setTimeout(() => setAddedToCart(false), 3000);
-        } catch (err: any) {
-            alert('Erro ao adicionar ao carrinho: ' + err.message);
-        } finally {
-            setAddingToCart(false);
-        }
-    };
 
     if (loading) {
         return (
@@ -206,43 +178,7 @@ const PackageDetails: React.FC = () => {
                         </div>
                         <p className="text-sm text-gray-500 mb-6">Em até 3x de R$ {installment} sem juros</p>
 
-                        {/* Add to Cart */}
-                        <button
-                            onClick={handleAddToCart}
-                            disabled={addingToCart}
-                            className={`w-full font-bold text-lg py-4 rounded-xl shadow-lg transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 mb-3 ${
-                                addedToCart
-                                    ? 'bg-green-500 text-white shadow-green-200'
-                                    : 'bg-secondary hover:bg-blue-900 text-white shadow-secondary/30'
-                            }`}
-                        >
-                            {addingToCart ? (
-                                <>
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    Adicionando...
-                                </>
-                            ) : addedToCart ? (
-                                <>
-                                    <span className="material-symbols-outlined">check_circle</span>
-                                    Adicionado ao Carrinho!
-                                </>
-                            ) : (
-                                <>
-                                    <span className="material-symbols-outlined">shopping_cart</span>
-                                    Adicionar ao Carrinho
-                                </>
-                            )}
-                        </button>
 
-                        {addedToCart && (
-                            <Link
-                                to="/cart"
-                                className="w-full mb-3 h-12 bg-gray-100 text-gray-700 font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors text-sm"
-                            >
-                                <span className="material-symbols-outlined text-lg">shopping_bag</span>
-                                Ver Carrinho
-                            </Link>
-                        )}
 
                         {/* Buy Now / Booking Flow */}
                         <Link
