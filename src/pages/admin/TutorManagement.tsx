@@ -37,10 +37,11 @@ const TutorManagement: React.FC = () => {
 
     // LOG-06: Delete user
     const handleDeleteUser = async (userId: string, userName: string) => {
-        if (!confirm(`Tem certeza que deseja excluir permanentemente o usuário "${userName}"? Esta ação não pode ser desfeita.`)) return;
+        if (!confirm(`Tem certeza que deseja excluir permanentemente o usuário "${userName}"? Esta ação não pode ser desfeita e todas as contas (inclusive acesso) serão deletadas.`)) return;
         try {
             setUpdating(userId);
-            const { error } = await supabase.from('users').delete().eq('id', userId);
+            // LOG-06: Calls custom RPC to hard-delete auth account directly
+            const { error } = await supabase.rpc('delete_user_admin', { target_user_id: userId });
             if (error) throw error;
             setUsers(users.filter(u => u.id !== userId));
         } catch (error: any) {

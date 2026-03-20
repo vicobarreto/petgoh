@@ -55,10 +55,12 @@ const Register: React.FC = () => {
             }
         } catch (error: any) {
             console.error('Registration error:', error);
-            if (error.message?.includes('already registered')) {
+            const errorMessage = typeof error?.message === 'string' ? error.message : String(error?.message || error || '');
+            
+            if (errorMessage.includes('already registered')) {
                 setError('Este email já está cadastrado. Tente fazer login.');
             } else {
-                setError(error.message || 'Erro ao criar conta. Tente novamente.');
+                setError(typeof error?.message === 'string' ? error.message : 'Erro ao criar conta. Tente novamente.');
             }
         } finally {
             setIsLoading(false);

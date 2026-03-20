@@ -2,6 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import MediaUploader from '../../components/admin/MediaUploader';
 
+const ADMIN_CATEGORIES = [
+    { value: 'Hotel', label: 'Hotel / Hospedagem' },
+    { value: 'Pet Shop', label: 'Pet Shop' },
+    { value: 'Creche', label: 'Creche' },
+    { value: 'Banho e Tosa', label: 'Banho e Tosa' },
+    { value: 'Adestramento', label: 'Adestramento' },
+    { value: 'Passeador', label: 'Passeador' },
+    { value: 'Veterinário', label: 'Veterinário' },
+    { value: 'Outros', label: 'Outros' },
+];
+
 interface Partner {
     id: string;
     company_name: string;
@@ -13,8 +24,13 @@ interface Partner {
     state: string | null;
     status: 'active' | 'pending' | 'rejected';
     logo_url: string | null;
+    hotel_photo_url: string | null;
+    website: string | null;
+    instagram: string | null;
+    facebook: string | null;
     custom_commission_rate: number | null;
     created_at: string;
+    partner_services?: { name: string }[];
 }
 
 interface PartnerServiceAdmin {
@@ -53,7 +69,7 @@ const PartnerManagement: React.FC = () => {
             setLoading(true);
             const { data, error } = await supabase
                 .from('partners')
-                .select('*')
+                .select('*, partner_services(name)')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -72,7 +88,7 @@ const PartnerManagement: React.FC = () => {
 
             const payload = {
                 company_name: formData.company_name,
-                category: formData.category,
+                category: formData.category || null,
                 email: formData.email,
                 phone: formData.phone,
                 cnpj: formData.cnpj,
@@ -80,6 +96,10 @@ const PartnerManagement: React.FC = () => {
                 state: formData.state,
                 status: formData.status || 'pending',
                 logo_url: formData.logo_url,
+                hotel_photo_url: formData.hotel_photo_url || null,
+                website: formData.website || null,
+                instagram: formData.instagram || null,
+                facebook: formData.facebook || null,
                 custom_commission_rate: formData.custom_commission_rate
             };
 
@@ -289,7 +309,19 @@ const PartnerManagement: React.FC = () => {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-5 text-sm font-medium text-secondary/70">{partner.category || '-'}</td>
+                                        <td className="px-6 py-5 align-top">
+                                            <div className="text-sm font-medium text-secondary/70 mb-2">{partner.category || '-'}</div>
+                                            {/* LOG-07: Display partner services */}
+                                            {partner.partner_services && partner.partner_services.length > 0 && (
+                                                <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                                    {partner.partner_services.map((svc, idx) => (
+                                                        <span key={idx} className="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase whitespace-nowrap truncate max-w-full" title={svc.name}>
+                                                            {svc.name}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </td>
                                         <td className="px-6 py-5 text-sm text-secondary/60">
                                             <div className="flex flex-col">
                                                 <span>{partner.email}</span>
@@ -383,23 +415,30 @@ const PartnerManagement: React.FC = () => {
                                         onChange={e => setFormData({...formData, company_name: e.target.value})}
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700">Categoria</label>
-                                    <select
-                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary/20 outline-none bg-white"
-                                        value={formData.category || ''}
-                                        onChange={e => setFormData({...formData, category: e.target.value})}
-                                    >
-                                        <option value="">Selecione...</option>
-                                        <option value="Hotel">Hotel</option>
-                                        <option value="Pet Shop">Pet Shop</option>
-                                        <option value="Creche">Creche</option>
-                                        <option value="Banho e Tosa">Banho e Tosa</option>
-                                        <option value="Adestramento">Adestramento</option>
-                                        <option value="Passeador">Passeador</option>
-                                        <option value="Veterinário">Veterinário</option>
-                                        <option value="Outros">Outros</option>
-                                    </select>
+                                <div className="space-y-2 md:col-span-2">
+                                    <label className="text-sm font-medium text-gray-700">Categoria <span className="text-xs text-gray-400 font-normal">(múltipla seleção)</span></label>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                        {ADMIN_CATEGORIES.map(cat => {
+                                            const selected = (formData.category || '').split(',').map(c => c.trim()).includes(cat.value);
+                                            const toggle = () => {
+                                                const current = (formData.category || '').split(',').map(c => c.trim()).filter(Boolean);
+                                                const next = selected ? current.filter(c => c !== cat.value) : [...current, cat.value];
+                                                setFormData({ ...formData, category: next.join(', ') });
+                                            };
+                                            return (
+                                                <label key={cat.value} onClick={toggle} className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                                                    selected ? 'bg-primary/5 border-primary text-primary' : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                                                }`}>
+                                                    <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                                                        selected ? 'bg-primary border-primary' : 'border-gray-300'
+                                                    }`}>
+                                                        {selected && <span className="material-symbols-outlined text-white text-[12px]">check</span>}
+                                                    </span>
+                                                    <span className="text-xs font-medium">{cat.label}</span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-gray-700">CNPJ</label>
@@ -410,15 +449,7 @@ const PartnerManagement: React.FC = () => {
                                         onChange={e => setFormData({...formData, cnpj: e.target.value})}
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700">Taxa de Comissão (%)</label>
-                                    <input 
-                                        type="number" 
-                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary/20 outline-none"
-                                        value={formData.custom_commission_rate || ''}
-                                        onChange={e => setFormData({...formData, custom_commission_rate: parseFloat(e.target.value)})}
-                                    />
-                                </div>
+
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-gray-700">Email</label>
                                     <input 
@@ -467,6 +498,71 @@ const PartnerManagement: React.FC = () => {
                                         <option value="active">Ativo</option>
                                         <option value="rejected">Rejeitado</option>
                                     </select>
+                                </div>
+                            </div>
+
+                            {/* UI-07: Hotel Photo + Social Media */}
+                            <div className="border-t border-gray-100 pt-5 space-y-5">
+                                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[16px]">photo_library</span>
+                                    Foto do Estabelecimento
+                                </p>
+                                <MediaUploader
+                                    bucket="partner-logos"
+                                    label="Foto do Hotel / Estabelecimento (recomendado 900x600px)"
+                                    currentUrl={formData.hotel_photo_url || ''}
+                                    onUpload={(url) => setFormData({ ...formData, hotel_photo_url: url })}
+                                />
+                                {formData.hotel_photo_url && (
+                                    <div className="h-40 w-full rounded-xl overflow-hidden border border-gray-200">
+                                        <img src={formData.hotel_photo_url} alt="Foto" className="w-full h-full object-cover" />
+                                    </div>
+                                )}
+
+                                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[16px]">link</span>
+                                    Redes Sociais e Site
+                                </p>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-[16px] text-blue-500">language</span>
+                                            Website
+                                        </label>
+                                        <input
+                                            type="url"
+                                            placeholder="https://www.site.com.br"
+                                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary/20 outline-none text-sm"
+                                            value={formData.website || ''}
+                                            onChange={e => setFormData({ ...formData, website: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-[16px] text-pink-500">photo_camera</span>
+                                            Instagram
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="@parceiro"
+                                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary/20 outline-none text-sm"
+                                            value={formData.instagram || ''}
+                                            onChange={e => setFormData({ ...formData, instagram: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-[16px] text-blue-700">thumb_up</span>
+                                            Facebook
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="/pagina-no-facebook"
+                                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary/20 outline-none text-sm"
+                                            value={formData.facebook || ''}
+                                            onChange={e => setFormData({ ...formData, facebook: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>

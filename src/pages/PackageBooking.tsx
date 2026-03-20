@@ -44,11 +44,10 @@ interface HotelStay {
     avulsoPrice: number;
 }
 
-type BookingStep = 'HOTELS' | 'DISTRIBUTE' | 'DATES' | 'SERVICES' | 'SUMMARY';
+type BookingStep = 'HOTELS' | 'DATES' | 'SERVICES' | 'SUMMARY';
 
 const STEP_CONFIG: { key: BookingStep; label: string; icon: string }[] = [
     { key: 'HOTELS', label: 'Hotéis', icon: 'hotel' },
-    { key: 'DISTRIBUTE', label: 'Diárias', icon: 'tune' },
     { key: 'DATES', label: 'Datas', icon: 'calendar_month' },
     { key: 'SERVICES', label: 'Serviços', icon: 'room_service' },
     { key: 'SUMMARY', label: 'Resumo', icon: 'receipt_long' },
@@ -95,7 +94,7 @@ const PackageBooking: React.FC = () => {
     const [selectedHotelIds, setSelectedHotelIds] = useState<string[]>([]);
     const [nameFilter, setNameFilter] = useState('');
     const [cityFilter, setCityFilter] = useState('');
-    const [serviceFilter, setServiceFilter] = useState<'todos' | 'hotel' | 'creche' | 'banho_tosa' | 'day_use'>('todos');
+    const [serviceFilter, setServiceFilter] = useState<string>('todos');
 
     // Distribution state: partnerId -> nights
     const [distribution, setDistribution] = useState<Record<string, number>>({});
@@ -122,6 +121,27 @@ const PackageBooking: React.FC = () => {
         if (!pkg || totalDiarias === 0) return 0;
         return pkg.price / totalDiarias;
     }, [pkg, totalDiarias]);
+
+    // UI-02: Auto-sync distribution state with selected hotels
+    useEffect(() => {
+        setDistribution(prev => {
+            const next = { ...prev };
+            let hasChanges = false;
+            Object.keys(next).forEach(id => {
+                if (!selectedHotelIds.includes(id)) {
+                    delete next[id];
+                    hasChanges = true;
+                }
+            });
+            selectedHotelIds.forEach(id => {
+                if (next[id] === undefined) {
+                    next[id] = 0;
+                    hasChanges = true;
+                }
+            });
+            return hasChanges ? next : prev;
+        });
+    }, [selectedHotelIds]);
 
     useEffect(() => {
         if (!id) {
@@ -159,32 +179,28 @@ const PackageBooking: React.FC = () => {
                 .eq('package_id', id);
 
             if (!hotelError && hotelData) {
-                setHotels(hotelData as unknown as PackageHotel[]);
+                // HOTELS screen should show ANY partner linked to this package!
+                // BUG-01: We're removing the hardcoded category constraint to allow any partner the Admin associated with the package stays step
+                const stayPartners = (hotelData as any[]).filter(h => h.partner);
+                setHotels(stayPartners as unknown as PackageHotel[]);
             }
 
-            // LOG-01: Fetch partners for each non-hotel service type in the package
+            // LOG-01: Build partner options for each non-hotel service using ONLY partners associated with the package
             const nonHotelItems = (pkgData.items || []).filter((i: PackageItem) => i.service_type !== 'hotel');
             const categoriesToFetch = [...new Set(nonHotelItems.map((i: PackageItem) => SERVICE_CATEGORY_MAP[i.service_type]).filter(Boolean))];
 
-            if (categoriesToFetch.length > 0) {
-                const { data: svcPartners } = await supabase
-                    .from('partners')
-                    .select('id, company_name, city, rating, category')
-                    .in('category', categoriesToFetch)
-                    .eq('status', 'active')
-                    .order('rating', { ascending: false });
+            if (categoriesToFetch.length > 0 && hotelData) {
+                const linkedPartners = (hotelData as any[]).map(h => h.partner).filter(p => p && categoriesToFetch.includes(p.category));
 
-                if (svcPartners) {
-                    // Group by service type
-                    const grouped: Record<string, typeof svcPartners> = {};
-                    nonHotelItems.forEach((item: PackageItem) => {
-                        const cat = SERVICE_CATEGORY_MAP[item.service_type];
-                        if (cat) {
-                            grouped[item.service_type] = svcPartners.filter((p: any) => p.category === cat);
-                        }
-                    });
-                    setServicePartnerOptions(grouped);
-                }
+                // Group by service type
+                const grouped: Record<string, typeof linkedPartners> = {};
+                nonHotelItems.forEach((item: PackageItem) => {
+                    const cat = SERVICE_CATEGORY_MAP[item.service_type];
+                    if (cat) {
+                        grouped[item.service_type] = linkedPartners.filter((p: any) => p.category === cat);
+                    }
+                });
+                setServicePartnerOptions(grouped);
             }
         } catch {
             navigate('/packages');
@@ -244,14 +260,12 @@ const PackageBooking: React.FC = () => {
     const filteredHotels = hotels.filter(h => {
         const name = h.partner?.company_name?.toLowerCase() || '';
         const city = h.partner?.city?.toLowerCase() || '';
-        const category = (h.partner?.category || '').toLowerCase();
         if (nameFilter && !name.includes(nameFilter.toLowerCase())) return false;
         if (cityFilter && city !== cityFilter.toLowerCase()) return false;
+        
+        // BUG-01: Clean dynamic category filter
         if (serviceFilter !== 'todos') {
-            if (serviceFilter === 'hotel' && category !== 'hotel') return false;
-            if (serviceFilter === 'creche' && category !== 'creche') return false;
-            if (serviceFilter === 'banho_tosa' && category !== 'banho e tosa') return false;
-            if (serviceFilter === 'day_use' && !category.includes('day')) return false;
+            if (h.partner?.category !== serviceFilter) return false;
         }
         return true;
     });
@@ -260,15 +274,6 @@ const PackageBooking: React.FC = () => {
         setSelectedHotelIds(prev =>
             prev.includes(partnerId) ? prev.filter(id => id !== partnerId) : [...prev, partnerId]
         );
-    };
-
-    const handleAdvanceFromHotels = () => {
-        if (selectedHotelIds.length === 0) return;
-        // Initialize distribution with 0 for each selected hotel
-        const initDist: Record<string, number> = {};
-        selectedHotelIds.forEach(id => { initDist[id] = 0; });
-        setDistribution(initDist);
-        setStep('DISTRIBUTE');
     };
 
     const buildStays = (): HotelStay[] => {
@@ -370,23 +375,33 @@ const PackageBooking: React.FC = () => {
             })()}
 
             {/* Package Info Banner */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 mb-8 flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <span className="material-symbols-outlined text-primary text-2xl">package_2</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                    <h2 className="font-bold text-gray-900 text-lg truncate">{pkg.name}</h2>
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                            pkg.type === 'especial' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
-                        }`}>
-                            {pkg.type === 'especial' ? '⭐ Especial' : 'Básico'}
-                        </span>
-                        <span className="text-xs text-gray-400">•</span>
-                        <span className="text-xs text-gray-500 font-semibold">{totalDiarias} diárias</span>
-                        <span className="text-xs text-gray-400">•</span>
-                        <span className="text-sm font-black text-primary">{formatCurrency(pkg.price)}</span>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 mb-8 flex flex-col gap-3">
+                <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <span className="material-symbols-outlined text-primary text-2xl">package_2</span>
                     </div>
+                    <div className="flex-1 min-w-0">
+                        <h2 className="font-bold text-gray-900 text-lg truncate">{pkg.name}</h2>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                                pkg.type === 'especial' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                            }`}>
+                                {pkg.type === 'especial' ? '⭐ Especial' : 'Básico'}
+                            </span>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="text-sm font-black text-primary mr-2">{formatCurrency(pkg.price)}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* UI-01: Mostrar todas as etapas do pacote */}
+                <div className="flex flex-wrap gap-2 mt-1">
+                    {pkg.items?.map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1 rounded-lg text-xs font-bold border border-green-100 shadow-sm">
+                            <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                            {item.quantity}x {SERVICE_LABELS[item.service_type] || item.service_type}
+                        </div>
+                    ))}
                 </div>
             </div>
 
@@ -430,23 +445,27 @@ const PackageBooking: React.FC = () => {
 
                             {/* Service type filter */}
                             <div className="flex gap-1.5 flex-wrap">
-                                {([
-                                    { key: 'todos', label: 'Todos' },
-                                    { key: 'hotel', label: 'Hotel' },
-                                    { key: 'creche', label: 'Creche' },
-                                    { key: 'banho_tosa', label: 'Banho & Tosa' },
-                                    { key: 'day_use', label: 'Day Use' },
-                                ] as const).map(opt => (
+                                <button
+                                    onClick={() => setServiceFilter('todos')}
+                                    className={`px-4 h-11 rounded-xl text-xs font-bold border transition-all whitespace-nowrap ${
+                                        serviceFilter === 'todos'
+                                            ? 'bg-primary border-primary text-white shadow-md shadow-primary/20'
+                                            : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'
+                                    }`}
+                                >
+                                    Todos
+                                </button>
+                                {Array.from(new Set(hotels.map(h => h.partner?.category).filter(Boolean))).map(cat => (
                                     <button
-                                        key={opt.key}
-                                        onClick={() => setServiceFilter(opt.key)}
-                                        className={`px-3 h-11 rounded-xl text-xs font-bold border transition-all whitespace-nowrap ${
-                                            serviceFilter === opt.key
-                                                ? 'bg-primary border-primary text-white'
+                                        key={cat as string}
+                                        onClick={() => setServiceFilter(cat as string)}
+                                        className={`px-4 h-11 rounded-xl text-xs font-bold border transition-all whitespace-nowrap ${
+                                            serviceFilter === cat
+                                                ? 'bg-primary border-primary text-white shadow-md shadow-primary/20'
                                                 : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'
                                         }`}
                                     >
-                                        {opt.label}
+                                        {cat as string}
                                     </button>
                                 ))}
                             </div>
@@ -532,140 +551,110 @@ const PackageBooking: React.FC = () => {
                     )}
 
                     {selectedHotelIds.length > 0 && (
-                        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-white p-3 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.12)] border border-gray-100 flex items-center gap-3 animate-in slide-in-from-bottom-5 z-30">
-                            <div className="flex items-center justify-center w-10 h-10 bg-green-50 text-green-600 rounded-full shrink-0">
-                                <span className="material-symbols-outlined">check</span>
+                        <div className="mt-10 pt-8 border-t border-gray-100 animate-in fade-in slide-in-from-bottom-5">
+                            <div className="mb-6">
+                                <h3 className="text-xl font-bold text-gray-900 mb-1">Distribuir Diárias</h3>
+                                <p className="text-sm text-gray-500">
+                                    Distribua suas <strong>{totalDiarias} diárias</strong> entre os hotéis selecionados. Máximo de 3 diárias por hotel.
+                                </p>
                             </div>
-                            <div className="flex-1">
-                                <p className="text-sm font-bold text-gray-900">{selectedHotelIds.length} hospedagem(ns) selecionada(s)</p>
-                                <p className="text-[11px] text-gray-500">Pronto para distribuir as diárias</p>
+
+                            {/* Counter */}
+                            <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-colors mb-6 ${
+                                canProceedFromDistribute
+                                    ? 'border-green-200 bg-green-50'
+                                    : distributedTotal > totalDiarias
+                                        ? 'border-red-200 bg-red-50'
+                                        : 'border-gray-200 bg-white'
+                            }`}>
+                                <span className="text-sm font-semibold text-gray-700">Diárias distribuídas</span>
+                                <span className={`text-2xl font-black ${
+                                    canProceedFromDistribute ? 'text-green-600' : distributedTotal > totalDiarias ? 'text-red-600' : 'text-gray-900'
+                                }`}>
+                                    {distributedTotal} / {totalDiarias}
+                                </span>
                             </div>
+
+                            <div className="space-y-4 mb-8">
+                                {selectedHotels.map((hotel) => {
+                                    const nights = distribution[hotel.partner_id] || 0;
+                                    return (
+                                        <div key={hotel.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-12 h-12 rounded-xl bg-cover bg-center flex-shrink-0 border border-gray-200"
+                                                        style={{ backgroundImage: `url('${getHotelImage(hotel)}')` }}
+                                                    />
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className="font-bold text-gray-900 truncate">{hotel.partner?.company_name}</h4>
+                                                        {hotel.partner?.city && <p className="text-xs text-gray-400">{hotel.partner.city}</p>}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                                                    <button
+                                                        onClick={() => {
+                                                            if (nights > 0) {
+                                                                setDistribution(prev => ({ ...prev, [hotel.partner_id]: nights - 1 }));
+                                                            }
+                                                        }}
+                                                        disabled={nights <= 0}
+                                                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+                                                    >
+                                                        <span className="material-symbols-outlined text-xl">remove</span>
+                                                    </button>
+
+                                                    <div className="text-center w-12 shrink-0">
+                                                        <span className={`text-2xl font-black ${nights > 0 ? 'text-primary' : 'text-gray-300'}`}>
+                                                            {nights}
+                                                        </span>
+                                                    </div>
+
+                                                    <button
+                                                        onClick={() => {
+                                                            if (distributedTotal < totalDiarias) {
+                                                                setDistribution(prev => ({ ...prev, [hotel.partner_id]: nights + 1 }));
+                                                            }
+                                                        }}
+                                                        disabled={distributedTotal >= totalDiarias}
+                                                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+                                                    >
+                                                        <span className="material-symbols-outlined text-xl">add</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
                             <button
-                                onClick={handleAdvanceFromHotels}
-                                className="h-11 px-5 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-sm transition-all shadow-md shrink-0"
+                                onClick={() => {
+                                    setDates(prev => {
+                                        const next = { ...prev };
+                                        Object.entries(distribution).forEach(([partnerId, nightsRaw]) => {
+                                            const nights = nightsRaw as number;
+                                            if (nights > 0) {
+                                                const currentDates = next[partnerId] || [];
+                                                if (currentDates.length !== nights) {
+                                                    next[partnerId] = Array.from({ length: nights }, (_, i) => currentDates[i] || '');
+                                                }
+                                            } else {
+                                                delete next[partnerId];
+                                            }
+                                        });
+                                        return next;
+                                    });
+                                    setStep('DATES');
+                                }}
+                                disabled={!canProceedFromDistribute}
+                                className="w-full h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Continuar
+                                Continuar para Datas
+                                <span className="material-symbols-outlined">arrow_forward</span>
                             </button>
                         </div>
                     )}
-                </div>
-            )}
-
-            {/* ============= STEP 2: DISTRIBUTE ============= */}
-            {step === 'DISTRIBUTE' && (
-                <div className="space-y-6 animate-in fade-in duration-300">
-                    <div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-1">Distribuir Diárias</h3>
-                        <p className="text-sm text-gray-500">
-                            Distribua suas <strong>{totalDiarias} diárias</strong> entre os hotéis. Máximo de 3 diárias por hotel.
-                        </p>
-                    </div>
-
-                    {/* Counter */}
-                    <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-colors ${
-                        canProceedFromDistribute
-                            ? 'border-green-200 bg-green-50'
-                            : distributedTotal > totalDiarias
-                                ? 'border-red-200 bg-red-50'
-                                : 'border-gray-200 bg-white'
-                    }`}>
-                        <span className="text-sm font-semibold text-gray-700">Diárias distribuídas</span>
-                        <span className={`text-2xl font-black ${
-                            canProceedFromDistribute ? 'text-green-600' : distributedTotal > totalDiarias ? 'text-red-600' : 'text-gray-900'
-                        }`}>
-                            {distributedTotal} / {totalDiarias}
-                        </span>
-                    </div>
-
-                    <div className="space-y-4">
-                        {selectedHotels.map((hotel) => {
-                            const nights = distribution[hotel.partner_id] || 0;
-                            return (
-                                <div key={hotel.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="w-12 h-12 rounded-xl bg-cover bg-center flex-shrink-0 border border-gray-200"
-                                            style={{ backgroundImage: `url('${getHotelImage(hotel)}')` }}
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="font-bold text-gray-900 truncate">{hotel.partner?.company_name}</h4>
-                                            {hotel.partner?.city && <p className="text-xs text-gray-400">{hotel.partner.city}</p>}
-                                        </div>
-                                        <span className={`text-2xl font-black ${nights > 0 ? 'text-primary' : 'text-gray-300'}`}>
-                                            {nights}
-                                        </span>
-                                    </div>
-
-                                    <div className="flex items-center gap-3">
-                                        <button
-                                            onClick={() => {
-                                                if (nights > 0) {
-                                                    setDistribution(prev => ({ ...prev, [hotel.partner_id]: nights - 1 }));
-                                                }
-                                            }}
-                                            disabled={nights <= 0}
-                                            className="w-12 h-12 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                        >
-                                            <span className="material-symbols-outlined text-xl">remove</span>
-                                        </button>
-
-                                        <div className="flex-1 bg-gray-100 rounded-xl h-3 overflow-hidden">
-                                            <div
-                                                className="h-full bg-primary rounded-xl transition-all duration-300"
-                                                style={{ width: `${totalDiarias > 0 ? (nights / totalDiarias) * 100 : 0}%` }}
-                                            />
-                                        </div>
-
-                                        <button
-                                            onClick={() => {
-                                                if (distributedTotal < totalDiarias) {
-                                                    setDistribution(prev => ({ ...prev, [hotel.partner_id]: nights + 1 }));
-                                                }
-                                            }}
-                                            disabled={distributedTotal >= totalDiarias}
-                                            className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                        >
-                                            <span className="material-symbols-outlined text-xl">add</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    <div className="flex gap-3">
-                        <button
-                            onClick={() => { setSelectedHotelIds([]); setDistribution({}); setStep('HOTELS'); }}
-                            className="h-14 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
-                        >
-                            <span className="material-symbols-outlined text-lg">arrow_back</span>
-                            Voltar
-                        </button>
-                        <button
-                            onClick={() => {
-                                setDates(prev => {
-                                    const next = { ...prev };
-                                    Object.entries(distribution).forEach(([partnerId, nightsRaw]) => {
-                                        const nights = nightsRaw as number;
-                                        if (nights > 0) {
-                                            const currentDates = next[partnerId] || [];
-                                            if (currentDates.length !== nights) {
-                                                next[partnerId] = Array.from({ length: nights }, (_, i) => currentDates[i] || '');
-                                            }
-                                        } else {
-                                            delete next[partnerId];
-                                        }
-                                    });
-                                    return next;
-                                });
-                                setStep('DATES');
-                            }}
-                            disabled={!canProceedFromDistribute}
-                            className="flex-1 h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            Escolher Datas
-                            <span className="material-symbols-outlined">arrow_forward</span>
-                        </button>
-                    </div>
                 </div>
             )}
 
@@ -747,7 +736,7 @@ const PackageBooking: React.FC = () => {
 
                     <div className="flex gap-3">
                         <button
-                            onClick={() => setStep('DISTRIBUTE')}
+                            onClick={() => setStep('HOTELS')}
                             className="h-14 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
                         >
                             <span className="material-symbols-outlined text-lg">arrow_back</span>

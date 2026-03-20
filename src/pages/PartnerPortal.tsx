@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import logoPetgoh from '../imagens/logo-petgoh.png';
 
 const PartnerPortal: React.FC = () => {
-    const { user, signIn } = useAuth();
+    const { user } = useAuth();
     const navigate = useNavigate();
     
     const [loginEmail, setLoginEmail] = useState('');
@@ -44,16 +45,28 @@ const PartnerPortal: React.FC = () => {
         e.preventDefault();
         setLoading(true);
         setError(null);
-        
+
         try {
-            const { role, error: authError } = await signIn(loginEmail, loginPassword);
-            
+            const { data: { user: authUser }, error: authError } = await supabase.auth.signInWithPassword({
+                email: loginEmail,
+                password: loginPassword,
+            });
+
             if (authError) throw new Error(authError.message);
-            
+            if (!authUser) throw new Error('Erro ao autenticar.');
+
+            const { data: userData } = await supabase
+                .from('users')
+                .select('role')
+                .eq('id', authUser.id)
+                .single();
+
+            const role = userData?.role;
             if (role !== 'partner' && role !== 'admin') {
+                await supabase.auth.signOut();
                 throw new Error('Acesso negado: Somente parceiros autorizados.');
             }
-            // Navigate defaults to home inside AuthContext, so we explicitly redirect here
+
             navigate('/partner/dashboard');
 
         } catch (err: any) {

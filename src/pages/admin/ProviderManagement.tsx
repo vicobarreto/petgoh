@@ -240,10 +240,7 @@ const ProviderManagement: React.FC<ProviderManagementProps> = ({ title, forcedCa
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
                                     <input type="text" className="w-full px-4 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-purple-100" value={form.phone || ''} onChange={e => setForm({ ...form, phone: e.target.value })} />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Comissão (%)</label>
-                                    <input type="number" min="0" max="100" className="w-full px-4 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-purple-100" value={form.custom_commission_rate || ''} onChange={e => setForm({ ...form, custom_commission_rate: parseFloat(e.target.value) })} />
-                                </div>
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                                     <select className="w-full px-4 py-2.5 border border-gray-200 rounded-xl outline-none bg-white focus:ring-2 focus:ring-purple-100" value={form.status || 'active'} onChange={e => setForm({ ...form, status: e.target.value as any })}>

@@ -36,6 +36,7 @@ const SocialProfile: React.FC = () => {
     const [friendStatus, setFriendStatus] = useState<FriendStatus>(isOwnProfile ? 'self' : 'none');
     const [loading, setLoading] = useState(true);
     const [friendshipId, setFriendshipId] = useState<string | null>(null);
+    const [postMenu, setPostMenu] = useState<{ postId: string; x: number; y: number } | null>(null);
 
     const fetchProfile = useCallback(async () => {
         if (!profileId) return;
@@ -179,6 +180,32 @@ const SocialProfile: React.FC = () => {
         }
     };
 
+    // UI-11: Archive and Delete post actions
+    const handleArchivePost = async (postId: string) => {
+        setPostMenu(null);
+        const { error } = await supabase
+            .from('wall_posts')
+            .update({ status: 'archived' })
+            .eq('id', postId)
+            .eq('tutor_id', user!.id);
+        if (error) { alert('Erro ao arquivar: ' + error.message); return; }
+        setPosts(prev => prev.filter(p => p.id !== postId));
+        setProfile(prev => prev ? { ...prev, posts_count: Math.max(0, prev.posts_count - 1) } : prev);
+    };
+
+    const handleDeletePost = async (postId: string) => {
+        setPostMenu(null);
+        if (!window.confirm('Tem certeza que deseja deletar esta publicação? Essa ação não pode ser desfeita.')) return;
+        const { error } = await supabase
+            .from('wall_posts')
+            .delete()
+            .eq('id', postId)
+            .eq('tutor_id', user!.id);
+        if (error) { alert('Erro ao deletar: ' + error.message); return; }
+        setPosts(prev => prev.filter(p => p.id !== postId));
+        setProfile(prev => prev ? { ...prev, posts_count: Math.max(0, prev.posts_count - 1) } : prev);
+    };
+
     const handleMessage = async () => {
         if (!user || !profileId) return;
         try {
@@ -299,36 +326,80 @@ const SocialProfile: React.FC = () => {
             </div>
 
             {/* Posts Grid */}
+            {/* Close context menu on outside click */}
+            {postMenu && (
+                <div className="fixed inset-0 z-40" onClick={() => setPostMenu(null)} />
+            )}
             <div className="grid grid-cols-3 gap-px">
                 {posts.map(post => (
                     <div
                         key={post.id}
-                        onClick={() => navigate(`/caomunicacao/post/${post.id}`)}
                         className="aspect-square bg-gray-100 cursor-pointer relative group"
                     >
-                        {post.images[0] ? (
-                            <img src={post.images[0]} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                                <span className="material-symbols-outlined text-gray-300 text-3xl">image</span>
-                            </div>
-                        )}
+                        <div onClick={() => navigate(`/caomunicacao/post/${post.id}`)} className="w-full h-full">
+                            {post.images[0] ? (
+                                <img src={post.images[0]} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-gray-300 text-3xl">image</span>
+                                </div>
+                            )}
 
-                        {/* Hover overlay */}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                            <div className="flex items-center gap-1 text-white font-bold text-sm">
-                                <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
-                                {post.likes_count}
+                            {/* Hover overlay — stats */}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                                <div className="flex items-center gap-1 text-white font-bold text-sm">
+                                    <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
+                                    {post.likes_count}
+                                </div>
+                                <div className="flex items-center gap-1 text-white font-bold text-sm">
+                                    <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>chat_bubble</span>
+                                    {post.comments_count}
+                                </div>
                             </div>
-                            <div className="flex items-center gap-1 text-white font-bold text-sm">
-                                <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>chat_bubble</span>
-                                {post.comments_count}
-                            </div>
+
+                            {/* Multi-image icon */}
+                            {post.images.length > 1 && (
+                                <span className="absolute top-2 right-2 material-symbols-outlined text-white text-base drop-shadow-lg">collections</span>
+                            )}
                         </div>
 
-                        {/* Multi-image icon */}
-                        {post.images.length > 1 && (
-                            <span className="absolute top-2 right-2 material-symbols-outlined text-white text-base drop-shadow-lg">collections</span>
+                        {/* UI-11: 3-dot menu button — own profile only */}
+                        {isOwnProfile && activeTab === 'posts' && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setPostMenu({ postId: post.id, x: rect.left, y: rect.bottom });
+                                }}
+                                className="absolute top-1.5 left-1.5 z-10 w-6 h-6 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                                <span className="material-symbols-outlined text-white text-[14px]">more_horiz</span>
+                            </button>
+                        )}
+
+                        {/* Context Menu */}
+                        {postMenu?.postId === post.id && (
+                            <div
+                                className="fixed z-50 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden w-48 animate-in fade-in zoom-in-95 duration-150"
+                                style={{ top: postMenu.y + 4, left: Math.max(8, postMenu.x - 100) }}
+                                onClick={e => e.stopPropagation()}
+                            >
+                                <button
+                                    onClick={() => handleArchivePost(post.id)}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-[18px] text-gray-500">archive</span>
+                                    Arquivar publicação
+                                </button>
+                                <div className="border-t border-gray-100" />
+                                <button
+                                    onClick={() => handleDeletePost(post.id)}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                                    Excluir publicação
+                                </button>
+                            </div>
                         )}
                     </div>
                 ))}

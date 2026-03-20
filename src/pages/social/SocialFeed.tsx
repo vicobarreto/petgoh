@@ -226,7 +226,13 @@ const SocialFeed: React.FC = () => {
             {/* Content Switcher */}
             {activeTab === 'mural' ? (
                 <div className="min-h-screen bg-slate-50 relative pb-[50px] md:pb-0">
-                    <CommunityWall />
+                    <CommunityWall
+                        onActionClick={(type) =>
+                            navigate(type === 'adoption' ? '/mural/postar-adocao' : '/mural/reportar-perdido', {
+                                state: { backTo: '/caomunicacao' },
+                            })
+                        }
+                    />
                 </div>
             ) : (
                 <>

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
@@ -33,8 +33,6 @@ const RegisterPartner: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [uploadingLogo, setUploadingLogo] = useState(false);
     const [uploadingHotelPhoto, setUploadingHotelPhoto] = useState(false);
-    const logoInputRef = useRef<HTMLInputElement>(null);
-    const hotelPhotoInputRef = useRef<HTMLInputElement>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -126,7 +124,7 @@ const RegisterPartner: React.FC = () => {
 
         } catch (err: any) {
             console.error('Error registering partner:', err);
-            setError(err.message || 'Erro ao registrar parceiro.');
+            setError(typeof err?.message === 'string' ? err.message : 'Erro ao registrar parceiro.');
         } finally {
             setLoading(false);
         }
@@ -154,26 +152,22 @@ const RegisterPartner: React.FC = () => {
                 )}
 
                 <div className="p-6 space-y-6">
-                    {/* Logo Upload — BUG-07 fixed: removed disabled */}
+                    {/* Logo Upload — BUG-07 fixed: use label wrapping input for reliable file picker trigger */}
                     <div className="space-y-3">
                         <label className="block text-sm font-medium text-gray-700">Logo da Empresa</label>
                         <div className="flex gap-3 flex-wrap">
-                            <button
-                                type="button"
-                                onClick={() => logoInputRef.current?.click()}
-                                disabled={uploadingLogo}
-                                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                            >
+                            <label className={`flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors cursor-pointer ${uploadingLogo ? 'opacity-50 pointer-events-none' : ''}`}>
                                 <span className="material-symbols-outlined text-lg">{uploadingLogo ? 'hourglass_empty' : 'cloud_upload'}</span>
                                 {uploadingLogo ? 'Enviando...' : 'Upload de Logo'}
-                            </button>
-                            <input
-                                ref={logoInputRef}
-                                accept="image/*"
-                                className="hidden"
-                                type="file"
-                                onChange={handleLogoChange}
-                            />
+                                <input
+                                    accept="image/*"
+                                    className="sr-only"
+                                    type="file"
+                                    disabled={uploadingLogo}
+                                    onChange={handleLogoChange}
+                                    onClick={(e) => { (e.target as HTMLInputElement).value = ''; }}
+                                />
+                            </label>
                             <div className="flex-1 relative">
                                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">link</span>
                                 <input
@@ -200,22 +194,18 @@ const RegisterPartner: React.FC = () => {
                             <span className="ml-2 text-xs text-gray-400 font-normal">(recomendado: 900x600px)</span>
                         </label>
                         <div className="flex gap-3 flex-wrap">
-                            <button
-                                type="button"
-                                onClick={() => hotelPhotoInputRef.current?.click()}
-                                disabled={uploadingHotelPhoto}
-                                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                            >
+                            <label className={`flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors cursor-pointer ${uploadingHotelPhoto ? 'opacity-50 pointer-events-none' : ''}`}>
                                 <span className="material-symbols-outlined text-lg">{uploadingHotelPhoto ? 'hourglass_empty' : 'add_photo_alternate'}</span>
                                 {uploadingHotelPhoto ? 'Enviando...' : 'Upload da Foto'}
-                            </button>
-                            <input
-                                ref={hotelPhotoInputRef}
-                                accept="image/*"
-                                className="hidden"
-                                type="file"
-                                onChange={handleHotelPhotoChange}
-                            />
+                                <input
+                                    accept="image/*"
+                                    className="sr-only"
+                                    type="file"
+                                    disabled={uploadingHotelPhoto}
+                                    onChange={handleHotelPhotoChange}
+                                    onClick={(e) => { (e.target as HTMLInputElement).value = ''; }}
+                                />
+                            </label>
                         </div>
                         <div className="h-40 w-full bg-gray-50 rounded-xl overflow-hidden border-2 border-dashed border-gray-200 flex items-center justify-center">
                             {formData.hotelPhotoUrl ? (

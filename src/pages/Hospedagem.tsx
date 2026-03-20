@@ -176,12 +176,6 @@ const Hospedagem: React.FC = () => {
         setStep('DATES');
     };
 
-    const isWeekend = (dateStr: string): boolean => {
-        const date = new Date(dateStr + 'T12:00:00');
-        const day = date.getDay();
-        return day === 0 || day === 6;
-    };
-
     const formatDate = (dateStr: string): string => {
         if (!dateStr) return '';
         const date = new Date(dateStr + 'T12:00:00');
@@ -223,6 +217,7 @@ const Hospedagem: React.FC = () => {
                 bookingStays: stays,
                 totalDiarias,
                 category: 'hospedagem',
+                pricePerNightPackage: 120,
             },
         });
     };
@@ -687,7 +682,6 @@ const Hospedagem: React.FC = () => {
                         <h3 className="text-xl font-bold text-gray-900 mb-1">Datas de Hospedagem</h3>
                         <p className="text-sm text-gray-500">
                             Escolha as datas para cada hospedagem.
-                            <span className="text-amber-600 font-semibold"> Somente dias úteis.</span>
                         </p>
                     </div>
 

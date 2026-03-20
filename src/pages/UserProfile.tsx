@@ -4,8 +4,66 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 
+// UI-09: Clickable sidebar avatar that allows instant photo upload
+const SidebarAvatar: React.FC = () => {
+    const { user } = useAuth();
+    const [avatarUrl, setAvatarUrl] = useState('');
+    const [uploading, setUploading] = useState(false);
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (!user) return;
+        supabase.from('users').select('avatar_url, full_name').eq('id', user.id).single()
+            .then(({ data }) => {
+                if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+            });
+    }, [user]);
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !user) return;
+        setUploading(true);
+        try {
+            const ext = file.name.split('.').pop();
+            const path = `avatars/${user.id}.${ext}`;
+            const { error } = await supabase.storage.from('pet-photos').upload(path, file, { upsert: true });
+            if (error) throw error;
+            const { data } = supabase.storage.from('pet-photos').getPublicUrl(path);
+            setAvatarUrl(data.publicUrl);
+            await supabase.from('users').update({ avatar_url: data.publicUrl }).eq('id', user.id);
+        } catch (err: any) {
+            alert('Erro ao fazer upload: ' + err.message);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    return (
+        <div className="relative bg-gradient-to-br from-primary/80 to-orange-600 px-6 pt-8 pb-6 text-center">
+            <div className="relative inline-block group cursor-pointer" onClick={() => inputRef.current?.click()}>
+                <img
+                    src={avatarUrl || IMAGES.AVATAR_WOMAN}
+                    alt="Avatar"
+                    className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg mx-auto"
+                />
+                <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    {uploading
+                        ? <span className="material-symbols-outlined text-white text-xl animate-spin">progress_activity</span>
+                        : <span className="material-symbols-outlined text-white text-xl">photo_camera</span>}
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow border border-gray-100">
+                    <span className="material-symbols-outlined text-primary text-[16px]">edit</span>
+                </div>
+            </div>
+            <p className="text-white font-bold mt-3 text-sm truncate">{user?.name || 'Meu Perfil'}</p>
+            <p className="text-white/70 text-xs truncate">{user?.email}</p>
+            <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+        </div>
+    );
+};
+
 const UserProfile: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'wishlist' | 'history' | 'compare' | 'pets' | 'personal' | 'favorites' | 'fidelidade'>('wishlist');
+    const [activeTab, setActiveTab] = useState<'history' | 'compare' | 'pets' | 'personal' | 'favorites' | 'fidelidade'>('personal');
     const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
@@ -15,7 +73,7 @@ const UserProfile: React.FC = () => {
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const tab = params.get('tab');
-        if (tab && ['wishlist', 'history', 'compare', 'pets', 'personal', 'favorites', 'fidelidade'].includes(tab)) {
+        if (tab && ['history', 'compare', 'pets', 'personal', 'favorites', 'fidelidade'].includes(tab)) {
             setActiveTab(tab as any);
         }
     }, [location]);
@@ -47,7 +105,7 @@ const UserProfile: React.FC = () => {
         }
 
         // Unauthenticated State for Protected Tabs
-        if (!user && ['wishlist', 'history', 'compare', 'pets', 'personal', 'favorites', 'fidelidade'].includes(activeTab)) {
+        if (!user && ['history', 'compare', 'pets', 'personal', 'favorites', 'fidelidade'].includes(activeTab)) {
             return (
                 <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-white rounded-2xl border border-gray-100 shadow-sm h-full">
                     <div className="bg-orange-50 p-6 rounded-full mb-6 animate-bounce-slow">
@@ -77,12 +135,10 @@ const UserProfile: React.FC = () => {
         }
 
         switch (activeTab) {
-            case 'wishlist':
-                return <WishlistView onOpenAlert={() => setIsAlertModalOpen(true)} onCompare={() => handleTabChange('compare')} />;
             case 'history':
                 return <HistoryView />;
             case 'compare':
-                return <CompareView onBack={() => handleTabChange('wishlist')} />;
+                return <CompareView onBack={() => handleTabChange('favorites')} />;
             case 'favorites':
                 return <FavoritesView />;
             case 'pets':
@@ -164,32 +220,35 @@ const UserProfile: React.FC = () => {
         <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
             {/* Sidebar */}
             <aside className="w-full lg:w-64 flex-shrink-0">
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 sticky top-28">
-                    <div className="space-y-1">
-                        <button onClick={() => handleTabChange('personal')} className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'personal' ? 'text-primary bg-primary/10' : 'text-gray-600 hover:bg-gray-50'}`}>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 sticky top-28 overflow-hidden">
+                    {/* UI-09: Sidebar Avatar Widget */}
+                    {user && <SidebarAvatar />}
+
+                    <div className="p-4 space-y-1">
+                        <button onClick={() => handleTabChange('personal')} className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-colors ${activeTab === 'personal' ? 'text-primary bg-primary/10' : 'text-gray-600 hover:bg-gray-50'}`}>
                             <span className="material-symbols-outlined text-[20px]">person</span>
                             Dados Pessoais
                         </button>
-                         <button onClick={() => handleTabChange('pets')} className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'pets' ? 'text-primary bg-primary/10' : 'text-gray-600 hover:bg-gray-50'}`}>
+                        <button onClick={() => handleTabChange('pets')} className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-colors ${activeTab === 'pets' ? 'text-primary bg-primary/10' : 'text-gray-600 hover:bg-gray-50'}`}>
                             <span className="material-symbols-outlined text-[20px]">pets</span>
                             Meus Pets
                         </button>
-                        <button onClick={() => handleTabChange('history')} className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'history' ? 'text-primary bg-primary/10' : 'text-gray-600 hover:bg-gray-50'}`}>
+                        <button onClick={() => handleTabChange('history')} className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-colors ${activeTab === 'history' ? 'text-primary bg-primary/10' : 'text-gray-600 hover:bg-gray-50'}`}>
                             <span className="material-symbols-outlined text-[20px]">history</span>
                             Histórico de Pedidos
                         </button>
-                        <button onClick={() => handleTabChange('fidelidade')} className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'fidelidade' ? 'text-primary bg-primary/10' : 'text-gray-600 hover:bg-gray-50'}`}>
+                        <button onClick={() => handleTabChange('fidelidade')} className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-colors ${activeTab === 'fidelidade' ? 'text-primary bg-primary/10' : 'text-gray-600 hover:bg-gray-50'}`}>
                             <span className="material-symbols-outlined text-[20px]">loyalty</span>
                             Fidelidade
                         </button>
-                        <button onClick={() => handleTabChange('favorites')} className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'favorites' ? 'text-primary bg-primary/10' : 'text-gray-600 hover:bg-gray-50'}`}>
+                        <button onClick={() => handleTabChange('favorites')} className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-colors ${activeTab === 'favorites' ? 'text-primary bg-primary/10' : 'text-gray-600 hover:bg-gray-50'}`}>
                             <span className="material-symbols-outlined text-[20px]">favorite</span>
                             Meus Favoritos
                         </button>
-                        <div className="pt-4 mt-4 border-t border-gray-100">
-                            <button 
+                        <div className="pt-3 mt-3 border-t border-gray-100">
+                            <button
                                 onClick={handleLogout}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-500 rounded-lg hover:bg-red-50 transition-colors"
+                                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-500 rounded-xl hover:bg-red-50 transition-colors"
                             >
                                 <span className="material-symbols-outlined text-[20px]">logout</span>
                                 Sair
@@ -262,12 +321,48 @@ const UserProfile: React.FC = () => {
 };
 
 // ... (WishlistView, HistoryView, CompareView, FavoritesView components remain the same)
-// UI-09: Profile photo + personal data editor
 const PersonalDataView: React.FC = () => {
     const { user } = useAuth();
     const [avatarUrl, setAvatarUrl] = useState(user?.avatar || '');
     const [uploading, setUploading] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [saved, setSaved] = useState(false);
     const inputRef = React.useRef<HTMLInputElement>(null);
+
+    const [form, setForm] = useState({
+        full_name: '',
+        phone: '',
+        cpf: '',
+        zip_code: '',
+        address: '',
+        city: '',
+        state: '',
+        bio: '',
+    });
+
+    useEffect(() => {
+        if (!user) return;
+        supabase.from('users').select('full_name, phone, cpf, zip_code, address, city, state, bio, avatar_url').eq('id', user.id).single()
+            .then(({ data }) => {
+                if (data) {
+                    setForm({
+                        full_name: data.full_name || '',
+                        phone: data.phone || '',
+                        cpf: data.cpf || '',
+                        zip_code: data.zip_code || '',
+                        address: data.address || '',
+                        city: data.city || '',
+                        state: data.state || '',
+                        bio: data.bio || '',
+                    });
+                    if (data.avatar_url) setAvatarUrl(data.avatar_url);
+                }
+            });
+    }, [user]);
+
+    const handleChange = (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setForm(prev => ({ ...prev, [field]: e.target.value }));
+    };
 
     const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -288,11 +383,49 @@ const PersonalDataView: React.FC = () => {
         }
     };
 
+    const handleSave = async () => {
+        if (!user) return;
+        setSaving(true);
+        try {
+            const { error } = await supabase.from('users').update({
+                full_name: form.full_name,
+                phone: form.phone || null,
+                cpf: form.cpf || null,
+                zip_code: form.zip_code || null,
+                address: form.address || null,
+                city: form.city || null,
+                state: form.state || null,
+                bio: form.bio || null,
+            }).eq('id', user.id);
+            if (error) throw error;
+            setSaved(true);
+            setTimeout(() => setSaved(false), 3000);
+        } catch (err: any) {
+            alert('Erro ao salvar: ' + err.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const Field = ({ label, field, type = 'text', half = false }: { label: string; field: keyof typeof form; type?: string; half?: boolean }) => (
+        <div className={half ? '' : ''}>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+            <input
+                type={type}
+                value={form[field]}
+                onChange={handleChange(field)}
+                className="w-full p-2.5 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-primary/20 outline-none text-sm transition-shadow"
+            />
+        </div>
+    );
+
     return (
-        <div className="bg-white p-8 rounded-2xl border border-gray-100">
+        <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
             <h2 className="text-2xl font-bold mb-6">Dados Pessoais</h2>
-            <div className="flex items-center gap-6 mb-8">
-                <div className="relative group">
+
+            {/* Avatar */}
+            <div className="flex items-center gap-6 mb-8 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                <div className="relative group flex-shrink-0">
                     <img
                         src={avatarUrl || IMAGES.AVATAR_WOMAN}
                         alt="Profile"
@@ -309,31 +442,80 @@ const PersonalDataView: React.FC = () => {
                     <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
                 </div>
                 <div>
-                    <h3 className="font-bold text-lg text-gray-900">{user?.name || 'Visitante'}</h3>
+                    <h3 className="font-bold text-lg text-gray-900">{user?.name || form.full_name || 'Visitante'}</h3>
                     <p className="text-gray-500 text-sm">{user?.email}</p>
                     <button
                         type="button"
                         onClick={() => inputRef.current?.click()}
-                        className="text-primary text-xs font-semibold hover:underline mt-1"
+                        className="text-primary text-xs font-semibold hover:underline mt-1 flex items-center gap-1"
                     >
+                        <span className="material-symbols-outlined text-[14px]">photo_camera</span>
                         Alterar foto de perfil
                     </button>
                 </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-                    <input type="text" className="w-full p-2.5 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-primary/20 outline-none" defaultValue={user?.name} />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input type="text" className="w-full p-2.5 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-primary/20 outline-none" defaultValue={user?.email} readOnly />
+
+            {/* Informações Principais */}
+            <div className="mb-6">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px]">person</span>
+                    Identificação
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Nome Completo" field="full_name" />
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="text" value={user?.email || ''} readOnly className="w-full p-2.5 border border-gray-100 rounded-xl bg-gray-50 text-gray-400 text-sm cursor-not-allowed" />
+                    </div>
+                    <Field label="Telefone / WhatsApp" field="phone" type="tel" />
+                    <Field label="CPF" field="cpf" />
                 </div>
             </div>
-            <div className="mt-6">
-                <button className="px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-orange-600 transition-colors">
-                    Salvar Alterações
+
+            {/* Endereço */}
+            <div className="mb-6">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px]">location_on</span>
+                    Endereço
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="CEP" field="zip_code" />
+                    <Field label="Endereço (Rua, Nº, Complemento)" field="address" />
+                    <Field label="Cidade" field="city" />
+                    <Field label="Estado (UF)" field="state" />
+                </div>
+            </div>
+
+            {/* Bio */}
+            <div className="mb-8">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px]">notes</span>
+                    Sobre mim
+                </h3>
+                <textarea
+                    value={form.bio}
+                    onChange={handleChange('bio')}
+                    placeholder="Conte um pouco sobre você e seus pets..."
+                    rows={3}
+                    className="w-full p-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-primary/20 outline-none text-sm resize-none"
+                />
+            </div>
+
+            <div className="flex items-center gap-4">
+                <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-orange-600 transition-colors disabled:opacity-50"
+                >
+                    {saving ? <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span> : <span className="material-symbols-outlined text-[16px]">save</span>}
+                    {saving ? 'Salvando...' : 'Salvar Alterações'}
                 </button>
+                {saved && (
+                    <span className="flex items-center gap-1 text-sm text-green-600 font-medium animate-in fade-in">
+                        <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                        Dados salvos com sucesso!
+                    </span>
+                )}
             </div>
         </div>
     );

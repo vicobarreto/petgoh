@@ -11,6 +11,7 @@ interface HotelPartner {
     id: string;
     company_name: string;
     rating: number | null;
+    category?: string;
 }
 
 interface Package {
@@ -62,8 +63,7 @@ const PackageManagement: React.FC = () => {
     const fetchHotelPartners = async () => {
         const { data } = await supabase
             .from('partners')
-            .select('id, company_name, rating')
-            .eq('category', 'Hotel')
+            .select('id, company_name, rating, category')
             .eq('status', 'active');
         if (data) {
             setHotelPartners(data);
@@ -409,12 +409,12 @@ const PackageManagement: React.FC = () => {
                             <div className="border-t border-gray-100 pt-6">
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-primary text-[20px]">hotel</span>
-                                        Parceiros Vinculados
+                                        <span className="material-symbols-outlined text-primary text-[20px]">storefront</span>
+                                        Estabelecimentos Parceiros
                                     </h3>
                                 </div>
                                 {hotelPartners.length === 0 ? (
-                                    <p className="text-sm text-gray-400 bg-gray-50 p-4 rounded-xl text-center">Nenhum parceiro do tipo Hotel cadastrado.</p>
+                                    <p className="text-sm text-gray-400 bg-gray-50 p-4 rounded-xl text-center">Nenhum parceiro cadastrado.</p>
                                 ) : (
                                     <div className="space-y-2">
                                         {hotelPartners.map(hotel => {
@@ -428,9 +428,12 @@ const PackageManagement: React.FC = () => {
                                                         type="checkbox"
                                                         checked={state.selected}
                                                         onChange={e => setSelectedHotels(prev => ({ ...prev, [hotel.id]: { ...prev[hotel.id], selected: e.target.checked } }))}
-                                                        className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                                                        className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer mt-0.5"
                                                     />
-                                                    <span className="flex-1 text-sm font-medium text-gray-800">{hotel.company_name}</span>
+                                                    <div className="flex-1">
+                                                        <span className="block text-sm font-medium text-gray-800">{hotel.company_name}</span>
+                                                        <span className="block text-xs text-gray-500">{hotel.category || 'Parceiro'}</span>
+                                                    </div>
                                                 </div>
                                             );
                                         })}

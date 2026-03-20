@@ -1,10 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
 const ReportLostPet: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const backTo: string = (location.state as any)?.backTo || '/mural';
     const { user } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [loading, setLoading] = useState(false);
@@ -112,7 +114,7 @@ const ReportLostPet: React.FC = () => {
             if (error) throw error;
 
             setSuccess(true);
-            setTimeout(() => navigate('/mural'), 2500);
+            setTimeout(() => navigate(backTo), 2500);
         } catch (error) {
             console.error('Error creating alert:', error);
             alert('Erro ao criar alerta. Tente novamente.');
@@ -141,7 +143,7 @@ const ReportLostPet: React.FC = () => {
             {/* Header */}
             <div className="bg-white border-b border-gray-100 sticky top-0 z-30">
                 <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-                    <button onClick={() => navigate('/mural')} className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 transition-colors">
+                    <button onClick={() => navigate(backTo)} className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 transition-colors">
                         <span className="material-symbols-outlined text-xl">arrow_back</span>
                         <span className="text-sm font-medium hidden sm:inline">Voltar</span>
                     </button>
@@ -316,7 +318,7 @@ const ReportLostPet: React.FC = () => {
 
                     {/* Actions */}
                     <div className="flex items-center gap-3 pt-2 pb-8">
-                        <button type="button" onClick={() => navigate('/mural')}
+                        <button type="button" onClick={() => navigate(backTo)}
                             className="flex-1 py-3.5 rounded-xl border border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors"
                         >
                             Cancelar

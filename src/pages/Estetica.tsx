@@ -94,6 +94,7 @@ const Estetica: React.FC = () => {
     const [totalSessions, setTotalSessions] = useState(1);
     // UI-04: Filter for Estética services
     const [serviceSearch, setServiceSearch] = useState('');
+    const [partnerSearch, setPartnerSearch] = useState('');
     const distributedTotal = useMemo(() => (Object.values(distribution) as number[]).reduce((sum, n) => sum + n, 0), [distribution]);
     const canProceedFromDistribute = distributedTotal === totalSessions;
 
@@ -184,7 +185,13 @@ const Estetica: React.FC = () => {
             });
 
         navigate('/checkout/estetica', {
-            state: { bookingStays: stays, totalDiarias: totalSessions, category: 'estetica', service: selectedService },
+            state: {
+                bookingStays: stays,
+                totalDiarias: totalSessions,
+                category: 'estetica',
+                serviceName: selectedService?.name || 'Banho & Tosa',
+                servicePrice: selectedService?.price || 0,
+            },
         });
     };
 
@@ -294,8 +301,22 @@ const Estetica: React.FC = () => {
                                     <p className="text-gray-500 font-medium">Nenhum salão disponível no momento.</p>
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {partners.map((partner) => {
+                                <div>
+                                    <div className="relative mb-6">
+                                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">search</span>
+                                        <input
+                                            type="text"
+                                            placeholder="Filtrar por nome do salão ou cidade..."
+                                            value={partnerSearch}
+                                            onChange={e => setPartnerSearch(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {partners.filter(partner => 
+                                            partner.company_name.toLowerCase().includes(partnerSearch.toLowerCase()) || 
+                                            (partner.city && partner.city.toLowerCase().includes(partnerSearch.toLowerCase()))
+                                        ).map((partner) => {
                                         const isSelected = selectedPartners.includes(partner.id);
                                         return (
                                             <div key={partner.id} onClick={() => togglePartnerSelection(partner.id)}
@@ -327,6 +348,7 @@ const Estetica: React.FC = () => {
                                         );
                                     })}
                                 </div>
+                            </div>
                             )}
                         </div>
                     )}

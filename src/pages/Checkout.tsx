@@ -59,9 +59,14 @@ const Checkout: React.FC = () => {
     const bookingTotalDiarias = (location.state as any)?.totalDiarias || 0;
     const bookingPricePerNight = (location.state as any)?.pricePerNightPackage || 0;
     const bookingCategory = (location.state as any)?.category || '';
+    const bookingServiceName = (location.state as any)?.serviceName || '';
+    const bookingServicePrice = (location.state as any)?.servicePrice || 0;
 
     // Detect if this is a direct service booking (not a package checkout)
     const isServiceBooking = !!(id && !isValidUUID(id));
+
+    // Determine the fallback URL if service booking state is missing
+    const serviceBookingFallback = bookingCategory === 'saude' ? '/saude' : bookingCategory === 'estetica' ? '/estetica' : '/hospedagem';
 
     const [pkg, setPkg] = useState<Package | null>(null);
     const [loading, setLoading] = useState(true);
@@ -99,7 +104,7 @@ const Checkout: React.FC = () => {
         if (isServiceBooking) {
             // Direct service booking — no package to fetch
             if (!bookingStays || bookingStays.length === 0) {
-                navigate('/hospedagem');
+                navigate(serviceBookingFallback);
                 return;
             }
             setLoading(false);
@@ -127,9 +132,13 @@ const Checkout: React.FC = () => {
     // Synthetic package for service bookings
     const servicePackage = isServiceBooking ? {
         id: id || '',
-        name: CATEGORY_LABELS[bookingCategory] || 'Reserva de Serviço',
-        description: `${bookingTotalDiarias} diária${bookingTotalDiarias !== 1 ? 's' : ''} reservada${bookingTotalDiarias !== 1 ? 's' : ''}`,
-        price: bookingTotalDiarias * (bookingPricePerNight || 120),
+        name: bookingServiceName || CATEGORY_LABELS[bookingCategory] || 'Reserva de Serviço',
+        description: bookingServicePrice > 0
+            ? `${bookingTotalDiarias} sessão(ões) • R$ ${bookingServicePrice.toFixed(2).replace('.', ',')} cada`
+            : `${bookingTotalDiarias} diária${bookingTotalDiarias !== 1 ? 's' : ''} reservada${bookingTotalDiarias !== 1 ? 's' : ''}`,
+        price: bookingServicePrice > 0
+            ? bookingTotalDiarias * bookingServicePrice
+            : bookingTotalDiarias * (bookingPricePerNight || 120),
         type: 'basico',
         validity_days: 30,
         is_active: true,
@@ -250,6 +259,10 @@ const Checkout: React.FC = () => {
 
     if (!displayPkg) return null;
 
+    const basePrice = displayPkg.price;
+    const discountAmount = earlyDiscount > 0 ? basePrice * (earlyDiscount / 100) : 0;
+    const priceValue = basePrice - discountAmount;
+
     // Success screen
     if (step === 3) {
         return (
@@ -272,7 +285,7 @@ const Checkout: React.FC = () => {
                         </div>
                         <div className="flex justify-between text-sm mb-2">
                             <span className="text-gray-500">Valor</span>
-                            <span className="font-semibold text-gray-900">R$ {displayPkg.price.toFixed(2).replace('.', ',')}</span>
+                            <span className="font-semibold text-gray-900">R$ {priceValue.toFixed(2).replace('.', ',')}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-gray-500">{isServiceBooking ? 'Reservas' : 'Validade'}</span>
@@ -309,9 +322,6 @@ const Checkout: React.FC = () => {
         );
     }
 
-    const basePrice = displayPkg.price;
-    const discountAmount = earlyDiscount > 0 ? basePrice * (earlyDiscount / 100) : 0;
-    const priceValue = basePrice - discountAmount;
 
     return (
         <div className="flex-grow w-full max-w-6xl mx-auto px-4 sm:px-6 py-8 lg:py-12">
@@ -420,20 +430,33 @@ const Checkout: React.FC = () => {
                                                         {stay.nights} diária{stay.nights > 1 ? 's' : ''}
                                                     </span>
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-3">
+                                                {sortedDates.length > 1 ? (
                                                     <div>
-                                                        <span className="text-xs text-gray-400">Check-in</span>
-                                                        <p className="text-sm font-semibold text-gray-800">
-                                                            {checkInDate ? new Date(checkInDate + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
-                                                        </p>
+                                                        <span className="text-xs text-gray-400 block mb-2">Datas Selecionadas</span>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {sortedDates.map((d, i) => (
+                                                                <span key={i} className="text-xs bg-white border border-gray-200 px-2 py-1 rounded-md text-gray-700 font-medium whitespace-nowrap">
+                                                                    {new Date(d + 'T12:00:00').toLocaleDateString('pt-BR').slice(0, 5)}
+                                                                </span>
+                                                            ))}
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <span className="text-xs text-gray-400">Check-out</span>
-                                                        <p className="text-sm font-semibold text-gray-800">
-                                                            {checkOutDate ? new Date(checkOutDate + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
-                                                        </p>
+                                                ) : (
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <span className="text-xs text-gray-400">Check-in</span>
+                                                            <p className="text-sm font-semibold text-gray-800">
+                                                                {checkInDate ? new Date(checkInDate + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-xs text-gray-400">Check-out</span>
+                                                            <p className="text-sm font-semibold text-gray-800">
+                                                                {checkOutDate ? new Date(checkOutDate + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                </div>
+                                                )}
                                             </div>
                                             );
                                         })}

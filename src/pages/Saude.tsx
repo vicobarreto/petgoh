@@ -104,6 +104,7 @@ const Saude: React.FC = () => {
     // UI-04: Filter for Saúde services
     const [serviceSearch, setServiceSearch] = useState('');
     const [categoryTab, setCategoryTab] = useState('Todos');
+    const [vetSearch, setVetSearch] = useState('');
 
     const distributedTotal = useMemo(() => (Object.values(distribution) as number[]).reduce((sum, n) => sum + n, 0), [distribution]);
     const canProceedFromDistribute = distributedTotal === totalSessions;
@@ -195,7 +196,13 @@ const Saude: React.FC = () => {
             });
 
         navigate('/checkout/saude', {
-            state: { bookingStays: stays, totalDiarias: totalSessions, category: 'saude', service: selectedService },
+            state: {
+                bookingStays: stays,
+                totalDiarias: totalSessions,
+                category: 'saude',
+                serviceName: selectedService?.name || 'Consulta Veterinária',
+                servicePrice: selectedService?.price || 0,
+            },
         });
     };
 
@@ -372,8 +379,22 @@ const Saude: React.FC = () => {
                                     <p className="text-gray-500 font-medium">Nenhum veterinário disponível.</p>
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {vets.map((vet) => {
+                                <div>
+                                    <div className="relative mb-6">
+                                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">search</span>
+                                        <input
+                                            type="text"
+                                            placeholder="Filtrar por nome do veterinário ou cidade..."
+                                            value={vetSearch}
+                                            onChange={e => setVetSearch(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {vets.filter(vet => 
+                                            vet.company_name.toLowerCase().includes(vetSearch.toLowerCase()) || 
+                                            (vet.city && vet.city.toLowerCase().includes(vetSearch.toLowerCase()))
+                                        ).map((vet) => {
                                         const isSelected = selectedVets.includes(vet.id);
                                         return (
                                             <div key={vet.id} onClick={() => toggleVetSelection(vet.id)}
@@ -405,6 +426,7 @@ const Saude: React.FC = () => {
                                         );
                                     })}
                                 </div>
+                            </div>
                             )}
                         </div>
                     )}

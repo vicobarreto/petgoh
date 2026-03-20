@@ -270,7 +270,7 @@ const CommentSection: React.FC<{ postId: string; sourceType: string }> = ({ post
 };
 
 // ==================== MAIN COMPONENT ====================
-const CommunityWall: React.FC = () => {
+const CommunityWall: React.FC<{ onActionClick?: (type: 'adoption' | 'lost') => void }> = ({ onActionClick }) => {
     const [activeTab, setActiveTab] = useState<'adoption' | 'lost'>('adoption');
     const navigate = useNavigate();
 
@@ -279,7 +279,9 @@ const CommunityWall: React.FC = () => {
     }, []);
 
     const handleActionClick = () => {
-        if (activeTab === 'adoption') {
+        if (onActionClick) {
+            onActionClick(activeTab);
+        } else if (activeTab === 'adoption') {
             navigate('/mural/postar-adocao');
         } else {
             navigate('/mural/reportar-perdido');

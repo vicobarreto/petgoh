@@ -84,6 +84,9 @@ const GiveawayManagement: React.FC = () => {
     const [drawingId, setDrawingId] = useState<string | null>(null);
     const [drawResult, setDrawResult] = useState<{ giveaway: Giveaway; winner: User } | null>(null);
 
+    const [isDrawingAnimated, setIsDrawingAnimated] = useState(false);
+    const [currentDrawName, setCurrentDrawName] = useState<string>('');
+
     // LOG-08: Didactic draw — shows an animated countdown before revealing the winner
     const handleDraw = async (giveaway: Giveaway) => {
         if (!confirm(`Realizar sorteio para "${giveaway.title}"? Esta ação não pode ser desfeita.`)) return;
@@ -101,7 +104,17 @@ const GiveawayManagement: React.FC = () => {
             }
 
             // Simulate didactic countdown (animated reveal)
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            setIsDrawingAnimated(true);
+            const duration = 3500;
+            const interval = 80;
+            let shuffleInterval = setInterval(() => {
+                const randomParticipant = participants[Math.floor(Math.random() * participants.length)];
+                setCurrentDrawName(randomParticipant.full_name);
+            }, interval);
+
+            await new Promise(resolve => setTimeout(resolve, duration));
+            clearInterval(shuffleInterval);
+            setIsDrawingAnimated(false);
 
             // Random winner selection
             const winner = participants[Math.floor(Math.random() * participants.length)];
@@ -119,6 +132,7 @@ const GiveawayManagement: React.FC = () => {
         } catch (err: any) {
             console.error('Draw error:', err);
             alert('Erro ao realizar sorteio: ' + err.message);
+            setIsDrawingAnimated(false);
         } finally {
             setDrawingId(null);
         }
@@ -349,6 +363,25 @@ const GiveawayManagement: React.FC = () => {
                         >
                             Fechar
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* LOG-08: Didactic drawing animation modal */}
+            {isDrawingAnimated && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md text-center p-10 animate-in zoom-in duration-300">
+                        <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-6">
+                            <span className="material-symbols-outlined text-5xl text-primary animate-spin">autorenew</span>
+                        </div>
+                        <h2 className="text-2xl font-black text-gray-900 mb-2">Sorteando Vencedor...</h2>
+                        <p className="text-gray-500 mb-8 text-sm">Cruzando os dedos!</p>
+                        
+                        <div className="bg-gray-100 border-2 border-gray-200 rounded-2xl p-6 overflow-hidden relative">
+                            <p className="text-3xl font-black text-primary truncate transition-all duration-75">
+                                {currentDrawName || "..."}
+                            </p>
+                        </div>
                     </div>
                 </div>
             )}
