@@ -20,9 +20,10 @@ interface PostCardProps {
     onLikeToggle?: (postId: string, liked: boolean) => void;
     onSaveToggle?: (postId: string, saved: boolean) => void;
     onComment?: (postId: string) => void;
+    onDelete?: (postId: string) => void;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post, onLikeToggle, onSaveToggle, onComment }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, onLikeToggle, onSaveToggle, onComment, onDelete }) => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const [liked, setLiked] = useState(post.user_has_liked);
@@ -31,6 +32,23 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLikeToggle, onSaveToggle, o
     const [showCommentInput, setShowCommentInput] = useState(false);
     const [commentText, setCommentText] = useState('');
     const [currentImg, setCurrentImg] = useState(0);
+    const [showMenu, setShowMenu] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+
+    const isOwner = user?.id === post.tutor_id;
+
+    const handleDelete = async () => {
+        if (!confirm('Excluir esta publicação? Esta ação não pode ser desfeita.')) return;
+        setDeleting(true);
+        try {
+            await supabase.from('social_posts').delete().eq('id', post.id);
+            onDelete?.(post.id);
+        } catch (err) {
+            console.error('Error deleting post:', err);
+            setDeleting(false);
+        }
+        setShowMenu(false);
+    };
 
     const timeAgo = (date: string) => {
         const diff = Date.now() - new Date(date).getTime();
@@ -126,9 +144,38 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLikeToggle, onSaveToggle, o
                         <span className="text-[13px] font-semibold text-gray-900">{post.author_name}</span>
                     </div>
                 </div>
-                <button className="text-gray-500 p-0.5">
-                    <span className="material-symbols-outlined text-lg">more_horiz</span>
-                </button>
+                <div className="relative">
+                    <button className="text-gray-500 p-0.5" onClick={() => setShowMenu(v => !v)}>
+                        <span className="material-symbols-outlined text-lg">more_horiz</span>
+                    </button>
+                    {showMenu && (
+                        <>
+                            <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+                            <div className="absolute right-0 top-6 z-50 bg-white border border-gray-100 rounded-xl shadow-lg py-1 min-w-[140px] animate-fade-in-up">
+                                {isOwner ? (
+                                    <>
+                                        <button
+                                            onClick={handleDelete}
+                                            disabled={deleting}
+                                            className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-red-600 hover:bg-red-50 transition-colors"
+                                        >
+                                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                                            {deleting ? 'Excluindo...' : 'Excluir'}
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        onClick={() => setShowMenu(false)}
+                                        className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-gray-600 hover:bg-gray-50 transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]">flag</span>
+                                        Denunciar
+                                    </button>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
 
             {/* Image — full width, square aspect ratio like Instagram */}

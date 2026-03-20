@@ -274,6 +274,10 @@ const CommunityWall: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'adoption' | 'lost'>('adoption');
     const navigate = useNavigate();
 
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
+
     const handleActionClick = () => {
         if (activeTab === 'adoption') {
             navigate('/mural/postar-adocao');
@@ -285,7 +289,7 @@ const CommunityWall: React.FC = () => {
     return (
         <div className="bg-slate-50 min-h-screen pb-[50px] md:pb-0">
             {/* Thin Instagram-like Tabs for Mural */}
-            <div className="bg-white border-b border-gray-100 flex sticky top-0 z-30">
+            <div className="bg-white border-b border-gray-100 flex sticky top-[68px] z-30">
                 {(['adoption', 'lost'] as const).map(tab => (
                     <button
                         key={tab}
@@ -328,8 +332,10 @@ const CommunityWall: React.FC = () => {
 // ==================== ADOPTION VIEW ====================
 const AdoptionView: React.FC = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [pets, setPets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchAdoptionPets();
@@ -388,9 +394,37 @@ const AdoptionView: React.FC = () => {
                                 </p>
                             </div>
                         </div>
-                        <button className="text-slate-400 hover:text-slate-600">
-                            <span className="material-symbols-outlined">more_horiz</span>
-                        </button>
+                                        <div className="relative">
+                            <button className="text-slate-400 hover:text-slate-600" onClick={() => setMenuOpenId(menuOpenId === pet.id ? null : pet.id)}>
+                                <span className="material-symbols-outlined">more_horiz</span>
+                            </button>
+                            {menuOpenId === pet.id && (
+                                <>
+                                    <div className="fixed inset-0 z-40" onClick={() => setMenuOpenId(null)} />
+                                    <div className="absolute right-0 top-6 z-50 bg-white border border-slate-100 rounded-xl shadow-lg py-1 min-w-[140px] animate-fade-in-up">
+                                        {user?.id === pet.owner_id ? (
+                                            <button
+                                                onClick={async () => {
+                                                    if (!confirm('Excluir este post de adoção?')) return;
+                                                    await supabase.from('adoption_pets').delete().eq('id', pet.id);
+                                                    setPets(prev => prev.filter(p => p.id !== pet.id));
+                                                    setMenuOpenId(null);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-red-600 hover:bg-red-50"
+                                            >
+                                                <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                Excluir
+                                            </button>
+                                        ) : (
+                                            <button onClick={() => setMenuOpenId(null)} className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-slate-600 hover:bg-slate-50">
+                                                <span className="material-symbols-outlined text-[18px]">flag</span>
+                                                Denunciar
+                                            </button>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
 
                     {/* Image Section */}
@@ -440,8 +474,10 @@ const AdoptionView: React.FC = () => {
 // ==================== LOST PETS VIEW ====================
 const LostPetsView: React.FC = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [lostPets, setLostPets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchLostPets();
@@ -500,9 +536,37 @@ const LostPetsView: React.FC = () => {
                                 </p>
                             </div>
                         </div>
-                        <button className="text-slate-400 hover:text-slate-600">
-                            <span className="material-symbols-outlined">more_horiz</span>
-                        </button>
+                        <div className="relative">
+                            <button className="text-slate-400 hover:text-slate-600" onClick={() => setMenuOpenId(menuOpenId === pet.id ? null : pet.id)}>
+                                <span className="material-symbols-outlined">more_horiz</span>
+                            </button>
+                            {menuOpenId === pet.id && (
+                                <>
+                                    <div className="fixed inset-0 z-40" onClick={() => setMenuOpenId(null)} />
+                                    <div className="absolute right-0 top-6 z-50 bg-white border border-slate-100 rounded-xl shadow-lg py-1 min-w-[140px] animate-fade-in-up">
+                                        {user?.id === pet.user_id ? (
+                                            <button
+                                                onClick={async () => {
+                                                    if (!confirm('Excluir este alerta de pet perdido?')) return;
+                                                    await supabase.from('lost_pets').delete().eq('id', pet.id);
+                                                    setLostPets(prev => prev.filter(p => p.id !== pet.id));
+                                                    setMenuOpenId(null);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-red-600 hover:bg-red-50"
+                                            >
+                                                <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                Excluir
+                                            </button>
+                                        ) : (
+                                            <button onClick={() => setMenuOpenId(null)} className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-slate-600 hover:bg-slate-50">
+                                                <span className="material-symbols-outlined text-[18px]">flag</span>
+                                                Denunciar
+                                            </button>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
 
                     {/* Image Section */}

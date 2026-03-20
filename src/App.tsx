@@ -90,6 +90,7 @@ import SocialPostDetail from './pages/social/SocialPostDetail';
 
 import Header from './components/Header';
 import Footer from './components/Footer';
+import MobileFooter from './components/MobileFooter';
 import GlobalSearch from './components/GlobalSearch';
 
 // A wrapper to handle header/footer visibility
@@ -125,6 +126,9 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </main>
       
       {showFooter && <Footer />}
+      {showFooter && <MobileFooter />}
+      {/* Spacer for mobile footer */}
+      {showFooter && <div className="h-16 md:hidden" />}
     </div>
   );
 };

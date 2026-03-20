@@ -35,6 +35,22 @@ const TutorManagement: React.FC = () => {
         }
     };
 
+    // LOG-06: Delete user
+    const handleDeleteUser = async (userId: string, userName: string) => {
+        if (!confirm(`Tem certeza que deseja excluir permanentemente o usuário "${userName}"? Esta ação não pode ser desfeita.`)) return;
+        try {
+            setUpdating(userId);
+            const { error } = await supabase.from('users').delete().eq('id', userId);
+            if (error) throw error;
+            setUsers(users.filter(u => u.id !== userId));
+        } catch (error: any) {
+            console.error('Error deleting user:', error);
+            alert('Erro ao excluir usuário: ' + error.message);
+        } finally {
+            setUpdating(null);
+        }
+    };
+
     const handleRoleChange = async (userId: string, newRole: string) => {
         try {
             setUpdating(userId);
@@ -97,16 +113,26 @@ const TutorManagement: React.FC = () => {
                                         {getRoleBadge(user.role)}
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <select 
-                                            value={user.role} 
-                                            onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                                            disabled={updating === user.id}
-                                            className="px-3 py-1 bg-white border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                        >
-                                            <option value="tutor">Tutor</option>
-                                            <option value="partner">Parceiro</option>
-                                            <option value="admin">Admin</option>
-                                        </select>
+                                        <div className="flex items-center gap-2">
+                                            <select
+                                                value={user.role}
+                                                onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                                                disabled={updating === user.id}
+                                                className="px-3 py-1 bg-white border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                            >
+                                                <option value="tutor">Tutor</option>
+                                                <option value="partner">Parceiro</option>
+                                                <option value="admin">Admin</option>
+                                            </select>
+                                            <button
+                                                onClick={() => handleDeleteUser(user.id, user.full_name || user.email)}
+                                                disabled={updating === user.id}
+                                                className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                                                title="Excluir usuário"
+                                            >
+                                                <span className="material-symbols-outlined text-lg">person_remove</span>
+                                            </button>
+                                        </div>
                                         {updating === user.id && <span className="ml-2 text-xs text-gray-500">...</span>}
                                     </td>
                                 </tr>

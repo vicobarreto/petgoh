@@ -257,7 +257,12 @@ const SocialFeed: React.FC = () => {
                 </div>
             ) : (
                 posts.map(post => (
-                    <PostCard key={post.id} post={post} onComment={() => fetchPosts()} />
+                    <PostCard
+                        key={post.id}
+                        post={post}
+                        onComment={() => fetchPosts()}
+                        onDelete={(id) => setPosts(prev => prev?.filter(p => p.id !== id))}
+                    />
                 ))
             )}
             </>

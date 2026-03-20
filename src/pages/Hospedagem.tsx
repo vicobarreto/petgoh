@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { IMAGES } from '../types';
 import { useFavorites } from '../context/FavoritesContext';
@@ -61,11 +61,34 @@ const Hospedagem: React.FC = () => {
     const [partners, setPartners] = useState<Partner[]>([]);
     const [loading, setLoading] = useState(true);
     const [step, setStep] = useState<BookingStep>('ITEMS');
-    const [categoryFilter, setCategoryFilter] = useState<'Todos' | 'Hotel' | 'Creche' | 'Pet Friendly'>('Todos');
+    const [categoryFilter, setCategoryFilter] = useState<'Todos' | 'Hotel' | 'Creche'>('Todos');
     
     // Map states
     const [hoveredAccommodationId, setHoveredAccommodationId] = useState<string | null>(null);
     const [viewingDetails, setViewingDetails] = useState<any | null>(null); // Details modal state
+
+    // UI-12: Resizable split screen state
+    const [listWidth, setListWidth] = useState(45); // percentage
+    const splitContainerRef = useRef<HTMLDivElement>(null);
+    const isDragging = useRef(false);
+
+    const handleDividerMouseDown = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        isDragging.current = true;
+        const onMouseMove = (e: MouseEvent) => {
+            if (!isDragging.current || !splitContainerRef.current) return;
+            const rect = splitContainerRef.current.getBoundingClientRect();
+            const newWidth = ((e.clientX - rect.left) / rect.width) * 100;
+            setListWidth(Math.min(Math.max(newWidth, 25), 72));
+        };
+        const onMouseUp = () => {
+            isDragging.current = false;
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+        };
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+    }, []);
 
     // Selected partners (IDs)
     const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
@@ -172,12 +195,12 @@ const Hospedagem: React.FC = () => {
     };
 
     const canProceedFromDates = useMemo(() => {
+        // LOG-02: Weekend rule removed from hospedagem — weekends are now allowed
         return (Object.entries(distribution) as [string, number][]).every(([partnerId, nights]) => {
             if (nights === 0) return true;
             const hotelDates = dates[partnerId] || [];
             if (hotelDates.length !== nights) return false;
             if (hotelDates.some(d => !d)) return false;
-            if (hotelDates.some(isWeekend)) return false;
             return true;
         });
     }, [distribution, dates]);
@@ -274,11 +297,11 @@ const Hospedagem: React.FC = () => {
 
             {/* ============= STEP 1: ITEMS ============= */}
             {step === 'ITEMS' && (() => {
-                const FILTER_TABS: { key: 'Todos' | 'Hotel' | 'Creche' | 'Pet Friendly'; label: string; icon: string }[] = [
+                // BUG-01: "Pet Friendly" removed — DB only has Hotel/Creche categories
+                const FILTER_TABS: { key: 'Todos' | 'Hotel' | 'Creche'; label: string; icon: string }[] = [
                     { key: 'Todos', label: 'Todos', icon: 'apps' },
                     { key: 'Hotel', label: 'Hotéis', icon: 'hotel' },
                     { key: 'Creche', label: 'Creche', icon: 'child_care' },
-                    { key: 'Pet Friendly', label: 'Pet Friendly', icon: 'pets' },
                 ];
                 
                 // Convert DB partners into Accommodation map objects using mock data as rich fallbacks
@@ -320,9 +343,9 @@ const Hospedagem: React.FC = () => {
                         </p>
                     </div>
 
-                    <div className="flex flex-col lg:flex-row h-[75vh] min-h-[600px] border border-gray-200 rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white">
+                    <div ref={splitContainerRef} className="flex flex-col lg:flex-row h-[75vh] min-h-[600px] border border-gray-200 rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white">
                         {/* LEFT SIDE: LIST */}
-                        <div className="w-full lg:w-[45%] h-full flex flex-col bg-white border-r border-gray-100 order-2 lg:order-1 relative z-10">
+                        <div className="w-full h-full flex flex-col bg-white border-r border-gray-100 order-2 lg:order-1 relative z-10" style={{ flex: `0 0 ${listWidth}%` }}>
                             {/* Header / Filters inside List */}
                             <div className="p-4 sm:p-6 border-b border-gray-100 shrink-0 bg-white/80 backdrop-blur-md sticky top-0 z-20">
                                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2 sm:px-0">
@@ -399,8 +422,16 @@ const Hospedagem: React.FC = () => {
                             )}
                         </div>
 
+                        {/* Drag Divider (Desktop Only) */}
+                        <div
+                            className="hidden lg:flex items-center justify-center w-2 bg-gray-100 hover:bg-primary/20 cursor-col-resize shrink-0 relative group transition-colors z-10 order-1 lg:order-2"
+                            onMouseDown={handleDividerMouseDown}
+                        >
+                            <div className="w-1 h-10 bg-gray-300 group-hover:bg-primary/60 rounded-full transition-colors" />
+                        </div>
+
                         {/* RIGHT SIDE: MAP (Desktop Only) */}
-                        <div className="hidden lg:block lg:w-[55%] h-full bg-gray-100 relative order-1 lg:order-2 shrink-0 z-0">
+                        <div className="hidden lg:block h-full bg-gray-100 relative order-1 lg:order-3 z-0" style={{ flex: '1 1 0' }}>
                             <InteractiveMap 
                                 accommodations={filteredAccommodations}
                                 selectedId={hoveredAccommodationId}
@@ -681,7 +712,6 @@ const Hospedagem: React.FC = () => {
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                             {hotelDates.map((currentDate: string, idx: number) => {
-                                                const isInvalid = currentDate && isWeekend(currentDate);
                                                 return (
                                                     <div key={idx}>
                                                         <label className="text-xs font-bold text-gray-500 mb-1.5 block">Diária {idx + 1}</label>
@@ -700,19 +730,11 @@ const Hospedagem: React.FC = () => {
                                                                 });
                                                             }}
                                                             className={`w-full h-12 px-4 rounded-xl border-2 text-sm font-medium outline-none transition-colors ${
-                                                                isInvalid
-                                                                    ? 'border-red-300 bg-red-50 text-red-700 focus:border-red-500'
-                                                                    : currentDate
-                                                                        ? 'border-green-200 bg-green-50 text-gray-900 focus:border-green-400'
-                                                                        : 'border-gray-200 bg-white text-gray-900 focus:border-primary'
+                                                                currentDate
+                                                                    ? 'border-green-200 bg-green-50 text-gray-900 focus:border-green-400'
+                                                                    : 'border-gray-200 bg-white text-gray-900 focus:border-primary'
                                                             }`}
                                                         />
-                                                        {isInvalid && (
-                                                            <p className="text-xs text-red-500 mt-1 font-medium flex items-center gap-1">
-                                                                <span className="material-symbols-outlined text-sm">warning</span>
-                                                                Somente dias úteis
-                                                            </p>
-                                                        )}
                                                     </div>
                                                 );
                                             })}

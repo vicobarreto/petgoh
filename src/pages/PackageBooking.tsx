@@ -44,14 +44,42 @@ interface HotelStay {
     avulsoPrice: number;
 }
 
-type BookingStep = 'HOTELS' | 'DISTRIBUTE' | 'DATES' | 'SUMMARY';
+type BookingStep = 'HOTELS' | 'DISTRIBUTE' | 'DATES' | 'SERVICES' | 'SUMMARY';
 
 const STEP_CONFIG: { key: BookingStep; label: string; icon: string }[] = [
     { key: 'HOTELS', label: 'Hotéis', icon: 'hotel' },
     { key: 'DISTRIBUTE', label: 'Diárias', icon: 'tune' },
     { key: 'DATES', label: 'Datas', icon: 'calendar_month' },
+    { key: 'SERVICES', label: 'Serviços', icon: 'room_service' },
     { key: 'SUMMARY', label: 'Resumo', icon: 'receipt_long' },
 ];
+
+const SERVICE_CATEGORY_MAP: Record<string, string> = {
+    daycare: 'Creche',
+    bath: 'Banho e Tosa',
+    grooming: 'Banho e Tosa',
+    vet: 'Veterinário',
+    vaccine: 'Veterinário',
+    walk: 'Passeador',
+};
+
+const SERVICE_LABELS: Record<string, string> = {
+    daycare: 'Creche',
+    bath: 'Banho',
+    grooming: 'Tosa',
+    vet: 'Veterinário',
+    vaccine: 'Vacina',
+    walk: 'Passeio',
+};
+
+const SERVICE_ICONS: Record<string, string> = {
+    daycare: 'child_care',
+    bath: 'water_drop',
+    grooming: 'content_cut',
+    vet: 'medical_services',
+    vaccine: 'vaccines',
+    walk: 'directions_walk',
+};
 
 const PackageBooking: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -74,6 +102,12 @@ const PackageBooking: React.FC = () => {
 
     // Date state: partnerId -> array of date strings (YYYY-MM-DD)
     const [dates, setDates] = useState<Record<string, string[]>>({});
+
+    // LOG-01: Service partner selection state
+    // servicePartnerOptions: serviceType -> list of available partners
+    const [servicePartnerOptions, setServicePartnerOptions] = useState<Record<string, { id: string; company_name: string; city: string | null; rating: number }[]>>({});
+    // selectedServicePartners: serviceType -> partnerId
+    const [selectedServicePartners, setSelectedServicePartners] = useState<Record<string, string>>({});
 
     const totalDiarias = useMemo(() => {
         const hotelItem = pkg?.items?.find(i => i.service_type === 'hotel');
@@ -126,6 +160,31 @@ const PackageBooking: React.FC = () => {
 
             if (!hotelError && hotelData) {
                 setHotels(hotelData as unknown as PackageHotel[]);
+            }
+
+            // LOG-01: Fetch partners for each non-hotel service type in the package
+            const nonHotelItems = (pkgData.items || []).filter((i: PackageItem) => i.service_type !== 'hotel');
+            const categoriesToFetch = [...new Set(nonHotelItems.map((i: PackageItem) => SERVICE_CATEGORY_MAP[i.service_type]).filter(Boolean))];
+
+            if (categoriesToFetch.length > 0) {
+                const { data: svcPartners } = await supabase
+                    .from('partners')
+                    .select('id, company_name, city, rating, category')
+                    .in('category', categoriesToFetch)
+                    .eq('status', 'active')
+                    .order('rating', { ascending: false });
+
+                if (svcPartners) {
+                    // Group by service type
+                    const grouped: Record<string, typeof svcPartners> = {};
+                    nonHotelItems.forEach((item: PackageItem) => {
+                        const cat = SERVICE_CATEGORY_MAP[item.service_type];
+                        if (cat) {
+                            grouped[item.service_type] = svcPartners.filter((p: any) => p.category === cat);
+                        }
+                    });
+                    setServicePartnerOptions(grouped);
+                }
             }
         } catch {
             navigate('/packages');
@@ -228,6 +287,12 @@ const PackageBooking: React.FC = () => {
             });
     };
 
+    // LOG-01: Check that all non-hotel services have a partner selected
+    const nonHotelItems = useMemo(() => (pkg?.items || []).filter(i => i.service_type !== 'hotel'), [pkg]);
+    const canProceedFromServices = useMemo(() => {
+        return nonHotelItems.every(item => !!selectedServicePartners[item.service_type]);
+    }, [nonHotelItems, selectedServicePartners]);
+
     const handleContinueToCheckout = () => {
         const stays = buildStays();
         navigate(`/checkout/${id}`, {
@@ -235,6 +300,7 @@ const PackageBooking: React.FC = () => {
                 bookingStays: stays,
                 totalDiarias,
                 pricePerNightPackage,
+                servicePartners: selectedServicePartners,
             },
         });
     };
@@ -269,32 +335,39 @@ const PackageBooking: React.FC = () => {
             </nav>
 
             {/* Progress Steps */}
+            {/* Hide SERVICES step from bar when package has no extra services */}
+            {(() => {
+                const visibleSteps = nonHotelItems.length > 0 ? STEP_CONFIG : STEP_CONFIG.filter(s => s.key !== 'SERVICES');
+                const visibleStepIdx = visibleSteps.findIndex(s => s.key === step);
+                return (
             <div className="flex items-center justify-center gap-1 sm:gap-2 mb-10">
-                {STEP_CONFIG.map((s, i) => (
+                {visibleSteps.map((s, i) => (
                     <React.Fragment key={s.key}>
                         <div className="flex items-center gap-1.5 sm:gap-2">
                             <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all ${
-                                stepIndex >= i
+                                visibleStepIdx >= i
                                     ? 'bg-primary text-white shadow-lg shadow-primary/20'
                                     : 'bg-gray-100 text-gray-400'
                             }`}>
-                                {stepIndex > i
+                                {visibleStepIdx > i
                                     ? <span className="material-symbols-outlined text-lg">check</span>
                                     : <span className="material-symbols-outlined text-lg">{s.icon}</span>
                                 }
                             </div>
                             <span className={`text-xs sm:text-sm font-medium hidden sm:inline ${
-                                stepIndex >= i ? 'text-gray-900' : 'text-gray-400'
+                                visibleStepIdx >= i ? 'text-gray-900' : 'text-gray-400'
                             }`}>{s.label}</span>
                         </div>
-                        {i < STEP_CONFIG.length - 1 && (
+                        {i < visibleSteps.length - 1 && (
                             <div className={`w-8 sm:w-14 h-0.5 rounded-full transition-colors ${
-                                stepIndex > i ? 'bg-primary' : 'bg-gray-200'
+                                visibleStepIdx > i ? 'bg-primary' : 'bg-gray-200'
                             }`} />
                         )}
                     </React.Fragment>
                 ))}
             </div>
+                );
+            })()}
 
             {/* Package Info Banner */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 mb-8 flex items-center gap-4">
@@ -681,8 +754,95 @@ const PackageBooking: React.FC = () => {
                             Voltar
                         </button>
                         <button
-                            onClick={() => setStep('SUMMARY')}
+                            onClick={() => setStep(nonHotelItems.length > 0 ? 'SERVICES' : 'SUMMARY')}
                             disabled={!canProceedFromDates}
+                            className="flex-1 h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {nonHotelItems.length > 0 ? 'Escolher Parceiros' : 'Ver Resumo'}
+                            <span className="material-symbols-outlined">arrow_forward</span>
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ============= STEP 4: SERVICES ============= */}
+            {step === 'SERVICES' && (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-1">Escolha os Parceiros</h3>
+                        <p className="text-sm text-gray-500">Selecione o prestador para cada serviço incluído no seu pacote.</p>
+                    </div>
+
+                    <div className="space-y-4">
+                        {nonHotelItems.map(item => {
+                            const options = servicePartnerOptions[item.service_type] || [];
+                            const selected = selectedServicePartners[item.service_type];
+                            return (
+                                <div key={item.service_type} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                            <span className="material-symbols-outlined text-primary">{SERVICE_ICONS[item.service_type] || 'room_service'}</span>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-gray-900">{item.quantity}x {SERVICE_LABELS[item.service_type] || item.service_type}</h4>
+                                            <p className="text-xs text-gray-400">Selecione um prestador</p>
+                                        </div>
+                                    </div>
+
+                                    {options.length === 0 ? (
+                                        <p className="text-sm text-gray-400 italic">Nenhum parceiro disponível para este serviço no momento.</p>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {options.map(p => (
+                                                <label
+                                                    key={p.id}
+                                                    className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                                                        selected === p.id
+                                                            ? 'border-primary bg-primary/5'
+                                                            : 'border-gray-100 hover:border-gray-200'
+                                                    }`}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name={`service-${item.service_type}`}
+                                                        value={p.id}
+                                                        checked={selected === p.id}
+                                                        onChange={() => setSelectedServicePartners(prev => ({ ...prev, [item.service_type]: p.id }))}
+                                                        className="sr-only"
+                                                    />
+                                                    <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+                                                        selected === p.id ? 'border-primary bg-primary' : 'border-gray-300'
+                                                    }`}>
+                                                        {selected === p.id && <span className="w-2 h-2 rounded-full bg-white" />}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-semibold text-sm text-gray-900">{p.company_name}</p>
+                                                        {p.city && <p className="text-xs text-gray-400">{p.city}</p>}
+                                                    </div>
+                                                    <div className="flex items-center gap-1 text-yellow-500">
+                                                        <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                                                        <span className="text-xs font-bold text-gray-700">{p.rating}</span>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setStep('DATES')}
+                            className="h-14 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-lg">arrow_back</span>
+                            Voltar
+                        </button>
+                        <button
+                            onClick={() => setStep('SUMMARY')}
+                            disabled={!canProceedFromServices}
                             className="flex-1 h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Ver Resumo
@@ -692,7 +852,7 @@ const PackageBooking: React.FC = () => {
                 </div>
             )}
 
-            {/* ============= STEP 4: SUMMARY ============= */}
+            {/* ============= STEP 5: SUMMARY ============= */}
             {step === 'SUMMARY' && (() => {
                 const stays = buildStays();
                 const totalAvulso = stays.reduce((sum, s) => sum + (s.avulsoPrice * s.nights), 0);
@@ -733,9 +893,36 @@ const PackageBooking: React.FC = () => {
                             })}
                         </div>
 
+                        {/* Service Partners Summary */}
+                        {nonHotelItems.length > 0 && (
+                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary">room_service</span>
+                                    Serviços Extras
+                                </h4>
+                                <div className="space-y-2">
+                                    {nonHotelItems.map(item => {
+                                        const partnerId = selectedServicePartners[item.service_type];
+                                        const partnerName = partnerId
+                                            ? servicePartnerOptions[item.service_type]?.find(p => p.id === partnerId)?.company_name
+                                            : 'Não selecionado';
+                                        return (
+                                            <div key={item.service_type} className="flex items-center justify-between text-sm">
+                                                <div className="flex items-center gap-2 text-gray-600">
+                                                    <span className="material-symbols-outlined text-primary text-base">{SERVICE_ICONS[item.service_type] || 'room_service'}</span>
+                                                    {item.quantity}x {SERVICE_LABELS[item.service_type] || item.service_type}
+                                                </div>
+                                                <span className="font-semibold text-gray-900">{partnerName}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
                         <div className="flex gap-3">
                             <button
-                                onClick={() => setStep('DATES')}
+                                onClick={() => setStep(nonHotelItems.length > 0 ? 'SERVICES' : 'DATES')}
                                 className="h-14 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
                             >
                                 <span className="material-symbols-outlined text-lg">arrow_back</span>

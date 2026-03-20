@@ -101,6 +101,9 @@ const Saude: React.FC = () => {
 
     const [totalSessions, setTotalSessions] = useState(1);
     const [activeAnatomyZone, setActiveAnatomyZone] = useState<AnatomyZone | null>(null);
+    // UI-04: Filter for Saúde services
+    const [serviceSearch, setServiceSearch] = useState('');
+    const [categoryTab, setCategoryTab] = useState('Todos');
 
     const distributedTotal = useMemo(() => (Object.values(distribution) as number[]).reduce((sum, n) => sum + n, 0), [distribution]);
     const canProceedFromDistribute = distributedTotal === totalSessions;
@@ -288,8 +291,41 @@ const Saude: React.FC = () => {
                         <h3 className="text-xl font-bold text-gray-900 mb-1">1. Escolha o Serviço</h3>
                         <p className="text-sm text-gray-500 mb-4">Selecione o serviço de saúde que deseja agendar.</p>
 
+                        {/* UI-04: Search + category filter */}
+                        <div className="flex flex-wrap gap-3 mb-6">
+                            <div className="relative flex-1 min-w-[200px]">
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">search</span>
+                                <input
+                                    type="text"
+                                    placeholder="Filtrar serviços..."
+                                    value={serviceSearch}
+                                    onChange={e => setServiceSearch(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                                />
+                            </div>
+                            <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+                                {['Todos', ...Object.keys(CATEGORY_ICONS)].map(cat => (
+                                    <button
+                                        key={cat}
+                                        onClick={() => setCategoryTab(cat)}
+                                        className={`shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all border ${
+                                            categoryTab === cat
+                                                ? 'bg-primary border-primary text-white'
+                                                : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'
+                                        }`}
+                                    >
+                                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
                         <div className="flex overflow-x-auto pb-4 gap-4 snap-x lg:grid lg:grid-cols-5 lg:overflow-visible">
-                            {services.map((service) => {
+                            {services.filter(s => {
+                                const matchSearch = !serviceSearch || s.name.toLowerCase().includes(serviceSearch.toLowerCase());
+                                const matchCat = categoryTab === 'Todos' || s.category === categoryTab;
+                                return matchSearch && matchCat;
+                            }).map((service) => {
                                 const colors = CATEGORY_COLORS[service.category] || { bg: 'bg-gray-100', text: 'text-gray-600' };
                                 const icon = CATEGORY_ICONS[service.category] || 'medical_services';
                                 const isSelected = selectedService?.id === service.id;

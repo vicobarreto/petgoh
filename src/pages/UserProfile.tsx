@@ -148,28 +148,8 @@ const UserProfile: React.FC = () => {
                     </div>
                 );
             case 'personal':
-                return (
-                    <div className="bg-white p-8 rounded-2xl border border-gray-100">
-                        <h2 className="text-2xl font-bold mb-4">Dados Pessoais</h2>
-                        <div className="flex items-center gap-4 mb-6">
-                            <img src={IMAGES.AVATAR_WOMAN} alt="Profile" className="w-20 h-20 rounded-full object-cover" />
-                            <div>
-                                <h3 className="font-bold text-lg">{user?.name || 'Visitante'}</h3>
-                                <p className="text-gray-500">{user?.email || 'email@exemplo.com'}</p>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-                                <input type="text" className="w-full p-2 border rounded-lg bg-gray-50" defaultValue={user?.name} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                <input type="text" className="w-full p-2 border rounded-lg bg-gray-50" defaultValue={user?.email} />
-                            </div>
-                        </div>
-                    </div>
-                );
+                return <PersonalDataView />;
+
             default:
                 return (
                     <div className="flex flex-col items-center justify-center h-64 text-gray-500">
@@ -201,10 +181,6 @@ const UserProfile: React.FC = () => {
                         <button onClick={() => handleTabChange('fidelidade')} className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'fidelidade' ? 'text-primary bg-primary/10' : 'text-gray-600 hover:bg-gray-50'}`}>
                             <span className="material-symbols-outlined text-[20px]">loyalty</span>
                             Fidelidade
-                        </button>
-                        <button onClick={() => handleTabChange('wishlist')} className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'wishlist' ? 'text-primary bg-primary/10' : 'text-gray-600 hover:bg-gray-50'}`}>
-                            <span className="material-symbols-outlined text-[20px]">bookmark</span>
-                            Minha Lista
                         </button>
                         <button onClick={() => handleTabChange('favorites')} className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'favorites' ? 'text-primary bg-primary/10' : 'text-gray-600 hover:bg-gray-50'}`}>
                             <span className="material-symbols-outlined text-[20px]">favorite</span>
@@ -286,6 +262,83 @@ const UserProfile: React.FC = () => {
 };
 
 // ... (WishlistView, HistoryView, CompareView, FavoritesView components remain the same)
+// UI-09: Profile photo + personal data editor
+const PersonalDataView: React.FC = () => {
+    const { user } = useAuth();
+    const [avatarUrl, setAvatarUrl] = useState(user?.avatar || '');
+    const [uploading, setUploading] = useState(false);
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !user) return;
+        setUploading(true);
+        try {
+            const ext = file.name.split('.').pop();
+            const path = `avatars/${user.id}.${ext}`;
+            const { error } = await supabase.storage.from('pet-photos').upload(path, file, { upsert: true });
+            if (error) throw error;
+            const { data } = supabase.storage.from('pet-photos').getPublicUrl(path);
+            setAvatarUrl(data.publicUrl);
+            await supabase.from('users').update({ avatar_url: data.publicUrl }).eq('id', user.id);
+        } catch (err: any) {
+            alert('Erro ao fazer upload: ' + err.message);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    return (
+        <div className="bg-white p-8 rounded-2xl border border-gray-100">
+            <h2 className="text-2xl font-bold mb-6">Dados Pessoais</h2>
+            <div className="flex items-center gap-6 mb-8">
+                <div className="relative group">
+                    <img
+                        src={avatarUrl || IMAGES.AVATAR_WOMAN}
+                        alt="Profile"
+                        className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => inputRef.current?.click()}
+                        disabled={uploading}
+                        className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                    >
+                        <span className="material-symbols-outlined text-white text-xl">{uploading ? 'hourglass_empty' : 'photo_camera'}</span>
+                    </button>
+                    <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                </div>
+                <div>
+                    <h3 className="font-bold text-lg text-gray-900">{user?.name || 'Visitante'}</h3>
+                    <p className="text-gray-500 text-sm">{user?.email}</p>
+                    <button
+                        type="button"
+                        onClick={() => inputRef.current?.click()}
+                        className="text-primary text-xs font-semibold hover:underline mt-1"
+                    >
+                        Alterar foto de perfil
+                    </button>
+                </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                    <input type="text" className="w-full p-2.5 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-primary/20 outline-none" defaultValue={user?.name} />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="text" className="w-full p-2.5 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-primary/20 outline-none" defaultValue={user?.email} readOnly />
+                </div>
+            </div>
+            <div className="mt-6">
+                <button className="px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-orange-600 transition-colors">
+                    Salvar Alterações
+                </button>
+            </div>
+        </div>
+    );
+};
+
 // NOTE: I am keeping the other sub-components inside this file for brevity as they are only used here.
 // In a real-world scenario, they would be broken out into their own files.
 

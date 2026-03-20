@@ -40,16 +40,28 @@ const GiveawayManagement: React.FC = () => {
     const fetchGiveaways = async () => {
         try {
             setLoading(true);
-            const { data, error } = await supabase
+            // BUG-10 fix: use simple query without FK name to avoid FK constraint error
+            const { data: giveawayData, error } = await supabase
                 .from('giveaways')
-                .select(`
-                    *,
-                    winner:users!giveaways_winner_id_fkey(full_name, email)
-                `)
+                .select('*')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            setGiveaways(data || []);
+
+            // Fetch winner info separately if winner_id is set
+            const enriched = await Promise.all((giveawayData || []).map(async (g) => {
+                if (g.winner_id) {
+                    const { data: winnerData } = await supabase
+                        .from('users')
+                        .select('full_name, email')
+                        .eq('id', g.winner_id)
+                        .single();
+                    return { ...g, winner: winnerData || undefined };
+                }
+                return g;
+            }));
+
+            setGiveaways(enriched);
         } catch (error) {
             console.error('Error fetching giveaways:', error);
             alert('Erro ao carregar sorteios');
@@ -69,6 +81,48 @@ const GiveawayManagement: React.FC = () => {
     };
 
     const [saving, setSaving] = useState(false);
+    const [drawingId, setDrawingId] = useState<string | null>(null);
+    const [drawResult, setDrawResult] = useState<{ giveaway: Giveaway; winner: User } | null>(null);
+
+    // LOG-08: Didactic draw — shows an animated countdown before revealing the winner
+    const handleDraw = async (giveaway: Giveaway) => {
+        if (!confirm(`Realizar sorteio para "${giveaway.title}"? Esta ação não pode ser desfeita.`)) return;
+        setDrawingId(giveaway.id);
+        try {
+            // Fetch all eligible participants (tutors)
+            const { data: participants } = await supabase
+                .from('users')
+                .select('id, full_name, email')
+                .eq('role', 'tutor');
+
+            if (!participants || participants.length === 0) {
+                alert('Nenhum participante elegível encontrado.');
+                return;
+            }
+
+            // Simulate didactic countdown (animated reveal)
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Random winner selection
+            const winner = participants[Math.floor(Math.random() * participants.length)];
+
+            // Save winner to DB
+            const { error } = await supabase
+                .from('giveaways')
+                .update({ winner_id: winner.id, status: 'completed' })
+                .eq('id', giveaway.id);
+
+            if (error) throw error;
+
+            setDrawResult({ giveaway, winner });
+            fetchGiveaways();
+        } catch (err: any) {
+            console.error('Draw error:', err);
+            alert('Erro ao realizar sorteio: ' + err.message);
+        } finally {
+            setDrawingId(null);
+        }
+    };
 
     const handleSave = async () => {
         try {
@@ -241,6 +295,19 @@ const GiveawayManagement: React.FC = () => {
                                         </div>
                                     </td>
                                     <td className="p-4 text-right">
+                                        {giveaway.status === 'active' && !giveaway.winner_id && (
+                                            <button
+                                                onClick={() => handleDraw(giveaway)}
+                                                disabled={drawingId === giveaway.id}
+                                                className="text-yellow-500 hover:text-yellow-600 mr-2 p-1 rounded hover:bg-yellow-50 transition-colors disabled:opacity-50"
+                                                title="Realizar Sorteio"
+                                            >
+                                                {drawingId === giveaway.id
+                                                    ? <span className="material-symbols-outlined animate-spin">refresh</span>
+                                                    : <span className="material-symbols-outlined">celebration</span>
+                                                }
+                                            </button>
+                                        )}
                                         <button onClick={() => handleEdit(giveaway)} className="text-gray-400 hover:text-primary mr-2 p-1 rounded hover:bg-gray-100 transition-colors">
                                             <span className="material-symbols-outlined">edit</span>
                                         </button>
@@ -259,6 +326,32 @@ const GiveawayManagement: React.FC = () => {
                     </table>
                 )}
             </div>
+
+            {/* LOG-08: Didactic draw result modal */}
+            {drawResult && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md text-center p-8 animate-in zoom-in duration-300">
+                        <div className="w-24 h-24 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-6">
+                            <span className="material-symbols-outlined text-5xl text-yellow-500">emoji_events</span>
+                        </div>
+                        <p className="text-sm font-bold text-primary uppercase tracking-widest mb-2">🎉 Sorteio Realizado!</p>
+                        <h2 className="text-3xl font-black text-gray-900 mb-1">{drawResult.giveaway.title}</h2>
+                        <p className="text-gray-400 mb-6 text-sm">Prêmio: {drawResult.giveaway.prize_description}</p>
+                        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-200 rounded-2xl p-6 mb-6">
+                            <p className="text-xs font-bold text-yellow-600 uppercase tracking-wider mb-2">Ganhador(a)</p>
+                            <p className="text-2xl font-black text-gray-900 mb-1">{drawResult.winner.full_name}</p>
+                            <p className="text-gray-500 text-sm">{drawResult.winner.email}</p>
+                        </div>
+                        <p className="text-xs text-gray-400 mb-6">Selecionado aleatoriamente entre todos os participantes elegíveis.</p>
+                        <button
+                            onClick={() => setDrawResult(null)}
+                            className="w-full py-3 bg-primary text-white font-bold rounded-xl hover:bg-orange-600 transition-colors"
+                        >
+                            Fechar
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Modal */}
             {isModalOpen && (

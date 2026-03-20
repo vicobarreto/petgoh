@@ -141,10 +141,14 @@ const PartnerManagement: React.FC = () => {
         }
     };
 
-    const filteredPartners = partners.filter(p => 
-        p.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const [categoryFilter, setCategoryFilter] = useState('');
+
+    const filteredPartners = partners.filter(p => {
+        const matchesSearch = p.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.email?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = !categoryFilter || (p.category || '').toLowerCase().includes(categoryFilter.toLowerCase());
+        return matchesSearch && matchesCategory;
+    });
 
     const fetchPartnerServices = async () => {
         setServicesLoading(true);
@@ -211,18 +215,34 @@ const PartnerManagement: React.FC = () => {
             {activeTab === 'partners' ? (
             <>
             <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div className="flex gap-3">
+                <div className="flex gap-3 flex-wrap">
                     <div className="relative">
                         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-                        <input 
-                            type="text" 
-                            placeholder="Buscar parceiros..." 
+                        <input
+                            type="text"
+                            placeholder="Buscar parceiros..."
                             className="pl-10 pr-4 py-2.5 border border-secondary/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <button 
+                    {/* LOG-07: Category filter */}
+                    <select
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        className="px-4 py-2.5 border border-secondary/10 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                        <option value="">Todas as Categorias</option>
+                        <option value="Hotel">Hotel</option>
+                        <option value="Pet Shop">Pet Shop</option>
+                        <option value="Creche">Creche</option>
+                        <option value="Banho e Tosa">Banho e Tosa</option>
+                        <option value="Adestramento">Adestramento</option>
+                        <option value="Passeador">Passeador</option>
+                        <option value="Veterinário">Veterinário</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                    <button
                         onClick={() => {
                             setEditingPartner(null);
                             setFormData({ status: 'pending' });
@@ -365,17 +385,19 @@ const PartnerManagement: React.FC = () => {
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-gray-700">Categoria</label>
-                                    <select 
+                                    <select
                                         className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary/20 outline-none bg-white"
                                         value={formData.category || ''}
                                         onChange={e => setFormData({...formData, category: e.target.value})}
                                     >
                                         <option value="">Selecione...</option>
-                                        <option value="Veterinário">Veterinário</option>
                                         <option value="Hotel">Hotel</option>
                                         <option value="Pet Shop">Pet Shop</option>
                                         <option value="Creche">Creche</option>
                                         <option value="Banho e Tosa">Banho e Tosa</option>
+                                        <option value="Adestramento">Adestramento</option>
+                                        <option value="Passeador">Passeador</option>
+                                        <option value="Veterinário">Veterinário</option>
                                         <option value="Outros">Outros</option>
                                     </select>
                                 </div>
