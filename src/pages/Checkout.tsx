@@ -75,6 +75,13 @@ const Checkout: React.FC = () => {
     const [step, setStep] = useState(1);
     const [earlyDiscount, setEarlyDiscount] = useState(0);
 
+    // Coupon state
+    const [couponInput, setCouponInput] = useState('');
+    const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount_type: 'percentage' | 'fixed'; discount_value: number; id: string } | null>(null);
+    const [couponLoading, setCouponLoading] = useState(false);
+    const [couponError, setCouponError] = useState('');
+    const [couponSuccess, setCouponSuccess] = useState('');
+
     // Card form state
     const [cardNumber, setCardNumber] = useState('');
     const [cardExpiry, setCardExpiry] = useState('');
@@ -127,6 +134,53 @@ const Checkout: React.FC = () => {
         }
         setPkg(data);
         setLoading(false);
+    };
+
+    const validateCoupon = async () => {
+        const code = couponInput.trim().toUpperCase();
+        if (!code) return;
+        setCouponLoading(true);
+        setCouponError('');
+        setCouponSuccess('');
+        setAppliedCoupon(null);
+
+        const { data, error } = await supabase
+            .from('coupons')
+            .select('id, code, discount_type, discount_value, usage_limit, usage_count, valid_from, valid_until, is_active')
+            .eq('code', code)
+            .maybeSingle();
+
+        if (error || !data) {
+            setCouponError('Cupom não encontrado.');
+            setCouponLoading(false);
+            return;
+        }
+        if (!data.is_active) {
+            setCouponError('Este cupom está inativo.');
+            setCouponLoading(false);
+            return;
+        }
+        const now = new Date();
+        if (data.valid_from && new Date(data.valid_from) > now) {
+            setCouponError('Este cupom ainda não está vigente.');
+            setCouponLoading(false);
+            return;
+        }
+        if (data.valid_until && new Date(data.valid_until) < now) {
+            setCouponError('Este cupom está expirado.');
+            setCouponLoading(false);
+            return;
+        }
+        if (data.usage_limit !== null && data.usage_count >= data.usage_limit) {
+            setCouponError('Este cupom atingiu o limite de uso.');
+            setCouponLoading(false);
+            return;
+        }
+
+        setAppliedCoupon({ code: data.code, discount_type: data.discount_type, discount_value: data.discount_value, id: data.id });
+        const display = data.discount_type === 'percentage' ? `${data.discount_value}% de desconto` : `R$ ${Number(data.discount_value).toFixed(2).replace('.', ',')} de desconto`;
+        setCouponSuccess(`Cupom "${data.code}" aplicado! ${display}`);
+        setCouponLoading(false);
     };
 
     // Synthetic package for service bookings
@@ -261,7 +315,13 @@ const Checkout: React.FC = () => {
 
     const basePrice = displayPkg.price;
     const discountAmount = earlyDiscount > 0 ? basePrice * (earlyDiscount / 100) : 0;
-    const priceValue = basePrice - discountAmount;
+    const afterEarlyDiscount = basePrice - discountAmount;
+    const couponDiscount = appliedCoupon
+        ? appliedCoupon.discount_type === 'percentage'
+            ? afterEarlyDiscount * (appliedCoupon.discount_value / 100)
+            : Math.min(appliedCoupon.discount_value, afterEarlyDiscount)
+        : 0;
+    const priceValue = Math.max(0, afterEarlyDiscount - couponDiscount);
 
     // Success screen
     if (step === 3) {
@@ -684,6 +744,48 @@ const Checkout: React.FC = () => {
                                     </div>
                                 )}
 
+                                {/* Coupon Field */}
+                                <div className="border-t border-gray-100 pt-4">
+                                    <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                                        <span className="material-symbols-outlined text-sm text-primary">local_offer</span>
+                                        Código de Desconto
+                                    </p>
+                                    {appliedCoupon ? (
+                                        <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-green-600 text-sm">check_circle</span>
+                                                <span className="text-xs font-bold text-green-700 font-mono">{appliedCoupon.code}</span>
+                                            </div>
+                                            <button
+                                                onClick={() => { setAppliedCoupon(null); setCouponSuccess(''); setCouponInput(''); }}
+                                                className="text-xs text-red-400 hover:text-red-600 font-medium"
+                                            >
+                                                Remover
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={couponInput}
+                                                onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(''); }}
+                                                onKeyDown={(e) => e.key === 'Enter' && validateCoupon()}
+                                                className="flex-1 h-10 px-3 border border-gray-200 rounded-xl text-sm font-mono uppercase focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none placeholder:normal-case placeholder:font-sans"
+                                                placeholder="EX: BLACKFRIDAY"
+                                            />
+                                            <button
+                                                onClick={validateCoupon}
+                                                disabled={couponLoading || !couponInput.trim()}
+                                                className="h-10 px-4 bg-primary text-white text-xs font-bold rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-40 whitespace-nowrap"
+                                            >
+                                                {couponLoading ? '...' : 'Aplicar'}
+                                            </button>
+                                        </div>
+                                    )}
+                                    {couponError && <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1"><span className="material-symbols-outlined text-sm">error</span>{couponError}</p>}
+                                    {couponSuccess && !appliedCoupon && <p className="text-xs text-green-600 mt-1.5">{couponSuccess}</p>}
+                                </div>
+
                                 <div className="border-t border-gray-100 pt-4 space-y-2">
                                     <div className="flex justify-between text-sm">
                                         <span className="text-gray-500">Subtotal</span>
@@ -696,6 +798,15 @@ const Checkout: React.FC = () => {
                                                 Desconto antecipado ({earlyDiscount}%)
                                             </span>
                                             <span className="text-green-600 font-medium">- R$ {discountAmount.toFixed(2).replace('.', ',')}</span>
+                                        </div>
+                                    )}
+                                    {appliedCoupon && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-green-600 font-medium flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-xs">confirmation_number</span>
+                                                Cupom {appliedCoupon.code}
+                                            </span>
+                                            <span className="text-green-600 font-medium">- R$ {couponDiscount.toFixed(2).replace('.', ',')}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between text-sm">

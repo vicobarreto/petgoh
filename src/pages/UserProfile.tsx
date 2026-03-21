@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase';
 
 // UI-09: Clickable sidebar avatar that allows instant photo upload
 const SidebarAvatar: React.FC = () => {
-    const { user } = useAuth();
+    const { user, updateUserAvatar } = useAuth();
     const [avatarUrl, setAvatarUrl] = useState('');
     const [uploading, setUploading] = useState(false);
     const inputRef = React.useRef<HTMLInputElement>(null);
@@ -31,6 +31,7 @@ const SidebarAvatar: React.FC = () => {
             const { data } = supabase.storage.from('pet-photos').getPublicUrl(path);
             setAvatarUrl(data.publicUrl);
             await supabase.from('users').update({ avatar_url: data.publicUrl }).eq('id', user.id);
+            updateUserAvatar(data.publicUrl);
         } catch (err: any) {
             alert('Erro ao fazer upload: ' + err.message);
         } finally {
@@ -322,7 +323,7 @@ const UserProfile: React.FC = () => {
 
 // ... (WishlistView, HistoryView, CompareView, FavoritesView components remain the same)
 const PersonalDataView: React.FC = () => {
-    const { user } = useAuth();
+    const { user, updateUserAvatar } = useAuth();
     const [avatarUrl, setAvatarUrl] = useState(user?.avatar || '');
     const [uploading, setUploading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -376,6 +377,7 @@ const PersonalDataView: React.FC = () => {
             const { data } = supabase.storage.from('pet-photos').getPublicUrl(path);
             setAvatarUrl(data.publicUrl);
             await supabase.from('users').update({ avatar_url: data.publicUrl }).eq('id', user.id);
+            updateUserAvatar(data.publicUrl);
         } catch (err: any) {
             alert('Erro ao fazer upload: ' + err.message);
         } finally {
@@ -422,6 +424,64 @@ const PersonalDataView: React.FC = () => {
     return (
         <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
             <h2 className="text-2xl font-bold mb-6">Dados Pessoais</h2>
+
+            {/* === PROFILE COMPLETION BAR === */}
+            {(() => {
+                const fields = [
+                    { key: 'avatar', label: 'Foto de perfil', filled: !!avatarUrl, icon: 'photo_camera' },
+                    { key: 'name', label: 'Nome completo', filled: !!form.full_name, icon: 'person' },
+                    { key: 'phone', label: 'Telefone', filled: !!form.phone, icon: 'phone' },
+                    { key: 'cpf', label: 'CPF', filled: !!form.cpf, icon: 'badge' },
+                    { key: 'address', label: 'Endereço', filled: !!form.address, icon: 'home' },
+                    { key: 'city', label: 'Cidade', filled: !!form.city, icon: 'location_on' },
+                    { key: 'bio', label: 'Sobre mim', filled: !!form.bio, icon: 'notes' },
+                ];
+                const filled = fields.filter(f => f.filled).length;
+                const pct = Math.round((filled / fields.length) * 100);
+                const missing = fields.filter(f => !f.filled);
+                const barColor = pct === 100 ? 'bg-emerald-500' : pct >= 60 ? 'bg-primary' : 'bg-amber-500';
+
+                if (pct === 100) return (
+                    <div className="mb-6 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3">
+                        <span className="material-symbols-outlined text-emerald-500 text-2xl">verified</span>
+                        <div>
+                            <p className="text-sm font-bold text-emerald-800">Perfil 100% completo!</p>
+                            <p className="text-xs text-emerald-600">Obrigado por preencher todas as informações.</p>
+                        </div>
+                    </div>
+                );
+
+                return (
+                    <div className="mb-6 p-4 bg-orange-50 border border-orange-100 rounded-2xl">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary text-[18px]">manage_accounts</span>
+                                <p className="text-sm font-bold text-gray-800">Completude do Perfil</p>
+                            </div>
+                            <span className={`text-sm font-black ${pct >= 60 ? 'text-primary' : 'text-amber-600'}`}>{pct}%</span>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="w-full bg-white rounded-full h-2 mb-3 overflow-hidden border border-orange-100">
+                            <div
+                                className={`h-2 rounded-full transition-all duration-700 ease-out ${barColor}`}
+                                style={{ width: `${pct}%` }}
+                            />
+                        </div>
+
+                        {/* Missing fields chips */}
+                        <p className="text-xs text-gray-500 mb-2">Preencha os campos abaixo para completar seu perfil:</p>
+                        <div className="flex flex-wrap gap-2">
+                            {missing.map(f => (
+                                <span key={f.key} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-orange-200 text-orange-700 rounded-full text-[11px] font-semibold">
+                                    <span className="material-symbols-outlined text-[13px]">{f.icon}</span>
+                                    {f.label}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Avatar */}
             <div className="flex items-center gap-6 mb-8 p-4 bg-gray-50 rounded-2xl border border-gray-100">

@@ -47,7 +47,7 @@ interface HotelStay {
 type BookingStep = 'HOTELS' | 'DATES' | 'SERVICES' | 'SUMMARY';
 
 const STEP_CONFIG: { key: BookingStep; label: string; icon: string }[] = [
-    { key: 'HOTELS', label: 'Hotéis', icon: 'hotel' },
+    { key: 'HOTELS', label: 'Diárias', icon: 'hotel' },
     { key: 'DATES', label: 'Datas', icon: 'calendar_month' },
     { key: 'SERVICES', label: 'Serviços', icon: 'room_service' },
     { key: 'SUMMARY', label: 'Resumo', icon: 'receipt_long' },
@@ -409,8 +409,8 @@ const PackageBooking: React.FC = () => {
             {step === 'HOTELS' && (
                 <div className="space-y-6 animate-in fade-in duration-300">
                     <div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-1">Escolha as Hospedagens</h3>
-                        <p className="text-sm text-gray-500">Selecione um ou mais hotéis parceiros para distribuir suas diárias. Use os filtros para encontrar o ideal.</p>
+                        <h3 className="text-xl font-bold text-gray-900 mb-1">Escolha os Parceiros</h3>
+                        <p className="text-sm text-gray-500">Selecione os parceiros ideais para utilizar as diárias e serviços do pacote. Use as abas para filtrar as opções.</p>
                     </div>
 
                     {/* Filters */}
@@ -443,31 +443,33 @@ const PackageBooking: React.FC = () => {
                                 </select>
                             </div>
 
-                            {/* Service type filter */}
-                            <div className="flex gap-1.5 flex-wrap">
-                                <button
-                                    onClick={() => setServiceFilter('todos')}
-                                    className={`px-4 h-11 rounded-xl text-xs font-bold border transition-all whitespace-nowrap ${
-                                        serviceFilter === 'todos'
-                                            ? 'bg-primary border-primary text-white shadow-md shadow-primary/20'
-                                            : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'
-                                    }`}
-                                >
-                                    Todos
-                                </button>
-                                {Array.from(new Set(hotels.map(h => h.partner?.category).filter(Boolean))).map(cat => (
+                            {/* Service type filter tabs */}
+                            <div className="w-full mt-2">
+                                <div className="flex border-b border-gray-200 overflow-x-auto no-scrollbar gap-6 px-1">
                                     <button
-                                        key={cat as string}
-                                        onClick={() => setServiceFilter(cat as string)}
-                                        className={`px-4 h-11 rounded-xl text-xs font-bold border transition-all whitespace-nowrap ${
-                                            serviceFilter === cat
-                                                ? 'bg-primary border-primary text-white shadow-md shadow-primary/20'
-                                                : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50'
+                                        onClick={() => setServiceFilter('todos')}
+                                        className={`pb-3 text-sm font-bold whitespace-nowrap border-b-2 transition-colors ${
+                                            serviceFilter === 'todos'
+                                                ? 'border-primary text-primary'
+                                                : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300'
                                         }`}
                                     >
-                                        {cat as string}
+                                        Todas as Categorias
                                     </button>
-                                ))}
+                                    {Array.from(new Set(hotels.map(h => h.partner?.category).filter(Boolean))).map(cat => (
+                                        <button
+                                            key={cat as string}
+                                            onClick={() => setServiceFilter(cat as string)}
+                                            className={`pb-3 text-sm font-bold whitespace-nowrap border-b-2 transition-colors flex items-center gap-1.5 ${
+                                                serviceFilter === cat
+                                                    ? 'border-primary text-primary'
+                                                    : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300'
+                                            }`}
+                                        >
+                                            {cat as string}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 

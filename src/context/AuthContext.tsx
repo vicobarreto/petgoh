@@ -21,6 +21,7 @@ interface User {
     pets: Pet[];
     addPet: (pet: Pet) => void;
     refreshPets: () => Promise<void>;
+    updateUserAvatar: (url: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -73,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: authUser.id,
             email: authUser.email,
             name: userData?.full_name || authUser.user_metadata?.full_name || 'Usuário',
-            avatar: authUser.user_metadata?.avatar_url,
+            avatar: userData?.avatar_url || authUser.user_metadata?.avatar_url,
             // Use role from users table, default to 'tutor'
             role: userData?.role || 'tutor'
         });
@@ -118,8 +119,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }
 
+    const updateUserAvatar = (url: string) => {
+        setUser(prev => prev ? { ...prev, avatar: url } : null);
+    };
+
     return (
-        <AuthContext.Provider value={{ user, session, isAuthenticated: !!session, loading, signOut, pets, addPet, refreshPets }}>
+        <AuthContext.Provider value={{ user, session, isAuthenticated: !!session, loading, signOut, pets, addPet, refreshPets, updateUserAvatar }}>
             {children}
         </AuthContext.Provider>
     );

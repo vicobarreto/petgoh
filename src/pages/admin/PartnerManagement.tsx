@@ -418,24 +418,35 @@ const PartnerManagement: React.FC = () => {
                                 <div className="space-y-2 md:col-span-2">
                                     <label className="text-sm font-medium text-gray-700">Categoria <span className="text-xs text-gray-400 font-normal">(múltipla seleção)</span></label>
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+// ...
                                         {ADMIN_CATEGORIES.map(cat => {
-                                            const selected = (formData.category || '').split(',').map(c => c.trim()).includes(cat.value);
+                                            const categoryString = formData.category || '';
+                                            const categoryArray = categoryString ? categoryString.split(',').map(c => c.trim()).filter(Boolean) : [];
+                                            const selected = categoryArray.includes(cat.value);
+                                            
                                             const toggle = () => {
-                                                const current = (formData.category || '').split(',').map(c => c.trim()).filter(Boolean);
-                                                const next = selected ? current.filter(c => c !== cat.value) : [...current, cat.value];
-                                                setFormData({ ...formData, category: next.join(', ') });
+                                                const next = selected 
+                                                    ? categoryArray.filter(c => c !== cat.value) 
+                                                    : [...categoryArray, cat.value];
+                                                setFormData(prev => ({ ...prev, category: next.join(', ') }));
                                             };
+                                            
                                             return (
-                                                <label key={cat.value} onClick={toggle} className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${
-                                                    selected ? 'bg-primary/5 border-primary text-primary' : 'border-gray-200 text-gray-700 hover:border-gray-300'
-                                                }`}>
+                                                <button 
+                                                    key={cat.value} 
+                                                    type="button" 
+                                                    onClick={toggle} 
+                                                    className={`w-full flex items-center justify-start gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                                                        selected ? 'bg-primary/5 border-primary text-primary' : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                                                    }`}
+                                                >
                                                     <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
                                                         selected ? 'bg-primary border-primary' : 'border-gray-300'
                                                     }`}>
                                                         {selected && <span className="material-symbols-outlined text-white text-[12px]">check</span>}
                                                     </span>
                                                     <span className="text-xs font-medium">{cat.label}</span>
-                                                </label>
+                                                </button>
                                             );
                                         })}
                                     </div>

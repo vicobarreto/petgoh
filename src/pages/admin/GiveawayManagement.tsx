@@ -48,15 +48,22 @@ const GiveawayManagement: React.FC = () => {
 
             if (error) throw error;
 
-            // Fetch winner info separately if winner_id is set
+            // Fetch winner info separately if winner_id is set. Now it's from tutors.
             const enriched = await Promise.all((giveawayData || []).map(async (g) => {
                 if (g.winner_id) {
                     const { data: winnerData } = await supabase
-                        .from('users')
-                        .select('full_name, email')
+                        .from('tutors')
+                        .select('full_name, users(email)')
                         .eq('id', g.winner_id)
                         .single();
-                    return { ...g, winner: winnerData || undefined };
+                    return { 
+                        ...g, 
+                        winner: winnerData ? { 
+                            full_name: winnerData.full_name, 
+                            // @ts-ignore (users may be object or array depending on relation)
+                            email: winnerData.users?.email || '' 
+                        } : undefined 
+                    };
                 }
                 return g;
             }));
@@ -73,11 +80,16 @@ const GiveawayManagement: React.FC = () => {
     const fetchPotentialWinners = async () => {
         // Fetch tutors for winner selection
         const { data } = await supabase
-            .from('users')
-            .select('id, full_name, email')
-            .eq('role', 'tutor')
+            .from('tutors')
+            .select('id, full_name, users!inner(email)')
             .limit(50); // Limit for performance, improve with search later
-        setPotentialWinners(data || []);
+        
+        const mapped = (data || []).map((p: any) => ({
+            id: p.id,
+            full_name: p.full_name,
+            email: p.users?.email || ''
+        }));
+        setPotentialWinners(mapped);
     };
 
     const [saving, setSaving] = useState(false);
@@ -93,15 +105,20 @@ const GiveawayManagement: React.FC = () => {
         setDrawingId(giveaway.id);
         try {
             // Fetch all eligible participants (tutors)
-            const { data: participants } = await supabase
-                .from('users')
-                .select('id, full_name, email')
-                .eq('role', 'tutor');
+            const { data } = await supabase
+                .from('tutors')
+                .select('id, full_name, users!inner(email)');
 
-            if (!participants || participants.length === 0) {
+            if (!data || data.length === 0) {
                 alert('Nenhum participante elegível encontrado.');
                 return;
             }
+
+            const participants = data.map((p: any) => ({
+                id: p.id,
+                full_name: p.full_name,
+                email: p.users?.email || ''
+            }));
 
             // Simulate didactic countdown (animated reveal)
             setIsDrawingAnimated(true);
@@ -343,42 +360,79 @@ const GiveawayManagement: React.FC = () => {
 
             {/* LOG-08: Didactic draw result modal */}
             {drawResult && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md text-center p-8 animate-in zoom-in duration-300">
-                        <div className="w-24 h-24 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-6">
-                            <span className="material-symbols-outlined text-5xl text-yellow-500">emoji_events</span>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    {/* Confetti simulation using CSS */}
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                        {[...Array(20)].map((_, i) => (
+                            <div 
+                                key={i} 
+                                className="absolute w-3 h-3 rounded-sm opacity-80 animate-[fall_3s_linear_infinite]"
+                                style={{
+                                    left: `${Math.random() * 100}%`,
+                                    top: `-${Math.random() * 20}%`,
+                                    backgroundColor: ['#f59e0b', '#ec4899', '#3b82f6', '#10b981', '#8b5cf6'][Math.floor(Math.random() * 5)],
+                                    animationDelay: `${Math.random() * 3}s`,
+                                    transform: `rotate(${Math.random() * 360}deg)`
+                                }}
+                            />
+                        ))}
+                    </div>
+
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg text-center p-10 animate-in zoom-in-90 duration-500 relative overflow-hidden border-4 border-yellow-400">
+                        <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-yellow-50 to-transparent"></div>
+                        
+                        <div className="w-28 h-28 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-500 flex items-center justify-center mx-auto mb-6 shadow-xl relative z-10 border-4 border-white">
+                            <span className="material-symbols-outlined text-6xl text-white">emoji_events</span>
                         </div>
-                        <p className="text-sm font-bold text-primary uppercase tracking-widest mb-2">🎉 Sorteio Realizado!</p>
-                        <h2 className="text-3xl font-black text-gray-900 mb-1">{drawResult.giveaway.title}</h2>
-                        <p className="text-gray-400 mb-6 text-sm">Prêmio: {drawResult.giveaway.prize_description}</p>
-                        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-200 rounded-2xl p-6 mb-6">
-                            <p className="text-xs font-bold text-yellow-600 uppercase tracking-wider mb-2">Ganhador(a)</p>
-                            <p className="text-2xl font-black text-gray-900 mb-1">{drawResult.winner.full_name}</p>
-                            <p className="text-gray-500 text-sm">{drawResult.winner.email}</p>
+                        
+                        <div className="relative z-10">
+                            <p className="text-sm font-black text-yellow-600 uppercase tracking-widest mb-3 animate-[pulse_2s_ease-in-out_infinite]">🎉 Novo Ganhador! 🎉</p>
+                            <h2 className="text-3xl font-black text-gray-900 mb-2 leading-tight">{drawResult.giveaway.title}</h2>
+                            <p className="text-gray-500 mb-8 font-medium">Prêmio: <span className="text-gray-800 font-bold">{drawResult.giveaway.prize_description}</span></p>
+                            
+                            <div className="bg-gray-50 border-2 border-gray-100 rounded-2xl p-8 mb-8 relative transform hover:scale-105 transition-transform">
+                                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-yellow-400 text-yellow-900 text-xs font-black uppercase tracking-wider px-4 py-1 rounded-full shadow-sm">
+                                    Vencedor Sorteado
+                                </span>
+                                <p className="text-3xl font-black text-primary mb-2 mt-2">{drawResult.winner.full_name}</p>
+                                <p className="text-gray-500 font-medium">{drawResult.winner.email}</p>
+                            </div>
+                            
+                            <button
+                                onClick={() => setDrawResult(null)}
+                                className="w-full py-4 bg-gray-900 text-white font-bold rounded-xl hover:bg-black transition-colors shadow-lg shadow-gray-900/20 text-lg"
+                            >
+                                Uhuuuuuul! 🥳
+                            </button>
                         </div>
-                        <p className="text-xs text-gray-400 mb-6">Selecionado aleatoriamente entre todos os participantes elegíveis.</p>
-                        <button
-                            onClick={() => setDrawResult(null)}
-                            className="w-full py-3 bg-primary text-white font-bold rounded-xl hover:bg-orange-600 transition-colors"
-                        >
-                            Fechar
-                        </button>
                     </div>
                 </div>
             )}
 
             {/* LOG-08: Didactic drawing animation modal */}
             {isDrawingAnimated && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md text-center p-10 animate-in zoom-in duration-300">
-                        <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-6">
-                            <span className="material-symbols-outlined text-5xl text-primary animate-spin">autorenew</span>
+                <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-indigo-900/90 backdrop-blur-xl p-4 overflow-hidden">
+                    {/* Background decorations */}
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                        <div className="absolute -top-24 -left-24 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl animate-pulse"></div>
+                        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-pink-500/30 rounded-full blur-3xl animate-pulse delay-700"></div>
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle,transparent_20%,#312e81_100%)]"></div>
+                    </div>
+
+                    <div className="relative z-10 text-center animate-in slide-in-from-bottom-10 fade-in duration-700">
+                        <div className="w-32 h-32 rounded-full bg-white flex items-center justify-center mx-auto mb-8 shadow-[0_0_60px_rgba(255,255,255,0.3)] relative">
+                            <div className="absolute inset-0 rounded-full border-4 border-dashed border-indigo-200 animate-[spin_4s_linear_infinite]"></div>
+                            <span className="material-symbols-outlined text-6xl text-indigo-600 animate-[bounce_1s_ease-in-out_infinite]">casino</span>
                         </div>
-                        <h2 className="text-2xl font-black text-gray-900 mb-2">Sorteando Vencedor...</h2>
-                        <p className="text-gray-500 mb-8 text-sm">Cruzando os dedos!</p>
                         
-                        <div className="bg-gray-100 border-2 border-gray-200 rounded-2xl p-6 overflow-hidden relative">
-                            <p className="text-3xl font-black text-primary truncate transition-all duration-75">
+                        <h2 className="text-4xl md:text-5xl font-black text-white px-4 mb-3 drop-shadow-lg [text-shadow:0_4px_20px_rgba(255,255,255,0.3)]">
+                            Sorteando Vencedor!
+                        </h2>
+                        <p className="text-indigo-200 text-lg md:text-xl font-medium mb-12 tracking-wide uppercase">Cruzando os dedos...</p>
+                        
+                        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-8 md:p-12 w-full max-w-2xl mx-auto shadow-2xl relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]"></div>
+                            <p className="text-4xl md:text-6xl font-black text-white truncate transition-all duration-75 text-center drop-shadow-md">
                                 {currentDrawName || "..."}
                             </p>
                         </div>
@@ -478,7 +532,7 @@ const GiveawayManagement: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-4">
+                            <div className="border-t border-gray-100 pt-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                                     <select 
@@ -489,21 +543,6 @@ const GiveawayManagement: React.FC = () => {
                                         <option value="upcoming">Em Breve</option>
                                         <option value="active">Ativo</option>
                                         <option value="completed">Concluído</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Ganhador (ID)</label>
-                                    <select 
-                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary/20 outline-none bg-white"
-                                        value={form.winner_id || ''}
-                                        onChange={e => setForm({...form, winner_id: e.target.value || null})}
-                                    >
-                                        <option value="">Nenhum</option>
-                                        {potentialWinners.map(winner => (
-                                            <option key={winner.id} value={winner.id}>
-                                                {winner.full_name} ({winner.email})
-                                            </option>
-                                        ))}
                                     </select>
                                 </div>
                             </div>

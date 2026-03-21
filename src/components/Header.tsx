@@ -127,7 +127,7 @@ const Header: React.FC<HeaderProps> = ({ simple }) => {
                         </Link>
                         
                         <Link to="/profile" className="flex items-center gap-3 pl-2 cursor-pointer">
-                            <div className="size-10 rounded-full bg-cover bg-center border-2 border-white shadow-sm" style={{ backgroundImage: `url('${IMAGES.THOR_DOG || IMAGES.AVATAR_WOMAN}')` }}></div>
+                            <div className="size-10 rounded-full bg-cover bg-center border-2 border-white shadow-sm" style={{ backgroundImage: `url('${user?.avatar || IMAGES.AVATAR_WOMAN}')` }}></div>
                         </Link>
                     </div>
                 </div>

@@ -403,20 +403,34 @@ const AdoptionView: React.FC = () => {
                             {menuOpenId === pet.id && (
                                 <>
                                     <div className="fixed inset-0 z-40" onClick={() => setMenuOpenId(null)} />
-                                    <div className="absolute right-0 top-6 z-50 bg-white border border-slate-100 rounded-xl shadow-lg py-1 min-w-[140px] animate-fade-in-up">
+                                    <div className="absolute right-0 top-6 z-50 bg-white border border-slate-100 rounded-xl shadow-lg py-1 min-w-[160px] animate-fade-in-up">
                                         {user?.id === pet.owner_id ? (
-                                            <button
-                                                onClick={async () => {
-                                                    if (!confirm('Excluir este post de adoção?')) return;
-                                                    await supabase.from('adoption_pets').delete().eq('id', pet.id);
-                                                    setPets(prev => prev.filter(p => p.id !== pet.id));
-                                                    setMenuOpenId(null);
-                                                }}
-                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-red-600 hover:bg-red-50"
-                                            >
-                                                <span className="material-symbols-outlined text-[18px]">delete</span>
-                                                Excluir
-                                            </button>
+                                            <>
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!confirm('Arquivar este post de adoção? Ele será removido do mural mas não excluído.')) return;
+                                                        await supabase.from('adoption_pets').update({ status: 'archived' }).eq('id', pet.id);
+                                                        setPets(prev => prev.filter(p => p.id !== pet.id));
+                                                        setMenuOpenId(null);
+                                                    }}
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-slate-600 hover:bg-slate-50"
+                                                >
+                                                    <span className="material-symbols-outlined text-[18px]">archive</span>
+                                                    Arquivar
+                                                </button>
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!confirm('Excluir este post de adoção?')) return;
+                                                        await supabase.from('adoption_pets').delete().eq('id', pet.id);
+                                                        setPets(prev => prev.filter(p => p.id !== pet.id));
+                                                        setMenuOpenId(null);
+                                                    }}
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-red-600 hover:bg-red-50"
+                                                >
+                                                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                    Excluir
+                                                </button>
+                                            </>
                                         ) : (
                                             <button onClick={() => setMenuOpenId(null)} className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-slate-600 hover:bg-slate-50">
                                                 <span className="material-symbols-outlined text-[18px]">flag</span>
@@ -545,20 +559,34 @@ const LostPetsView: React.FC = () => {
                             {menuOpenId === pet.id && (
                                 <>
                                     <div className="fixed inset-0 z-40" onClick={() => setMenuOpenId(null)} />
-                                    <div className="absolute right-0 top-6 z-50 bg-white border border-slate-100 rounded-xl shadow-lg py-1 min-w-[140px] animate-fade-in-up">
+                                    <div className="absolute right-0 top-6 z-50 bg-white border border-slate-100 rounded-xl shadow-lg py-1 min-w-[160px] animate-fade-in-up">
                                         {user?.id === pet.user_id ? (
-                                            <button
-                                                onClick={async () => {
-                                                    if (!confirm('Excluir este alerta de pet perdido?')) return;
-                                                    await supabase.from('lost_pets').delete().eq('id', pet.id);
-                                                    setLostPets(prev => prev.filter(p => p.id !== pet.id));
-                                                    setMenuOpenId(null);
-                                                }}
-                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-red-600 hover:bg-red-50"
-                                            >
-                                                <span className="material-symbols-outlined text-[18px]">delete</span>
-                                                Excluir
-                                            </button>
+                                            <>
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!confirm('Arquivar este alerta? Ele será removido do mural mas não excluído.')) return;
+                                                        await supabase.from('lost_pets').update({ status: 'archived' }).eq('id', pet.id);
+                                                        setLostPets(prev => prev.filter(p => p.id !== pet.id));
+                                                        setMenuOpenId(null);
+                                                    }}
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-slate-600 hover:bg-slate-50"
+                                                >
+                                                    <span className="material-symbols-outlined text-[18px]">archive</span>
+                                                    Arquivar
+                                                </button>
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!confirm('Excluir este alerta de pet perdido?')) return;
+                                                        await supabase.from('lost_pets').delete().eq('id', pet.id);
+                                                        setLostPets(prev => prev.filter(p => p.id !== pet.id));
+                                                        setMenuOpenId(null);
+                                                    }}
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-red-600 hover:bg-red-50"
+                                                >
+                                                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                    Excluir
+                                                </button>
+                                            </>
                                         ) : (
                                             <button onClick={() => setMenuOpenId(null)} className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-slate-600 hover:bg-slate-50">
                                                 <span className="material-symbols-outlined text-[18px]">flag</span>

@@ -24,6 +24,11 @@ interface PartnerInfo {
     city?: string | null;
     state?: string | null;
     zip_code?: string | null;
+    website_url?: string | null;
+    instagram_url?: string | null;
+    facebook_url?: string | null;
+    whatsapp?: string | null;
+    photos?: string[] | null;
 }
 
 const CATEGORIES = ['Banho', 'Tosa', 'Hospedagem', 'Creche', 'Passeio', 'Consulta', 'Vacina', 'Exame', 'Cirurgia', 'Outro'];
@@ -38,6 +43,7 @@ const PartnerDashboard: React.FC = () => {
     const [editingService, setEditingService] = useState<PartnerService | null>(null);
     const [saving, setSaving] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [uploadingPhotoIdx, setUploadingPhotoIdx] = useState<number | null>(null);
 
     // Form state
     const [form, setForm] = useState({
@@ -64,9 +70,9 @@ const PartnerDashboard: React.FC = () => {
     const fetchPartnerInfo = async () => {
         const { data, error } = await supabase
             .from('partners')
-            .select('id, company_name, category, address, city, state, zip_code')
+            .select('id, company_name, category, address, city, state, zip_code, website_url, instagram_url, facebook_url, whatsapp, photos')
             .eq('user_id', user!.id)
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Erro ao buscar parceiro:', error);
@@ -113,10 +119,15 @@ const PartnerDashboard: React.FC = () => {
 
     const handleSave = async () => {
         if (!form.name.trim() || !form.category || !form.price) return;
+        if (!partner?.id) {
+            alert('Erro: Parceiro não encontrado. Sua conta pode estar pendente de aprovação.');
+            return;
+        }
+
         setSaving(true);
 
         const payload = {
-            partner_id: partner!.id,
+            partner_id: partner.id,
             created_by: user!.id,
             name: form.name.trim(),
             description: form.description.trim() || null,
@@ -256,8 +267,9 @@ const PartnerDashboard: React.FC = () => {
                                     <p className="text-slate-500 text-sm mt-1">Gerencie os serviços oferecidos pela sua empresa.</p>
                                 </div>
                                 <button
-                                    onClick={openCreateModal}
-                                    className="flex items-center gap-2 h-11 px-6 rounded-xl bg-primary text-white font-bold text-sm hover:bg-orange-600 transition-all shadow-lg shadow-primary/20"
+                                    onClick={() => partner?.id ? openCreateModal() : alert('Sua conta de parceiro está pendente ou não foi encontrada.')}
+                                    disabled={!partner?.id}
+                                    className={`flex items-center gap-2 h-11 px-6 rounded-xl font-bold text-sm transition-all shadow-lg ${partner?.id ? 'bg-primary text-white hover:bg-orange-600 shadow-primary/20' : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'}`}
                                 >
                                     <span className="material-symbols-outlined text-[20px]">add</span>
                                     Novo Serviço
@@ -386,7 +398,8 @@ const PartnerDashboard: React.FC = () => {
                                          <select
                                             value={partner?.category || ''}
                                             onChange={(e) => setPartner(prev => prev ? { ...prev, category: e.target.value } : null)}
-                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm bg-white"
+                                            className={`w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm bg-white ${user?.role !== 'admin' ? 'opacity-70 cursor-not-allowed bg-slate-50' : ''}`}
+                                            disabled={user?.role !== 'admin'}
                                          >
                                             <option value="">Selecione uma categoria</option>
                                             <option value="Hotel">Hotel / Hospedagem</option>
@@ -398,6 +411,12 @@ const PartnerDashboard: React.FC = () => {
                                             <option value="Veterinário">Veterinário</option>
                                             <option value="Outros">Outros</option>
                                          </select>
+                                         {user?.role !== 'admin' && (
+                                             <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
+                                                 <span className="material-symbols-outlined text-sm">lock</span>
+                                                 A categoria só pode ser alterada pelo administrador da plataforma.
+                                             </p>
+                                         )}
                                     </div>
 
                                     <div className="border-t border-slate-100 pt-4 mt-6">
@@ -451,7 +470,7 @@ const PartnerDashboard: React.FC = () => {
                                 </div>
 
                                 <div className="flex justify-end pt-4">
-                                     <button
+                                      <button
                                         onClick={async () => {
                                             if (!partner?.id) return;
                                             setSaving(true);
@@ -465,6 +484,11 @@ const PartnerDashboard: React.FC = () => {
                                                         city: partner.city,
                                                         state: partner.state,
                                                         zip_code: partner.zip_code,
+                                                        website_url: partner.website_url || null,
+                                                        instagram_url: partner.instagram_url || null,
+                                                        facebook_url: partner.facebook_url || null,
+                                                        whatsapp: partner.whatsapp || null,
+                                                        photos: partner.photos || [],
                                                         updated_at: new Date().toISOString()
                                                     })
                                                     .eq('id', partner.id);
@@ -482,6 +506,178 @@ const PartnerDashboard: React.FC = () => {
                                     >
                                         {saving ? 'Salvando...' : 'Salvar Alterações'}
                                     </button>
+                                </div>
+
+                                {/* --- PRESENÇA ONLINE --- */}
+                                <div className="border-t border-slate-100 pt-6 mt-2">
+                                    <h4 className="text-sm font-bold text-slate-900 mb-1 flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-primary text-[18px]">language</span>
+                                        Presença Online
+                                    </h4>
+                                    <p className="text-xs text-slate-400 mb-4">Adicione seus links para que clientes encontrem e sigam seu estabelecimento.</p>
+                                    <div className="space-y-4">
+                                        <div className="space-y-1">
+                                            <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-[16px] text-slate-400">public</span>
+                                                Website
+                                            </label>
+                                            <input
+                                                type="url"
+                                                value={partner?.website_url || ''}
+                                                onChange={(e) => setPartner(prev => prev ? { ...prev, website_url: e.target.value } : null)}
+                                                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm"
+                                                placeholder="https://www.seusite.com.br"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                                    <span className="text-pink-500 font-black text-xs">IG</span>
+                                                    Instagram
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={partner?.instagram_url || ''}
+                                                    onChange={(e) => setPartner(prev => prev ? { ...prev, instagram_url: e.target.value } : null)}
+                                                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm"
+                                                    placeholder="@seuperfil ou URL"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                                    <span className="text-blue-600 font-black text-xs">FB</span>
+                                                    Facebook
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={partner?.facebook_url || ''}
+                                                    onChange={(e) => setPartner(prev => prev ? { ...prev, facebook_url: e.target.value } : null)}
+                                                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm"
+                                                    placeholder="@suapagina ou URL"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-[16px] text-green-500">chat</span>
+                                                WhatsApp
+                                            </label>
+                                            <input
+                                                type="tel"
+                                                value={partner?.whatsapp || ''}
+                                                onChange={(e) => setPartner(prev => prev ? { ...prev, whatsapp: e.target.value } : null)}
+                                                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm"
+                                                placeholder="(11) 99999-9999"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* --- FOTOS DO ESTABELECIMENTO --- */}
+                                <div className="border-t border-slate-100 pt-6 mt-2">
+                                    <h4 className="text-sm font-bold text-slate-900 mb-1 flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-primary text-[18px]">photo_library</span>
+                                        Fotos do Estabelecimento
+                                    </h4>
+                                    <p className="text-xs text-slate-400 mb-4">Adicione até 6 fotos do seu hotel. Recomendamos imagens no formato <strong>900×600 px</strong> para melhor apresentação.</p>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        {Array.from({ length: 6 }).map((_, idx) => {
+                                            const photoUrl = partner?.photos?.[idx];
+                                            const isUploading = uploadingPhotoIdx === idx;
+                                            return (
+                                                <div key={idx} className="relative aspect-[3/2] rounded-xl overflow-hidden border-2 border-dashed border-slate-200 bg-slate-50 group hover:border-primary/50 transition-colors">
+                                                    {photoUrl ? (
+                                                        <>
+                                                            <img
+                                                                src={photoUrl}
+                                                                alt={`Foto ${idx + 1}`}
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                                <label className="cursor-pointer p-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors">
+                                                                    <span className="material-symbols-outlined text-white text-[18px]">photo_camera</span>
+                                                                    <input
+                                                                        type="file"
+                                                                        accept="image/*"
+                                                                        className="hidden"
+                                                                        onChange={async (e) => {
+                                                                            const file = e.target.files?.[0];
+                                                                            if (!file || !partner?.id) return;
+                                                                            setUploadingPhotoIdx(idx);
+                                                                            try {
+                                                                                const ext = file.name.split('.').pop();
+                                                                                const path = `${partner.id}/photo_${idx}.${ext}`;
+                                                                                const { error } = await supabase.storage.from('partner-photos').upload(path, file, { upsert: true });
+                                                                                if (error) throw error;
+                                                                                const { data } = supabase.storage.from('partner-photos').getPublicUrl(path);
+                                                                                const newPhotos = [...(partner.photos || Array(6).fill(null))];
+                                                                                newPhotos[idx] = data.publicUrl;
+                                                                                setPartner(prev => prev ? { ...prev, photos: newPhotos } : null);
+                                                                                await supabase.from('partners').update({ photos: newPhotos }).eq('id', partner.id);
+                                                                            } catch (err: any) {
+                                                                                alert('Erro ao fazer upload: ' + err.message);
+                                                                            } finally {
+                                                                                setUploadingPhotoIdx(null);
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                </label>
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        if (!partner?.id) return;
+                                                                        const newPhotos = [...(partner.photos || [])];
+                                                                        newPhotos[idx] = '';
+                                                                        setPartner(prev => prev ? { ...prev, photos: newPhotos } : null);
+                                                                        await supabase.from('partners').update({ photos: newPhotos }).eq('id', partner.id);
+                                                                    }}
+                                                                    className="p-2 bg-red-500/80 backdrop-blur-sm rounded-lg hover:bg-red-500 transition-colors"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-white text-[18px]">delete</span>
+                                                                </button>
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
+                                                            {isUploading ? (
+                                                                <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary" />
+                                                            ) : (
+                                                                <>
+                                                                    <span className="material-symbols-outlined text-slate-300 text-3xl mb-1">add_photo_alternate</span>
+                                                                    <span className="text-[10px] text-slate-400 font-medium">Foto {idx + 1}</span>
+                                                                    <span className="text-[9px] text-slate-300">900×600 px</span>
+                                                                </>
+                                                            )}
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                className="hidden"
+                                                                onChange={async (e) => {
+                                                                    const file = e.target.files?.[0];
+                                                                    if (!file || !partner?.id) return;
+                                                                    setUploadingPhotoIdx(idx);
+                                                                    try {
+                                                                        const ext = file.name.split('.').pop();
+                                                                        const path = `${partner.id}/photo_${idx}.${ext}`;
+                                                                        const { error } = await supabase.storage.from('partner-photos').upload(path, file, { upsert: true });
+                                                                        if (error) throw error;
+                                                                        const { data } = supabase.storage.from('partner-photos').getPublicUrl(path);
+                                                                        const newPhotos = [...(partner.photos || Array(6).fill(''))];
+                                                                        newPhotos[idx] = data.publicUrl;
+                                                                        setPartner(prev => prev ? { ...prev, photos: newPhotos } : null);
+                                                                        await supabase.from('partners').update({ photos: newPhotos }).eq('id', partner.id);
+                                                                    } catch (err: any) {
+                                                                        alert('Erro ao fazer upload: ' + err.message);
+                                                                    } finally {
+                                                                        setUploadingPhotoIdx(null);
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </label>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
                         </div>
