@@ -1,0 +1,6 @@
+src/pages/PetRegistration.tsx(108,90): error TS2322: Type 'string | number' is not assignable to type 'string'.
+  Type 'number' is not assignable to type 'string'.
+src/pages/PetRegistration.tsx(108,113): error TS2322: Type 'string | number' is not assignable to type 'string'.
+  Type 'number' is not assignable to type 'string'.
+src/pages/social/SocialLayout.tsx(89,98): error TS2339: Property 'user_metadata' does not exist on type 'User'.
+src/pages/social/SocialLayout.tsx(94,103): error TS2339: Property 'user_metadata' does not exist on type 'User'.

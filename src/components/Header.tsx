@@ -94,7 +94,6 @@ const Header: React.FC<HeaderProps> = ({ simple }) => {
                 {/* Right Actions */}
                 <div className="flex items-center gap-3 md:gap-6">
                     <nav className="hidden lg:flex items-center gap-6">
-                        <Link to="/" className="text-sm font-medium hover:text-primary transition-colors">Serviços</Link>
                         <Link to="/partner" className="text-sm font-medium hover:text-primary transition-colors">Parceiros</Link>
                     </nav>
                     

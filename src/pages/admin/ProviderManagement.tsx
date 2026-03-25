@@ -5,7 +5,7 @@ import MediaUploader from '../../components/admin/MediaUploader';
 interface Partner {
     id: string;
     company_name: string;
-    category: string | null;
+    category: string[] | null;
     email: string | null;
     phone: string | null;
     cnpj: string | null;
@@ -50,9 +50,9 @@ const ProviderManagement: React.FC<ProviderManagementProps> = ({ title, forcedCa
             .order('created_at', { ascending: false });
         
         if (forcedCategory) {
-            query = query.eq('category', forcedCategory);
+            query = query.contains('category', [forcedCategory]);
         } else {
-            query = query.neq('category', 'Veterinário');
+            query = query.not('category', 'cs', '{"Veterinário"}');
         }
 
         const { data } = await query;
@@ -69,7 +69,7 @@ const ProviderManagement: React.FC<ProviderManagementProps> = ({ title, forcedCa
         try {
             const payload = {
                 company_name: form.company_name,
-                category: categoryToSave,
+                category: Array.isArray(categoryToSave) ? categoryToSave : (categoryToSave ? [categoryToSave] : []),
                 email: form.email || null,
                 phone: form.phone || null,
                 cnpj: form.cnpj || null,
@@ -111,17 +111,20 @@ const ProviderManagement: React.FC<ProviderManagementProps> = ({ title, forcedCa
 
     const handleCreate = () => {
         setEditing(null);
-        setForm({ status: 'active', category: forcedCategory || undefined });
+        setForm({ status: 'active', category: forcedCategory ? [forcedCategory] : undefined });
         setIsModalOpen(true);
     };
 
     const filtered = providers.filter(p => {
         const matchSearch = p.company_name.toLowerCase().includes(search.toLowerCase()) || p.email?.toLowerCase().includes(search.toLowerCase());
-        const matchCat = forcedCategory ? true : (!filterCat || p.category === filterCat);
+        const matchCat = forcedCategory ? true : (!filterCat || (Array.isArray(p.category) && p.category.includes(filterCat)));
         return matchSearch && matchCat;
     });
 
-    const getCatIcon = (cat: string | null) => PROVIDER_CATEGORIES.find(c => c.value === cat)?.icon || 'store';
+    const getCatIcon = (cat: string[] | string | null) => {
+        const catStr = Array.isArray(cat) && cat.length > 0 ? cat[0] : (cat || '');
+        return PROVIDER_CATEGORIES.find(c => c.value === catStr)?.icon || 'store';
+    };
     const currentCategoryLabel = forcedCategory ? PROVIDER_CATEGORIES.find(c => c.value === forcedCategory)?.label : 'Prestadores';
 
     return (
@@ -220,8 +223,8 @@ const ProviderManagement: React.FC<ProviderManagementProps> = ({ title, forcedCa
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Categoria *</label>
                                     <select 
                                         className={`w-full px-4 py-2.5 border border-gray-200 rounded-xl outline-none bg-white focus:ring-2 focus:ring-purple-100 ${forcedCategory ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                                        value={forcedCategory || form.category || ''} 
-                                        onChange={e => setForm({ ...form, category: e.target.value })}
+                                        value={forcedCategory || (form.category && form.category.length > 0 ? form.category[0] : '')} 
+                                        onChange={e => setForm({ ...form, category: [e.target.value] })}
                                         disabled={!!forcedCategory}
                                     >
                                         <option value="">Selecione...</option>

@@ -105,7 +105,7 @@ const PetRegistration: React.FC = () => {
             if (error) throw error;
 
             // Update AuthContext state
-            addPet({ ...newPet, id: data.id, image: imageUrl, breed: newPet.breed || '', age: newPet.age || '', weight: newPet.weight || '', gender: (newPet.gender as "Macho" | "Fêmea") || 'Macho', color: newPet.color || 'orange' });
+            addPet({ ...newPet, id: data.id, image: imageUrl, breed: newPet.breed || '', age: String(newPet.age), weight: String(newPet.weight), gender: (newPet.gender as "Macho" | "Fêmea") || 'Macho', color: newPet.color || 'orange', chipId: newPet.chip_id || '' });
             
             alert('Pet cadastrado com sucesso!');
             navigate('/profile?tab=pets');

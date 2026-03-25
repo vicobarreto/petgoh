@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 
 const CATEGORIES = [
     { value: 'Hotel', label: 'Hotel / Hospedagem' },
@@ -15,12 +16,14 @@ const CATEGORIES = [
 
 const RegisterPartner: React.FC = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     const [formData, setFormData] = useState({
         companyName: '',
         categories: [] as string[], // UI-05: multiple checkboxes
         cnpj: '',
         email: '',
+        password: '', // New field for Auth SignUp
         phone: '',
         logoUrl: '',
         websiteUrl: '',       // UI-07
@@ -101,11 +104,47 @@ const RegisterPartner: React.FC = () => {
             if (!formData.companyName) throw new Error('Nome da Empresa é obrigatório.');
             if (formData.categories.length === 0) throw new Error('Selecione pelo menos uma categoria.');
 
+            let finalUserId = user?.id;
+
+            if (!user) {
+                if (!formData.email || !formData.password) {
+                    throw new Error('Para registrar como parceiro, forneça um email e uma senha para criar sua conta.');
+                }
+                
+                // Create auth account
+                const { data: authData, error: authError } = await supabase.auth.signUp({
+                    email: formData.email,
+                    password: formData.password,
+                    options: {
+                        data: {
+                            full_name: formData.companyName,
+                            role: 'partner',
+                            onboarding_completed: true // Parceiros não fazem o onboarding de tutor
+                        }
+                    }
+                });
+
+                if (authError) throw new Error(authError.message);
+                if (!authData.user) throw new Error('Falha ao criar usuário de autenticação.');
+
+                finalUserId = authData.user.id;
+                
+                // Força o cargo diretamente na users (caso a trigger demore ou falhe ao passar a meta)
+                await supabase.from('users').update({ 
+                    role: 'partner', 
+                    onboarding_completed: true 
+                }).eq('id', finalUserId);
+            } else {
+                // Atualiza o user atual para partner
+                await supabase.from('users').update({ role: 'partner' }).eq('id', finalUserId);
+            }
+
             const { error: insertError } = await supabase
                 .from('partners')
                 .insert([{
+                    user_id: finalUserId,
                     company_name: formData.companyName,
-                    category: formData.categories.join(', '), // join multiple categories
+                    category: formData.categories,
                     cnpj: formData.cnpj || null,
                     email: formData.email || null,
                     phone: formData.phone || null,
@@ -273,15 +312,31 @@ const RegisterPartner: React.FC = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
                             <input
                                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20"
                                 type="email"
                                 name="email"
                                 value={formData.email}
                                 onChange={handleChange}
+                                required={!user}
                             />
                         </div>
+                        {!user && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Senha * <span className="text-xs text-gray-400 font-normal">(para acessar seu painel)</span></label>
+                                <input
+                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20"
+                                    type="password"
+                                    name="password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="Mínimo 6 caracteres"
+                                    minLength={6}
+                                />
+                            </div>
+                        )}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
                             <input

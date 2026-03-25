@@ -8,6 +8,10 @@ export interface Partner {
     image: string;
     priceLabel: string;
     priceValue: string;
+    status?: 'pending' | 'approved' | 'rejected';
+    website_url?: string;
+    instagram_url?: string;
+    hotel_photos?: string[];
 }
 
 export interface Pet {

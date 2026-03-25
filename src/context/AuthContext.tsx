@@ -10,6 +10,7 @@ interface User {
     name?: string;
     avatar?: string;
     role?: string;
+    onboarding_completed?: boolean;
 }
 
     interface AuthContextType {
@@ -76,7 +77,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             name: userData?.full_name || authUser.user_metadata?.full_name || 'Usuário',
             avatar: userData?.avatar_url || authUser.user_metadata?.avatar_url,
             // Use role from users table, default to 'tutor'
-            role: userData?.role || 'tutor'
+            role: userData?.role || 'tutor',
+            onboarding_completed: userData?.onboarding_completed || false
         });
         setLoading(false);
     };

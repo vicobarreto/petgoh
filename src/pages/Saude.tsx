@@ -116,7 +116,7 @@ const Saude: React.FC = () => {
         try {
             const [servicesRes, vetsRes] = await Promise.all([
                 supabase.from('health_services').select('*').eq('is_active', true).order('category'),
-                supabase.from('partners').select('*').eq('category', 'Veterinário').eq('status', 'active').order('rating', { ascending: false }),
+                supabase.from('partners').select('*').contains('category', ['Veterinário']).eq('status', 'active').order('rating', { ascending: false }),
             ]);
             if (servicesRes.data) setServices(servicesRes.data);
             if (vetsRes.data) setVets(vetsRes.data);

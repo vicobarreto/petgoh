@@ -15,6 +15,7 @@ interface Giveaway {
     status: 'active' | 'upcoming' | 'completed';
     winner_id: string | null;
     winner?: { full_name: string; email: string };
+    participants?: string[];
     participants_count?: number;
 }
 
@@ -52,16 +53,15 @@ const GiveawayManagement: React.FC = () => {
             const enriched = await Promise.all((giveawayData || []).map(async (g) => {
                 if (g.winner_id) {
                     const { data: winnerData } = await supabase
-                        .from('tutors')
-                        .select('full_name, users(email)')
+                        .from('users')
+                        .select('full_name, email')
                         .eq('id', g.winner_id)
-                        .single();
+                        .maybeSingle();
                     return { 
                         ...g, 
                         winner: winnerData ? { 
                             full_name: winnerData.full_name, 
-                            // @ts-ignore (users may be object or array depending on relation)
-                            email: winnerData.users?.email || '' 
+                            email: winnerData.email || '' 
                         } : undefined 
                     };
                 }
@@ -78,16 +78,16 @@ const GiveawayManagement: React.FC = () => {
     };
 
     const fetchPotentialWinners = async () => {
-        // Fetch tutors for winner selection
+        // Fetch users directly (tutors table is empty, winner FK moved to users)
         const { data } = await supabase
-            .from('tutors')
-            .select('id, full_name, users!inner(email)')
-            .limit(50); // Limit for performance, improve with search later
+            .from('users')
+            .select('id, full_name, email')
+            .eq('role', 'tutor');
         
         const mapped = (data || []).map((p: any) => ({
             id: p.id,
-            full_name: p.full_name,
-            email: p.users?.email || ''
+            full_name: p.full_name || 'Usuário',
+            email: p.email || ''
         }));
         setPotentialWinners(mapped);
     };
@@ -104,20 +104,26 @@ const GiveawayManagement: React.FC = () => {
         if (!confirm(`Realizar sorteio para "${giveaway.title}"? Esta ação não pode ser desfeita.`)) return;
         setDrawingId(giveaway.id);
         try {
-            // Fetch all eligible participants (tutors)
+            const pIds = giveaway.participants || [];
+            if (pIds.length === 0) {
+                alert('Nenhum participante configurado para este sorteio. Cadastre os participantes editando o sorteio primeiro.');
+                return;
+            }
+
             const { data } = await supabase
-                .from('tutors')
-                .select('id, full_name, users!inner(email)');
+                .from('users')
+                .select('id, full_name, email')
+                .in('id', pIds);
 
             if (!data || data.length === 0) {
-                alert('Nenhum participante elegível encontrado.');
+                alert('Nenhum participante válido encontrado.');
                 return;
             }
 
             const participants = data.map((p: any) => ({
                 id: p.id,
-                full_name: p.full_name,
-                email: p.users?.email || ''
+                full_name: p.full_name || 'Usuário',
+                email: p.email || ''
             }));
 
             // Simulate didactic countdown (animated reveal)
@@ -174,7 +180,8 @@ const GiveawayManagement: React.FC = () => {
                 draw_date: form.draw_date,
                 image_url: form.image_url || null,
                 status: form.status || 'upcoming',
-                winner_id: form.winner_id || null
+                winner_id: form.winner_id || null,
+                participants: form.participants || []
             };
 
             let error;
@@ -530,6 +537,55 @@ const GiveawayManagement: React.FC = () => {
                                         onChange={e => setForm({...form, draw_date: e.target.value})}
                                     />
                                 </div>
+                            </div>
+
+                            <div className="border-t border-gray-100 pt-4">
+                                <div className="flex justify-between items-center mb-2">
+                                    <label className="block text-sm font-medium text-gray-700">Participantes do Sorteio</label>
+                                    <div className="flex gap-2">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setForm({...form, participants: potentialWinners.map(t => t.id)})} 
+                                            className="text-xs font-bold bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors"
+                                        >
+                                            Selecionar Todos
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setForm({...form, participants: []})} 
+                                            className="text-xs font-bold bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors"
+                                        >
+                                            Limpar
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="max-h-56 overflow-y-auto border border-gray-200 rounded-xl p-3 bg-gray-50 flex flex-col gap-2 relative">
+                                    {potentialWinners.length === 0 ? (
+                                        <p className="text-sm text-gray-500 text-center py-4">Nenhum tutor encontrado no sistema.</p>
+                                    ) : (
+                                        potentialWinners.map(t => (
+                                            <label key={t.id} className="flex items-center gap-3 text-sm bg-white p-3 rounded-lg border shadow-sm cursor-pointer hover:border-primary/50 transition-colors">
+                                                <input 
+                                                    type="checkbox" 
+                                                    className="w-4 h-4 rounded text-primary focus:ring-primary/50" 
+                                                    checked={(form.participants || []).includes(t.id)}
+                                                    onChange={(e) => {
+                                                        const current = form.participants || [];
+                                                        if (e.target.checked) setForm({...form, participants: [...current, t.id]});
+                                                        else setForm({...form, participants: current.filter(id => id !== t.id)});
+                                                    }} 
+                                                />
+                                                <div className="truncate flex-1">
+                                                    <p className="font-bold text-gray-800 truncate">{t.full_name}</p>
+                                                    <p className="text-gray-500 text-xs truncate">{t.email}</p>
+                                                </div>
+                                            </label>
+                                        ))
+                                    )}
+                                </div>
+                                <p className="text-xs text-secondary font-bold mt-2 text-right">
+                                    {(form.participants || []).length} selecionados de {potentialWinners.length}
+                                </p>
                             </div>
 
                             <div className="border-t border-gray-100 pt-4">

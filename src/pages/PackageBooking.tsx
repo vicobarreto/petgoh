@@ -28,8 +28,9 @@ interface PackageHotel {
     partner: {
         id: string;
         company_name: string;
-        category: string;
+        category: string | string[];
         logo_url: string | null;
+        hotel_photo_url: string | null;
         rating: number;
         city: string | null;
         state: string | null;
@@ -80,6 +81,21 @@ const SERVICE_ICONS: Record<string, string> = {
     walk: 'directions_walk',
 };
 
+// Helper: normalise category field (DB migrated to text[], but guard against legacy strings)
+const getCategoryArray = (cat: string | string[] | null | undefined): string[] => {
+    if (!cat) return [];
+    return Array.isArray(cat) ? cat : [cat];
+};
+
+const CATEGORY_ICONS: Record<string, string> = {
+    'Hotel': 'hotel',
+    'Creche': 'child_care',
+    'Banho e Tosa': 'content_cut',
+    'Veterinário': 'medical_services',
+    'Passeador': 'directions_walk',
+    'Pet Friendly': 'pets',
+};
+
 const PackageBooking: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -104,9 +120,12 @@ const PackageBooking: React.FC = () => {
 
     // LOG-01: Service partner selection state
     // servicePartnerOptions: serviceType -> list of available partners
-    const [servicePartnerOptions, setServicePartnerOptions] = useState<Record<string, { id: string; company_name: string; city: string | null; rating: number }[]>>({});
+    const [servicePartnerOptions, setServicePartnerOptions] = useState<Record<string, { id: string; company_name: string; city: string | null; rating: number; logo_url: string | null; hotel_photo_url: string | null }[]>>({});
     // selectedServicePartners: serviceType -> partnerId
     const [selectedServicePartners, setSelectedServicePartners] = useState<Record<string, string>>({});
+    // Service step filters
+    const [serviceNameFilter, setServiceNameFilter] = useState('');
+    const [serviceCategoryFilter, setServiceCategoryFilter] = useState('');
 
     const totalDiarias = useMemo(() => {
         const hotelItem = pkg?.items?.find(i => i.service_type === 'hotel');
@@ -167,37 +186,40 @@ const PackageBooking: React.FC = () => {
             }
             setPkg(pkgData);
 
-            // Fetch linked hotels
+            // Fetch linked hotels (hotel_photo_url added for premium card design)
             const { data: hotelData, error: hotelError } = await supabase
                 .from('package_hotels')
                 .select(`
                     id,
                     partner_id,
                     avulso_price_per_night,
-                    partner:partners(id, company_name, category, logo_url, rating, city, state)
+                    partner:partners(id, company_name, category, logo_url, hotel_photo_url, rating, city, state)
                 `)
                 .eq('package_id', id);
 
             if (!hotelError && hotelData) {
-                // HOTELS screen should show ANY partner linked to this package!
-                // BUG-01: We're removing the hardcoded category constraint to allow any partner the Admin associated with the package stays step
                 const stayPartners = (hotelData as any[]).filter(h => h.partner);
                 setHotels(stayPartners as unknown as PackageHotel[]);
             }
 
-            // LOG-01: Build partner options for each non-hotel service using ONLY partners associated with the package
+            // LOG-01: Build partner options for each non-hotel service
             const nonHotelItems = (pkgData.items || []).filter((i: PackageItem) => i.service_type !== 'hotel');
             const categoriesToFetch = [...new Set(nonHotelItems.map((i: PackageItem) => SERVICE_CATEGORY_MAP[i.service_type]).filter(Boolean))];
 
             if (categoriesToFetch.length > 0 && hotelData) {
-                const linkedPartners = (hotelData as any[]).map(h => h.partner).filter(p => p && categoriesToFetch.includes(p.category));
+                // category is text[] in DB — handle both array and legacy string
+                const linkedPartners = (hotelData as any[]).map(h => h.partner).filter(p =>
+                    p && getCategoryArray(p.category).some((c: string) => categoriesToFetch.includes(c))
+                );
 
                 // Group by service type
                 const grouped: Record<string, typeof linkedPartners> = {};
                 nonHotelItems.forEach((item: PackageItem) => {
                     const cat = SERVICE_CATEGORY_MAP[item.service_type];
                     if (cat) {
-                        grouped[item.service_type] = linkedPartners.filter((p: any) => p.category === cat);
+                        grouped[item.service_type] = linkedPartners.filter((p: any) =>
+                            getCategoryArray(p.category).includes(cat)
+                        );
                     }
                 });
                 setServicePartnerOptions(grouped);
@@ -210,7 +232,7 @@ const PackageBooking: React.FC = () => {
     };
 
     const getHotelImage = (hotel: PackageHotel) => {
-        return hotel.partner?.logo_url || IMAGES.HOTEL_INTERIOR;
+        return hotel.partner?.hotel_photo_url || hotel.partner?.logo_url || IMAGES.HOTEL_INTERIOR;
     };
 
 
@@ -256,16 +278,14 @@ const PackageBooking: React.FC = () => {
     // Derived list of unique cities from loaded hotels
     const availableCities = Array.from(new Set(hotels.map(h => h.partner?.city).filter(Boolean))) as string[];
 
-    // Filtered hotel list for the selection UI
+    // Filtered hotel list for the selection UI (category is text[] — use getCategoryArray)
     const filteredHotels = hotels.filter(h => {
         const name = h.partner?.company_name?.toLowerCase() || '';
         const city = h.partner?.city?.toLowerCase() || '';
         if (nameFilter && !name.includes(nameFilter.toLowerCase())) return false;
         if (cityFilter && city !== cityFilter.toLowerCase()) return false;
-        
-        // BUG-01: Clean dynamic category filter
         if (serviceFilter !== 'todos') {
-            if (h.partner?.category !== serviceFilter) return false;
+            if (!getCategoryArray(h.partner?.category).includes(serviceFilter)) return false;
         }
         return true;
     });
@@ -427,9 +447,9 @@ const PackageBooking: React.FC = () => {
                             />
                         </div>
 
-                        <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex flex-col sm:flex-row gap-4 items-center">
                             {/* City filter */}
-                            <div className="relative flex-1">
+                            <div className="relative w-full sm:w-1/4 min-w-[150px]">
                                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">location_on</span>
                                 <select
                                     value={cityFilter}
@@ -444,36 +464,40 @@ const PackageBooking: React.FC = () => {
                             </div>
 
                             {/* Service type filter tabs */}
-                            <div className="w-full mt-2">
-                                <div className="flex border-b border-gray-200 overflow-x-auto no-scrollbar gap-6 px-1">
+                            <div className="w-full sm:w-3/4 overflow-hidden mt-2 sm:mt-0">
+                                <div className="flex border-b border-gray-200 overflow-x-auto no-scrollbar gap-1 px-1">
                                     <button
                                         onClick={() => setServiceFilter('todos')}
-                                        className={`pb-3 text-sm font-bold whitespace-nowrap border-b-2 transition-colors ${
+                                        className={`pb-3 px-2 text-sm font-bold whitespace-nowrap border-b-2 transition-colors flex items-center gap-1.5 ${
                                             serviceFilter === 'todos'
                                                 ? 'border-primary text-primary'
                                                 : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300'
                                         }`}
                                     >
-                                        Todas as Categorias
+                                        <span className="material-symbols-outlined text-[16px]">apps</span>
+                                        Todas
                                     </button>
-                                    {Array.from(new Set(hotels.map(h => h.partner?.category).filter(Boolean))).map(cat => (
+                                    {Object.keys(CATEGORY_ICONS).map(cat => (
                                         <button
-                                            key={cat as string}
-                                            onClick={() => setServiceFilter(cat as string)}
-                                            className={`pb-3 text-sm font-bold whitespace-nowrap border-b-2 transition-colors flex items-center gap-1.5 ${
+                                            key={cat}
+                                            onClick={() => setServiceFilter(cat)}
+                                            className={`pb-3 px-2 text-sm font-bold whitespace-nowrap border-b-2 transition-colors flex items-center gap-1.5 ${
                                                 serviceFilter === cat
                                                     ? 'border-primary text-primary'
                                                     : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300'
                                             }`}
                                         >
-                                            {cat as string}
+                                            <span className="material-symbols-outlined text-[16px]">{CATEGORY_ICONS[cat] || 'storefront'}</span>
+                                            {cat}
                                         </button>
                                     ))}
                                 </div>
                             </div>
                         </div>
 
-                        <p className="text-xs text-gray-400">{filteredHotels.length} hospedagem(ns) encontrada(s)</p>
+                        <p className="text-xs text-gray-400">
+                            {filteredHotels.length} {serviceFilter === 'todos' ? 'parceiro' : serviceFilter.toLowerCase()}(s) encontrado(s)
+                        </p>
                     </div>
 
                     {/* Hotel cards */}
@@ -487,64 +511,69 @@ const PackageBooking: React.FC = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {filteredHotels.map((hotel) => {
                                 const isSelected = selectedHotelIds.includes(hotel.partner_id);
+                                const categoryLabels = getCategoryArray(hotel.partner?.category).join(', ');
                                 return (
                                 <div
                                     key={hotel.id}
                                     onClick={() => toggleHotelSelection(hotel.partner_id)}
-                                    className={`group cursor-pointer rounded-2xl border-2 overflow-hidden shadow-sm transition-all ${
+                                    className={`group cursor-pointer rounded-2xl overflow-hidden transition-all duration-200 ${
                                         isSelected
-                                            ? 'border-primary shadow-primary/20'
-                                            : 'border-gray-100 hover:border-gray-300 hover:shadow-md'
+                                            ? 'ring-[3px] ring-primary shadow-lg shadow-primary/20'
+                                            : 'ring-1 ring-gray-200 hover:ring-2 hover:ring-gray-300 hover:shadow-md'
                                     }`}
                                 >
-                                    <div className="relative h-40 bg-gray-200">
+                                    <div className="relative h-52 bg-gray-200">
                                         <div
                                             className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
                                             style={{ backgroundImage: `url('${getHotelImage(hotel)}')` }}
                                         />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
-                                        {/* Selection indicator */}
-                                        <div className={`absolute top-3 right-3 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
-                                            isSelected ? 'bg-primary border-primary' : 'bg-white/70 border-white/80 backdrop-blur-sm'
+                                        {/* Selection badge */}
+                                        <div className={`absolute top-3 right-3 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                                            isSelected ? 'bg-primary border-primary scale-110 shadow-lg' : 'bg-white/80 border-white'
                                         }`}>
-                                            {isSelected && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
+                                            {isSelected && <span className="material-symbols-outlined text-white text-[18px]">check</span>}
                                         </div>
 
+                                        {/* Verified badge */}
                                         <div className="absolute top-3 left-3">
-                                            <div className="bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-bold text-gray-800 shadow-sm flex items-center gap-1">
+                                            <div className="bg-white/90 px-2.5 py-1 rounded-full text-xs font-bold text-gray-800 shadow-sm flex items-center gap-1">
                                                 <span className="material-symbols-outlined text-blue-500 text-[14px]">verified</span>
                                                 Verificado
                                             </div>
                                         </div>
 
                                         <div className="absolute bottom-3 left-3 right-3 text-white">
-                                            <h4 className="text-lg font-bold drop-shadow-sm">{hotel.partner?.company_name}</h4>
-                                            <div className="flex items-center gap-2 text-sm">
-                                                <div className="flex items-center gap-1 bg-black/30 px-2 py-0.5 rounded-lg backdrop-blur-sm">
-                                                    <span className="material-symbols-outlined text-yellow-400 text-[14px]">star</span>
-                                                    <span className="text-xs">{hotel.partner?.rating || '—'}</span>
+                                            <h4 className="text-lg font-bold drop-shadow-sm leading-tight">{hotel.partner?.company_name}</h4>
+                                            <div className="flex items-center flex-wrap gap-1.5 mt-1">
+                                                <div className="flex items-center gap-1 bg-black/40 px-2 py-0.5 rounded-lg">
+                                                    <span className="material-symbols-outlined text-yellow-400 text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                                                    <span className="text-xs font-semibold">{hotel.partner?.rating || '—'}</span>
                                                 </div>
                                                 {hotel.partner?.city && (
-                                                    <div className="flex items-center gap-1 bg-black/30 px-2 py-0.5 rounded-lg backdrop-blur-sm text-xs">
-                                                        <span className="material-symbols-outlined text-[14px]">location_on</span>
+                                                    <div className="flex items-center gap-1 bg-black/40 px-2 py-0.5 rounded-lg text-xs">
+                                                        <span className="material-symbols-outlined text-[13px]">location_on</span>
                                                         {hotel.partner.city}{hotel.partner.state && `, ${hotel.partner.state}`}
                                                     </div>
                                                 )}
-                                                {hotel.partner?.category && (
-                                                    <div className="flex items-center gap-1 bg-primary/70 px-2 py-0.5 rounded-lg backdrop-blur-sm text-xs">
-                                                        {hotel.partner.category}
+                                                {categoryLabels && (
+                                                    <div className="bg-primary/80 px-2 py-0.5 rounded-lg text-xs font-semibold">
+                                                        {categoryLabels}
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className={`p-3 border-t flex items-center justify-between text-xs font-semibold transition-colors ${
-                                        isSelected ? 'bg-primary/5 border-primary/20 text-primary' : 'bg-gray-50/50 border-gray-100 text-gray-400'
+                                    <div className={`px-4 py-2.5 flex items-center justify-between text-xs font-semibold transition-colors ${
+                                        isSelected ? 'bg-primary/5 text-primary' : 'bg-gray-50 text-gray-400'
                                     }`}>
-                                        <span>{isSelected ? '✓ Selecionado' : 'Clique para selecionar'}</span>
-                                        {hotel.partner?.category && <span className="text-gray-400">{hotel.partner.category}</span>}
+                                        <span className="flex items-center gap-1">
+                                            {isSelected && <span className="material-symbols-outlined text-[14px]">check_circle</span>}
+                                            {isSelected ? 'Selecionado' : 'Clique para selecionar'}
+                                        </span>
+                                        <span className="material-symbols-outlined text-[18px] opacity-60">{isSelected ? 'hotel' : 'add_circle'}</span>
                                     </div>
                                 </div>
                                 );
@@ -756,92 +785,159 @@ const PackageBooking: React.FC = () => {
                 </div>
             )}
 
-            {/* ============= STEP 4: SERVICES ============= */}
-            {step === 'SERVICES' && (
-                <div className="space-y-6 animate-in fade-in duration-300">
-                    <div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-1">Escolha os Parceiros</h3>
-                        <p className="text-sm text-gray-500">Selecione o prestador para cada serviço incluído no seu pacote.</p>
-                    </div>
+            {/* ============= STEP 4: SERVICES (Premium card-first redesign) ============= */}
+            {step === 'SERVICES' && (() => {
+                // Active tab: use state or fall back to first service
+                const activeTab = serviceCategoryFilter || nonHotelItems[0]?.service_type || '';
+                const currentOptions = (servicePartnerOptions[activeTab] || []).filter(p =>
+                    !serviceNameFilter || p.company_name.toLowerCase().includes(serviceNameFilter.toLowerCase())
+                );
 
-                    <div className="space-y-4">
-                        {nonHotelItems.map(item => {
-                            const options = servicePartnerOptions[item.service_type] || [];
-                            const selected = selectedServicePartners[item.service_type];
-                            return (
-                                <div key={item.service_type} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                            <span className="material-symbols-outlined text-primary">{SERVICE_ICONS[item.service_type] || 'room_service'}</span>
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-gray-900">{item.quantity}x {SERVICE_LABELS[item.service_type] || item.service_type}</h4>
-                                            <p className="text-xs text-gray-400">Selecione um prestador</p>
-                                        </div>
-                                    </div>
+                return (
+                    <div className="space-y-6 animate-in fade-in duration-300">
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-1">Escolha os Parceiros</h3>
+                            <p className="text-sm text-gray-500">Selecione o prestador para cada serviço incluído no seu pacote.</p>
+                        </div>
 
-                                    {options.length === 0 ? (
-                                        <p className="text-sm text-gray-400 italic">Nenhum parceiro disponível para este serviço no momento.</p>
-                                    ) : (
-                                        <div className="space-y-2">
-                                            {options.map(p => (
-                                                <label
-                                                    key={p.id}
-                                                    className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
-                                                        selected === p.id
-                                                            ? 'border-primary bg-primary/5'
-                                                            : 'border-gray-100 hover:border-gray-200'
-                                                    }`}
-                                                >
-                                                    <input
-                                                        type="radio"
-                                                        name={`service-${item.service_type}`}
-                                                        value={p.id}
-                                                        checked={selected === p.id}
-                                                        onChange={() => setSelectedServicePartners(prev => ({ ...prev, [item.service_type]: p.id }))}
-                                                        className="sr-only"
-                                                    />
-                                                    <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
-                                                        selected === p.id ? 'border-primary bg-primary' : 'border-gray-300'
-                                                    }`}>
-                                                        {selected === p.id && <span className="w-2 h-2 rounded-full bg-white" />}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="font-semibold text-sm text-gray-900">{p.company_name}</p>
-                                                        {p.city && <p className="text-xs text-gray-400">{p.city}</p>}
-                                                    </div>
-                                                    <div className="flex items-center gap-1 text-yellow-500">
-                                                        <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                                                        <span className="text-xs font-bold text-gray-700">{p.rating}</span>
-                                                    </div>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
+                        {/* Filter bar */}
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+                            {/* Search */}
+                            <div className="relative">
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">search</span>
+                                <input
+                                    type="text"
+                                    placeholder="Buscar por nome..."
+                                    value={serviceNameFilter}
+                                    onChange={e => setServiceNameFilter(e.target.value)}
+                                    className="w-full pl-10 pr-4 h-11 rounded-xl border border-gray-200 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                />
+                            </div>
 
-                    <div className="flex gap-3">
-                        <button
-                            onClick={() => setStep('DATES')}
-                            className="h-14 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
-                        >
-                            <span className="material-symbols-outlined text-lg">arrow_back</span>
-                            Voltar
-                        </button>
-                        <button
-                            onClick={() => setStep('SUMMARY')}
-                            disabled={!canProceedFromServices}
-                            className="flex-1 h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            Ver Resumo
-                            <span className="material-symbols-outlined">arrow_forward</span>
-                        </button>
+                            {/* Service type tabs */}
+                            <div className="flex border-b border-gray-200 overflow-x-auto no-scrollbar gap-1">
+                                {nonHotelItems.map(item => {
+                                    const isActive = activeTab === item.service_type;
+                                    const hasSelection = !!selectedServicePartners[item.service_type];
+                                    return (
+                                        <button
+                                            key={item.service_type}
+                                            onClick={() => { setServiceCategoryFilter(item.service_type); setServiceNameFilter(''); }}
+                                            className={`pb-3 px-3 text-sm font-bold whitespace-nowrap border-b-2 transition-colors flex items-center gap-1.5 ${
+                                                isActive
+                                                    ? 'border-primary text-primary'
+                                                    : 'border-transparent text-gray-400 hover:text-gray-600'
+                                            }`}
+                                        >
+                                            <span className="material-symbols-outlined text-[17px]">{SERVICE_ICONS[item.service_type] || 'room_service'}</span>
+                                            {item.quantity}x {SERVICE_LABELS[item.service_type] || item.service_type}
+                                            {hasSelection && (
+                                                <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <p className="text-xs text-gray-400">{currentOptions.length} parceiro(s) disponível(is)</p>
+                        </div>
+
+                        {/* Partner cards */}
+                        {currentOptions.length === 0 ? (
+                            <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+                                <span className="material-symbols-outlined text-5xl text-gray-300 mb-3 block">search_off</span>
+                                <p className="text-gray-500 font-medium">Nenhum parceiro encontrado.</p>
+                                <p className="text-gray-400 text-sm mt-1">Tente ajustar o filtro ou a busca.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {currentOptions.map(partner => {
+                                    const isSelected = selectedServicePartners[activeTab] === partner.id;
+                                    const imgUrl = partner.hotel_photo_url || partner.logo_url || IMAGES.HOTEL_INTERIOR;
+                                    return (
+                                        <div
+                                            key={partner.id}
+                                            onClick={() => setSelectedServicePartners(prev => ({ ...prev, [activeTab]: partner.id }))}
+                                            className={`group cursor-pointer rounded-2xl overflow-hidden transition-all duration-200 ${
+                                                isSelected
+                                                    ? 'ring-[3px] ring-primary shadow-lg shadow-primary/20'
+                                                    : 'ring-1 ring-gray-200 hover:ring-2 hover:ring-gray-300 hover:shadow-md'
+                                            }`}
+                                        >
+                                            <div className="relative h-52 bg-gray-200">
+                                                <div
+                                                    className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                                                    style={{ backgroundImage: `url('${imgUrl}')` }}
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+
+                                                {/* Selection badge */}
+                                                <div className={`absolute top-3 right-3 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                                                    isSelected ? 'bg-primary border-primary scale-110 shadow-lg' : 'bg-white/80 border-white'
+                                                }`}>
+                                                    {isSelected && <span className="material-symbols-outlined text-white text-[18px]">check</span>}
+                                                </div>
+
+                                                {/* Service type label */}
+                                                <div className="absolute top-3 left-3">
+                                                    <div className="bg-white/90 px-2.5 py-1 rounded-full text-xs font-bold text-gray-800 shadow-sm flex items-center gap-1">
+                                                        <span className="material-symbols-outlined text-primary text-[14px]">{SERVICE_ICONS[activeTab] || 'room_service'}</span>
+                                                        {SERVICE_LABELS[activeTab] || activeTab}
+                                                    </div>
+                                                </div>
+
+                                                <div className="absolute bottom-3 left-3 right-3 text-white">
+                                                    <h4 className="text-lg font-bold drop-shadow-sm leading-tight">{partner.company_name}</h4>
+                                                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                                        <div className="flex items-center gap-1 bg-black/40 px-2 py-0.5 rounded-lg">
+                                                            <span className="material-symbols-outlined text-yellow-400 text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                                                            <span className="text-xs font-semibold">{partner.rating || '—'}</span>
+                                                        </div>
+                                                        {partner.city && (
+                                                            <div className="flex items-center gap-1 bg-black/40 px-2 py-0.5 rounded-lg text-xs">
+                                                                <span className="material-symbols-outlined text-[13px]">location_on</span>
+                                                                {partner.city}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className={`px-4 py-2.5 flex items-center justify-between text-xs font-semibold transition-colors ${
+                                                isSelected ? 'bg-primary/5 text-primary' : 'bg-gray-50 text-gray-400'
+                                            }`}>
+                                                <span className="flex items-center gap-1">
+                                                    {isSelected && <span className="material-symbols-outlined text-[14px]">check_circle</span>}
+                                                    {isSelected ? 'Selecionado' : 'Clique para selecionar'}
+                                                </span>
+                                                <span className="material-symbols-outlined text-[18px] opacity-60">{isSelected ? SERVICE_ICONS[activeTab] || 'check' : 'add_circle'}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setStep('DATES')}
+                                className="h-14 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
+                            >
+                                <span className="material-symbols-outlined text-lg">arrow_back</span>
+                                Voltar
+                            </button>
+                            <button
+                                onClick={() => setStep('SUMMARY')}
+                                disabled={!canProceedFromServices}
+                                className="flex-1 h-14 bg-primary hover:bg-orange-600 text-white font-bold rounded-xl text-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Ver Resumo
+                                <span className="material-symbols-outlined">arrow_forward</span>
+                            </button>
+                        </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
 
             {/* ============= STEP 5: SUMMARY ============= */}
             {step === 'SUMMARY' && (() => {

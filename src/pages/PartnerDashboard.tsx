@@ -19,7 +19,7 @@ interface PartnerService {
 interface PartnerInfo {
     id: string;
     company_name: string;
-    category: string | null;
+    category: string[] | null;
     address?: string | null;
     city?: string | null;
     state?: string | null;
@@ -393,28 +393,43 @@ const PartnerDashboard: React.FC = () => {
                                         />
                                     </div>
 
-                                    <div className="space-y-1">
-                                         <label className="text-sm font-medium text-slate-700">Categoria Principal</label>
-                                         <select
-                                            value={partner?.category || ''}
-                                            onChange={(e) => setPartner(prev => prev ? { ...prev, category: e.target.value } : null)}
-                                            className={`w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm bg-white ${user?.role !== 'admin' ? 'opacity-70 cursor-not-allowed bg-slate-50' : ''}`}
-                                            disabled={user?.role !== 'admin'}
-                                         >
-                                            <option value="">Selecione uma categoria</option>
-                                            <option value="Hotel">Hotel / Hospedagem</option>
-                                            <option value="Pet Shop">Pet Shop</option>
-                                            <option value="Creche">Creche</option>
-                                            <option value="Banho e Tosa">Banho e Tosa</option>
-                                            <option value="Adestramento">Adestramento</option>
-                                            <option value="Passeador">Passeador</option>
-                                            <option value="Veterinário">Veterinário</option>
-                                            <option value="Outros">Outros</option>
-                                         </select>
+                                    <div className="space-y-2">
+                                         <label className="text-sm font-medium text-slate-700">Categorias de Atuação</label>
+                                         <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 p-4 rounded-xl border border-slate-200 bg-white ${user?.role !== 'admin' ? 'opacity-70 bg-slate-50' : ''}`}>
+                                             {['Hotel', 'Pet Shop', 'Creche', 'Banho e Tosa', 'Adestramento', 'Passeador', 'Veterinário', 'Outros'].map(cat => {
+                                                 const currentCategories = Array.isArray(partner?.category) ? partner.category : [];
+                                                 const isSelected = currentCategories.includes(cat);
+                                                 return (
+                                                     <label key={cat} className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${user?.role !== 'admin' ? 'cursor-not-allowed' : 'hover:bg-slate-50'}`}>
+                                                         <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'bg-primary border-primary' : 'border-slate-300'}`}>
+                                                             {isSelected && <span className="material-symbols-outlined text-white text-[14px]">check</span>}
+                                                         </div>
+                                                         <input
+                                                             type="checkbox"
+                                                             className="hidden"
+                                                             checked={isSelected}
+                                                             disabled={user?.role !== 'admin'}
+                                                             onChange={() => {
+                                                                 if (user?.role !== 'admin') return;
+                                                                 setPartner(prev => {
+                                                                     if (!prev) return null;
+                                                                     const prevCats = Array.isArray(prev.category) ? prev.category : [];
+                                                                     const nextCats = isSelected 
+                                                                         ? prevCats.filter(c => c !== cat)
+                                                                         : [...prevCats, cat];
+                                                                     return { ...prev, category: nextCats };
+                                                                 });
+                                                             }}
+                                                         />
+                                                         <span className="text-sm font-medium text-slate-700">{cat}</span>
+                                                     </label>
+                                                 );
+                                             })}
+                                         </div>
                                          {user?.role !== 'admin' && (
                                              <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
                                                  <span className="material-symbols-outlined text-sm">lock</span>
-                                                 A categoria só pode ser alterada pelo administrador da plataforma.
+                                                 As categorias só podem ser alteradas pelo administrador da plataforma.
                                              </p>
                                          )}
                                     </div>

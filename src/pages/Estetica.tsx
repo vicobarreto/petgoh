@@ -105,7 +105,7 @@ const Estetica: React.FC = () => {
         try {
             const [servicesRes, partnersRes] = await Promise.all([
                 supabase.from('beauty_services').select('*').eq('is_active', true).order('price'),
-                supabase.from('partners').select('*').eq('category', 'Banho e Tosa').eq('status', 'active').order('rating', { ascending: false }),
+                supabase.from('partners').select('*').contains('category', ['Banho e Tosa']).eq('status', 'active').order('rating', { ascending: false }),
             ]);
             if (servicesRes.data) setServices(servicesRes.data);
             if (partnersRes.data) setPartners(partnersRes.data);

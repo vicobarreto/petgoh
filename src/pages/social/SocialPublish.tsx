@@ -118,11 +118,11 @@ const SocialPublish: React.FC = () => {
                 {/* User info */}
                 <div className="flex items-center gap-2.5 mb-3">
                     <img
-                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.user_metadata?.full_name || 'U')}&background=f97316&color=fff&size=32`}
+                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent((user as any).user_metadata?.full_name || 'U')}&background=f97316&color=fff&size=32`}
                         className="size-8 rounded-full object-cover"
                         alt=""
                     />
-                    <span className="font-semibold text-[13px] text-gray-900">{user.user_metadata?.full_name || 'Usuário'}</span>
+                    <span className="font-semibold text-[13px] text-gray-900">{(user as any).user_metadata?.full_name || 'Usuário'}</span>
                 </div>
 
                 {/* Caption */}

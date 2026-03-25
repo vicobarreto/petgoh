@@ -86,12 +86,12 @@ const SocialLayout: React.FC = () => {
                             className="flex items-center gap-2.5 w-full text-left"
                         >
                             <img
-                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.user_metadata?.full_name || 'U')}&background=f97316&color=fff&size=32`}
+                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent((user as any).user_metadata?.full_name || 'U')}&background=f97316&color=fff&size=32`}
                                 className="size-8 rounded-full"
                                 alt=""
                             />
                             <div className="min-w-0">
-                                <p className="text-[13px] font-semibold text-gray-900 truncate">{user.user_metadata?.full_name || 'Usuário'}</p>
+                                <p className="text-[13px] font-semibold text-gray-900 truncate">{(user as any).user_metadata?.full_name || 'Usuário'}</p>
                                 <p className="text-[11px] text-gray-400 truncate">{user.email}</p>
                             </div>
                         </button>

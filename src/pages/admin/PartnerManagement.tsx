@@ -16,13 +16,13 @@ const ADMIN_CATEGORIES = [
 interface Partner {
     id: string;
     company_name: string;
-    category: string | null;
+    category: string[] | null;
     email: string | null;
     phone: string | null;
     cnpj: string | null;
     city: string | null;
     state: string | null;
-    status: 'active' | 'pending' | 'rejected';
+    status: 'pending' | 'active' | 'rejected' | 'inactive';
     logo_url: string | null;
     hotel_photo_url: string | null;
     website: string | null;
@@ -36,7 +36,8 @@ interface Partner {
 interface PartnerServiceAdmin {
     id: string;
     name: string;
-    category: string;
+    category: string[] | null;
+    cnpj?: string;
     price: number;
     duration_minutes: number | null;
     is_active: boolean;
@@ -56,9 +57,22 @@ const PartnerManagement: React.FC = () => {
     const [partnerServices, setPartnerServices] = useState<PartnerServiceAdmin[]>([]);
     const [servicesLoading, setServicesLoading] = useState(false);
     const [filterPartner, setFilterPartner] = useState('');
+    const [viewingCategories, setViewingCategories] = useState<string[] | null>(null);
 
     // Form states
     const [formData, setFormData] = useState<Partial<Partner>>({});
+
+    const getCategoryArray = (cat: any): string[] => {
+        if (!cat) return [];
+        if (Array.isArray(cat)) return cat;
+        if (typeof cat === 'string') {
+            if (cat.startsWith('{') && cat.endsWith('}')) {
+                return cat.slice(1, -1).split(',').map(s => s.replace(/^"|"$/g, '').trim());
+            }
+            return cat.split(',').map(s => s.trim());
+        }
+        return [];
+    };
 
     useEffect(() => {
         fetchPartners();
@@ -143,7 +157,10 @@ const PartnerManagement: React.FC = () => {
 
     const handleEdit = (partner: Partner) => {
         setEditingPartner(partner);
-        setFormData(partner);
+        setFormData({
+            ...partner,
+            category: getCategoryArray(partner.category)
+        });
         setIsModalOpen(true);
     };
 
@@ -166,7 +183,8 @@ const PartnerManagement: React.FC = () => {
     const filteredPartners = partners.filter(p => {
         const matchesSearch = p.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             p.email?.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = !categoryFilter || (p.category || '').toLowerCase().includes(categoryFilter.toLowerCase());
+        const categoryArray = getCategoryArray(p.category);
+        const matchesCategory = !categoryFilter || categoryArray.some(c => c.toLowerCase().includes(categoryFilter.toLowerCase()));
         return matchesSearch && matchesCategory;
     });
 
@@ -250,14 +268,9 @@ const PartnerManagement: React.FC = () => {
                     <select
                         value={categoryFilter}
                         onChange={(e) => setCategoryFilter(e.target.value)}
-                        className="px-4 py-2.5 border border-secondary/10 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        className="pl-10 pr-4 py-2 bg-white/50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm appearance-none"
                     >
                         <option value="">Todas as Categorias</option>
-                        <option value="Hotel">Hotel</option>
-                        <option value="Pet Shop">Pet Shop</option>
-                        <option value="Creche">Creche</option>
-                        <option value="Banho e Tosa">Banho e Tosa</option>
-                        <option value="Adestramento">Adestramento</option>
                         <option value="Passeador">Passeador</option>
                         <option value="Veterinário">Veterinário</option>
                         <option value="Outros">Outros</option>
@@ -310,7 +323,25 @@ const PartnerManagement: React.FC = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-5 align-top">
-                                            <div className="text-sm font-medium text-secondary/70 mb-2">{partner.category || '-'}</div>
+                                            <div className="text-sm font-medium text-secondary/70 mb-2 flex flex-wrap gap-2 items-center">
+                                                {(() => {
+                                                    const cats = getCategoryArray(partner.category);
+                                                    if (cats.length === 0) return <span>-</span>;
+                                                    return (
+                                                        <>
+                                                            <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-xs">{cats[0]}</span>
+                                                            {cats.length > 1 && (
+                                                                <button 
+                                                                    onClick={() => setViewingCategories(cats)}
+                                                                    className="text-xs bg-primary/10 text-primary px-2 py-1 rounded hover:bg-primary/20 transition-colors cursor-pointer"
+                                                                >
+                                                                    +{cats.length - 1} mais
+                                                                </button>
+                                                            )}
+                                                        </>
+                                                    );
+                                                })()}
+                                            </div>
                                             {/* LOG-07: Display partner services */}
                                             {partner.partner_services && partner.partner_services.length > 0 && (
                                                 <div className="flex flex-wrap gap-1 max-w-[200px]">
@@ -420,15 +451,14 @@ const PartnerManagement: React.FC = () => {
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
 // ...
                                         {ADMIN_CATEGORIES.map(cat => {
-                                            const categoryString = formData.category || '';
-                                            const categoryArray = categoryString ? categoryString.split(',').map(c => c.trim()).filter(Boolean) : [];
+                                            const categoryArray = getCategoryArray(formData.category);
                                             const selected = categoryArray.includes(cat.value);
                                             
                                             const toggle = () => {
                                                 const next = selected 
                                                     ? categoryArray.filter(c => c !== cat.value) 
                                                     : [...categoryArray, cat.value];
-                                                setFormData(prev => ({ ...prev, category: next.join(', ') }));
+                                                setFormData(prev => ({ ...prev, category: next }));
                                             };
                                             
                                             return (
@@ -696,6 +726,39 @@ const PartnerManagement: React.FC = () => {
                     </div>
                 )}
             </div>
+            )}
+            {/* Viewing Categories Modal */}
+            {viewingCategories && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-slate-50">
+                            <h3 className="text-lg font-bold text-secondary">
+                                Categorias do Parceiro
+                            </h3>
+                            <button onClick={() => setViewingCategories(null)} className="text-gray-400 hover:text-gray-600">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div className="p-4">
+                            <ul className="space-y-2">
+                                {viewingCategories.map((cat, idx) => (
+                                    <li key={idx} className="bg-slate-50 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center gap-2 border border-slate-100">
+                                        <span className="material-symbols-outlined text-[16px] text-primary">check_circle</span>
+                                        {cat}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div className="p-4 border-t border-gray-100 flex justify-end">
+                            <button 
+                                onClick={() => setViewingCategories(null)}
+                                className="px-5 py-2 rounded-xl text-sm font-bold bg-primary text-white hover:bg-primary/90 transition-colors"
+                            >
+                                Fechar
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
