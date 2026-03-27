@@ -1,4 +1,4 @@
-name: Deploy to cPanel via SSH
+name: Deploy to cPanel (TurboCloud) via Secure FTP (FTPS)
 
 on:
   push:
@@ -11,17 +11,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Baixa o código do seu repositório
+      # 1. Baixa o código do seu repositório para o servidor do GitHub
       - name: 📦 Checkout do código
         uses: actions/checkout@v4
 
-      # 2. Prepara o Node.js
+      # 2. Prepara o ambiente instalando o Node.js (necessário para rodar o React/Vite)
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # 3. Instala as dependências
+      # 3. Instala as dependências do seu projeto (npm install)
       - name: 📥 Instalar dependências
         run: npm install
 
@@ -29,15 +29,16 @@ jobs:
       - name: 🏗️ Build do projeto
         run: npm run build
 
-      # 5. Envia a pasta 'dist' via SSH (rsync)
-      - name: 🔐 SSH Deploy
-        uses: easingthemes/ssh-deploy@main
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          ARGS: "-rlgoDzvc -i --delete"
-          SOURCE: "dist/"
-          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
-          REMOTE_USER: ${{ secrets.REMOTE_USER }}
-          REMOTE_PORT: "21098"
-          TARGET: ${{ secrets.REMOTE_TARGET }}
-          EXCLUDE: "/node_modules/"
+      # 5. Envia a pasta 'dist' gerada para a TurboCloud via Secured FTPS
+      - name: 📤 Secure FTPS Deploy
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ./ # A pasta destino na sua hospedagem
+          local-dir: ./dist/      # Pasta onde o Vite e React geram o site pronto
+          protocol: ftps # Usando FTPS ao invés de FTP e não de SSH
+          log-level: verbose
+          # TurboCloud/cPanel pode ter delays de resposta via Actions, aumentar o timeout é recomendado:
+          timeout: 60000
