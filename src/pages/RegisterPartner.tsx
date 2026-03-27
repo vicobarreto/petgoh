@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import MediaUploader from '../components/admin/MediaUploader';
 
 const CATEGORIES = [
     { value: 'Hotel', label: 'Hotel / Hospedagem' },
@@ -29,7 +30,8 @@ const RegisterPartner: React.FC = () => {
         websiteUrl: '',       // UI-07
         instagram: '',        // UI-07
         facebook: '',         // UI-07
-        hotelPhotoUrl: '',    // UI-07: 900x600 hotel photo
+        whatsapp: '',
+        photos: [] as string[],
     });
 
     const [loading, setLoading] = useState(false);
@@ -84,16 +86,7 @@ const RegisterPartner: React.FC = () => {
         }
     };
 
-    const handleHotelPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files?.[0]) {
-            handleFileUpload(
-                e.target.files[0],
-                'partner-logos',
-                (url) => setFormData(prev => ({ ...prev, hotelPhotoUrl: url })),
-                setUploadingHotelPhoto
-            );
-        }
-    };
+    // Old single hotel photo handler removed
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -150,10 +143,11 @@ const RegisterPartner: React.FC = () => {
                     phone: formData.phone || null,
                     status: 'pending', // LOG-05: always start as pending, only admin can change
                     logo_url: formData.logoUrl || null,
-                    website: formData.websiteUrl || null,
-                    instagram: formData.instagram || null,
-                    facebook: formData.facebook || null,
-                    hotel_photo_url: formData.hotelPhotoUrl || null,
+                    website_url: formData.websiteUrl || null,
+                    instagram_url: formData.instagram || null,
+                    facebook_url: formData.facebook || null,
+                    whatsapp: formData.whatsapp || null,
+                    photos: formData.photos || [],
                 }]);
 
             if (insertError) throw new Error(insertError.message);
@@ -226,35 +220,54 @@ const RegisterPartner: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Hotel Photos — UI-07: 900x600 */}
+                    {/* Hotel Photos — UI-07: 900x600 grid */}
                     <div className="space-y-3">
                         <label className="block text-sm font-medium text-gray-700">
-                            Foto do Estabelecimento
-                            <span className="ml-2 text-xs text-gray-400 font-normal">(recomendado: 900x600px)</span>
+                            Fotos do Estabelecimento
+                            <span className="ml-2 text-xs text-gray-400 font-normal">(adicione até 6 fotos, recomendado 900x600px)</span>
                         </label>
-                        <div className="flex gap-3 flex-wrap">
-                            <label className={`flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors cursor-pointer ${uploadingHotelPhoto ? 'opacity-50 pointer-events-none' : ''}`}>
-                                <span className="material-symbols-outlined text-lg">{uploadingHotelPhoto ? 'hourglass_empty' : 'add_photo_alternate'}</span>
-                                {uploadingHotelPhoto ? 'Enviando...' : 'Upload da Foto'}
-                                <input
-                                    accept="image/*"
-                                    className="sr-only"
-                                    type="file"
-                                    disabled={uploadingHotelPhoto}
-                                    onChange={handleHotelPhotoChange}
-                                    onClick={(e) => { (e.target as HTMLInputElement).value = ''; }}
-                                />
-                            </label>
-                        </div>
-                        <div className="h-40 w-full bg-gray-50 rounded-xl overflow-hidden border-2 border-dashed border-gray-200 flex items-center justify-center">
-                            {formData.hotelPhotoUrl ? (
-                                <img src={formData.hotelPhotoUrl} alt="Foto do estabelecimento" className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="text-center text-gray-400">
-                                    <span className="material-symbols-outlined text-4xl block mb-1">image</span>
-                                    <p className="text-xs">Foto do estabelecimento (900x600)</p>
-                                </div>
-                            )}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {Array.from({ length: 6 }).map((_, idx) => {
+                                const photoUrl = formData.photos[idx];
+                                return (
+                                    <div key={idx} className="aspect-[3/2] relative group bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl overflow-hidden hover:border-primary/50 transition-colors flex items-center justify-center">
+                                        {photoUrl ? (
+                                            <>
+                                                <img src={photoUrl} alt="Foto estabelecimento" className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <button 
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            const newPhotos = [...formData.photos];
+                                                            newPhotos.splice(idx, 1);
+                                                            setFormData(prev => ({ ...prev, photos: newPhotos }));
+                                                        }}
+                                                        className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                    </button>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="w-full h-full p-2">
+                                                <MediaUploader
+                                                    bucket="partner-photos"
+                                                    label="Adicionar Foto"
+                                                    currentUrl=""
+                                                    onUpload={(url) => {
+                                                        const newPhotos = [...formData.photos];
+                                                        newPhotos[idx] = url;
+                                                        // compact array to remove empty slots in the middle if desired, 
+                                                        // but keeping slots mapped directly is fine.
+                                                        setFormData(prev => ({ ...prev, photos: newPhotos.filter(Boolean) }));
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -392,6 +405,24 @@ const RegisterPartner: React.FC = () => {
                                     value={formData.facebook}
                                     onChange={handleChange}
                                     placeholder="suapagina"
+                                />
+                            </div>
+                        </div>
+                        
+                        {/* WhatsApp */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">
+                                    <span className="material-symbols-outlined text-[16px]">chat</span>
+                                </span>
+                                <input
+                                    className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20"
+                                    type="text"
+                                    name="whatsapp"
+                                    value={formData.whatsapp}
+                                    onChange={handleChange}
+                                    placeholder="(11) 99999-9999"
                                 />
                             </div>
                         </div>

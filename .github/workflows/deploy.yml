@@ -1,4 +1,4 @@
-name: Deploy to cPanel (TurboCloud)
+name: Deploy to cPanel via SSH
 
 on:
   push:
@@ -11,17 +11,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Baixa o código do seu repositório para o servidor do GitHub
+      # 1. Baixa o código do seu repositório
       - name: 📦 Checkout do código
         uses: actions/checkout@v4
 
-      # 2. Prepara o ambiente instalando o Node.js (necessário para rodar o React/Vite)
+      # 2. Prepara o Node.js
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # 3. Instala as dependências do seu projeto (npm install)
+      # 3. Instala as dependências
       - name: 📥 Instalar dependências
         run: npm install
 
@@ -29,18 +29,14 @@ jobs:
       - name: 🏗️ Build do projeto
         run: npm run build
 
-      # 5. Envia a pasta 'dist' gerada para a TurboCloud via FTP/FTPS
-      # OBS: Caso o GitHub indique "Error: getaddrinfo EAI_AGAIN", 
-      # isso é uma falha de rede/DNS INTERNA e temporária dos servidores do próprio GitHub Actions (eles perdem o sinal).
-      # Como não é um erro do código nem da senha, a solução é sempre disparar um novo deploy (Re-run all jobs).
-      - name: 📤 FTP Deploy
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ./ # A pasta destino na sua hospedagem
-          local-dir: ./dist/      # Pasta onde o Vite e React geram o site pronto
-          protocol: ftp 
-          # TurboCloud/cPanel pode ter delays de resposta via Actions, aumentar o timeout é recomendado:
-          timeout: 60000
+      # 5. Envia a pasta 'dist' via SSH (rsync)
+      - name: 🔐 SSH Deploy
+        uses: easingthemes/ssh-deploy@main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          ARGS: "-rlgoDzvc -i --delete"
+          SOURCE: "dist/"
+          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+          REMOTE_USER: ${{ secrets.REMOTE_USER }}
+          TARGET: ${{ secrets.REMOTE_TARGET }}
+          EXCLUDE: "/node_modules/"

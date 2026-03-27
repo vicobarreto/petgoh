@@ -25,9 +25,11 @@ interface Partner {
     status: 'pending' | 'active' | 'rejected' | 'inactive';
     logo_url: string | null;
     hotel_photo_url: string | null;
-    website: string | null;
-    instagram: string | null;
-    facebook: string | null;
+    website_url: string | null;
+    instagram_url: string | null;
+    facebook_url: string | null;
+    whatsapp: string | null;
+    photos: string[] | null;
     custom_commission_rate: number | null;
     created_at: string;
     partner_services?: { name: string }[];
@@ -111,9 +113,11 @@ const PartnerManagement: React.FC = () => {
                 status: formData.status || 'pending',
                 logo_url: formData.logo_url,
                 hotel_photo_url: formData.hotel_photo_url || null,
-                website: formData.website || null,
-                instagram: formData.instagram || null,
-                facebook: formData.facebook || null,
+                website_url: formData.website_url || null,
+                instagram_url: formData.instagram_url || null,
+                facebook_url: formData.facebook_url || null,
+                whatsapp: formData.whatsapp || null,
+                photos: formData.photos || [],
                 custom_commission_rate: formData.custom_commission_rate
             };
 
@@ -574,8 +578,8 @@ const PartnerManagement: React.FC = () => {
                                             type="url"
                                             placeholder="https://www.site.com.br"
                                             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-                                            value={formData.website || ''}
-                                            onChange={e => setFormData({ ...formData, website: e.target.value })}
+                                            value={formData.website_url || ''}
+                                            onChange={e => setFormData({ ...formData, website_url: e.target.value })}
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -587,8 +591,8 @@ const PartnerManagement: React.FC = () => {
                                             type="text"
                                             placeholder="@parceiro"
                                             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-                                            value={formData.instagram || ''}
-                                            onChange={e => setFormData({ ...formData, instagram: e.target.value })}
+                                            value={formData.instagram_url || ''}
+                                            onChange={e => setFormData({ ...formData, instagram_url: e.target.value })}
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -600,8 +604,21 @@ const PartnerManagement: React.FC = () => {
                                             type="text"
                                             placeholder="/pagina-no-facebook"
                                             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-                                            value={formData.facebook || ''}
-                                            onChange={e => setFormData({ ...formData, facebook: e.target.value })}
+                                            value={formData.facebook_url || ''}
+                                            onChange={e => setFormData({ ...formData, facebook_url: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-[16px] text-green-500">chat</span>
+                                            WhatsApp
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="(11) 99999-9999"
+                                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary/20 outline-none text-sm"
+                                            value={formData.whatsapp || ''}
+                                            onChange={e => setFormData({ ...formData, whatsapp: e.target.value })}
                                         />
                                     </div>
                                 </div>
